@@ -17,7 +17,7 @@ export const SiteHeader = () => {
       <div className="container flex h-16 items-center justify-between">
         <Link to={user ? "/groups" : "/"} className="flex items-center gap-2 group">
           <ScrollText className="h-6 w-6 text-primary group-hover:rotate-6 transition-transform" />
-          <span className="font-display text-xl gold-text">Codex of Heroes</span>
+          <span className="font-display text-xl gold-text">Terre di Nadorryen</span>
         </Link>
 
         <nav className="flex items-center gap-2">
