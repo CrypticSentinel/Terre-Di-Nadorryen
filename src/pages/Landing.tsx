@@ -36,10 +36,10 @@ const Landing = () => {
             ti siano sempre favorevoli.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 animate-fade-up">
-            <Link to={user ? "/groups" : "/auth"}>
+            <Link to={user ? "/campaigns" : "/auth"}>
               <Button size="lg" className="font-heading text-base px-8 shadow-glow">
                 <ScrollText className="mr-2 h-5 w-5" />
-                {user ? "Vai ai tuoi gruppi" : "Apri il Codice"}
+                {user ? "Vai alle campagne" : "Apri il Codice"}
               </Button>
             </Link>
             <a href="#features">

@@ -14,12 +14,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      campaign_members: {
+        Row: {
+          campaign_id: string
+          id: string
+          joined_at: string
+          role: Database["public"]["Enums"]["campaign_role"]
+          user_id: string
+        }
+        Insert: {
+          campaign_id: string
+          id?: string
+          joined_at?: string
+          role?: Database["public"]["Enums"]["campaign_role"]
+          user_id: string
+        }
+        Update: {
+          campaign_id?: string
+          id?: string
+          joined_at?: string
+          role?: Database["public"]["Enums"]["campaign_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_members_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          ruleset_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          ruleset_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          ruleset_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_ruleset_id_fkey"
+            columns: ["ruleset_id"]
+            isOneToOne: false
+            referencedRelation: "rulesets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       characters: {
         Row: {
+          campaign_id: string
           concept: string | null
           created_at: string
           custom_fields: Json
-          group_id: string
           id: string
           image_url: string | null
           name: string
@@ -27,10 +94,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          campaign_id: string
           concept?: string | null
           created_at?: string
           custom_fields?: Json
-          group_id: string
           id?: string
           image_url?: string | null
           name: string
@@ -38,10 +105,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          campaign_id?: string
           concept?: string | null
           created_at?: string
           custom_fields?: Json
-          group_id?: string
           id?: string
           image_url?: string | null
           name?: string
@@ -50,75 +117,13 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "characters_group_id_fkey"
-            columns: ["group_id"]
+            foreignKeyName: "characters_campaign_id_fkey"
+            columns: ["campaign_id"]
             isOneToOne: false
-            referencedRelation: "groups"
+            referencedRelation: "campaigns"
             referencedColumns: ["id"]
           },
         ]
-      }
-      group_members: {
-        Row: {
-          group_id: string
-          id: string
-          joined_at: string
-          role: Database["public"]["Enums"]["group_role"]
-          user_id: string
-        }
-        Insert: {
-          group_id: string
-          id?: string
-          joined_at?: string
-          role?: Database["public"]["Enums"]["group_role"]
-          user_id: string
-        }
-        Update: {
-          group_id?: string
-          id?: string
-          joined_at?: string
-          role?: Database["public"]["Enums"]["group_role"]
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "group_members_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      groups: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          invite_code: string
-          master_id: string
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          invite_code?: string
-          master_id: string
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          invite_code?: string
-          master_id?: string
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       profiles: {
         Row: {
@@ -140,6 +145,30 @@ export type Database = {
           created_at?: string
           display_name?: string
           id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rulesets: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
           updated_at?: string
         }
         Relationships: []
@@ -185,6 +214,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -194,17 +244,25 @@ export type Database = {
         Args: { _character_id: string; _user_id: string }
         Returns: boolean
       }
-      is_group_master: {
-        Args: { _group_id: string; _user_id: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
         Returns: boolean
       }
-      is_group_member: {
-        Args: { _group_id: string; _user_id: string }
+      is_campaign_member: {
+        Args: { _campaign_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_campaign_narrator: {
+        Args: { _campaign_id: string; _user_id: string }
         Returns: boolean
       }
     }
     Enums: {
-      group_role: "master" | "player"
+      app_role: "admin" | "narratore" | "giocatore"
+      campaign_role: "narratore" | "giocatore"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -332,7 +390,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      group_role: ["master", "player"],
+      app_role: ["admin", "narratore", "giocatore"],
+      campaign_role: ["narratore", "giocatore"],
     },
   },
 } as const

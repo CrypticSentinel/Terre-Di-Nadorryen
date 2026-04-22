@@ -22,7 +22,7 @@ interface CustomField {
 }
 interface Character {
   id: string;
-  group_id: string;
+  campaign_id: string;
   owner_id: string;
   name: string;
   concept: string | null;
@@ -73,7 +73,7 @@ const CharacterDetail = () => {
     ]);
     if (c.error || !c.data) {
       toast.error("Personaggio non trovato");
-      navigate("/groups");
+      navigate("/campaigns");
       return;
     }
     const ch = c.data as any as Character;
@@ -143,7 +143,7 @@ const CharacterDetail = () => {
     if (error) toast.error(error.message);
     else {
       toast.success("Scheda eliminata");
-      navigate(`/groups/${character.group_id}`);
+      navigate(`/campaigns/${character.campaign_id}`);
     }
   };
 
@@ -190,8 +190,8 @@ const CharacterDetail = () => {
     <div className="min-h-screen">
       <SiteHeader />
       <main className="container py-8">
-        <Link to={`/groups/${character.group_id}`} className="inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary mb-4">
-          <ArrowLeft className="h-4 w-4" /> Torna alla compagnia
+        <Link to={`/campaigns/${character.campaign_id}`} className="inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary mb-4">
+          <ArrowLeft className="h-4 w-4" /> Torna alla campagna
         </Link>
 
         <div className="grid lg:grid-cols-[320px_1fr] gap-6">
