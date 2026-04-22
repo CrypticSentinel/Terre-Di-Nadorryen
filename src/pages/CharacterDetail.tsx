@@ -1,0 +1,376 @@
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { SiteHeader } from "@/components/SiteHeader";
+import { DiceRoller } from "@/components/DiceRoller";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+} from "@/components/ui/dialog";
+import { ArrowLeft, Plus, Trash2, Loader2, Camera, BookMarked, ScrollText, Save } from "lucide-react";
+import { toast } from "sonner";
+
+interface CustomField {
+  id: string;
+  label: string;
+  value: string;
+}
+interface Character {
+  id: string;
+  group_id: string;
+  owner_id: string;
+  name: string;
+  concept: string | null;
+  image_url: string | null;
+  custom_fields: CustomField[];
+}
+interface Note {
+  id: string;
+  title: string;
+  content: string;
+  session_date: string | null;
+  author_id: string;
+  created_at: string;
+}
+
+const CharacterDetail = () => {
+  const { characterId } = useParams<{ characterId: string }>();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [character, setCharacter] = useState<Character | null>(null);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  // local form state
+  const [name, setName] = useState("");
+  const [concept, setConcept] = useState("");
+  const [fields, setFields] = useState<CustomField[]>([]);
+
+  // notes dialog
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteTitle, setNoteTitle] = useState("");
+  const [noteContent, setNoteContent] = useState("");
+  const [noteDate, setNoteDate] = useState("");
+  const [noteSubmitting, setNoteSubmitting] = useState(false);
+
+  const canEdit = character && user && character.owner_id === user.id;
+
+  const load = async () => {
+    if (!characterId) return;
+    setLoading(true);
+    const [c, n] = await Promise.all([
+      supabase.from("characters").select("*").eq("id", characterId).maybeSingle(),
+      supabase.from("session_notes").select("*").eq("character_id", characterId).order("created_at", { ascending: false }),
+    ]);
+    if (c.error || !c.data) {
+      toast.error("Personaggio non trovato");
+      navigate("/groups");
+      return;
+    }
+    const ch = c.data as any as Character;
+    // Normalizza custom_fields
+    if (!Array.isArray(ch.custom_fields)) ch.custom_fields = [];
+    setCharacter(ch);
+    setName(ch.name);
+    setConcept(ch.concept ?? "");
+    setFields(ch.custom_fields);
+    setNotes((n.data ?? []) as Note[]);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [characterId]);
+
+  const addField = () => {
+    setFields((prev) => [...prev, { id: crypto.randomUUID(), label: "Nuovo campo", value: "" }]);
+  };
+  const updateField = (id: string, key: "label" | "value", val: string) => {
+    setFields((prev) => prev.map((f) => (f.id === id ? { ...f, [key]: val } : f)));
+  };
+  const removeField = (id: string) => {
+    setFields((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const handleSave = async () => {
+    if (!character) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("characters")
+      .update({ name, concept: concept || null, custom_fields: fields as any })
+      .eq("id", character.id);
+    setSaving(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Scheda salvata");
+      load();
+    }
+  };
+
+  const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !character || !user) return;
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/${character.id}-${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (upErr) {
+      toast.error(upErr.message);
+      setUploading(false);
+      return;
+    }
+    const { data: signed } = await supabase.storage.from("avatars").createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
+    const url = signed?.signedUrl ?? null;
+    const { error: updErr } = await supabase.from("characters").update({ image_url: url }).eq("id", character.id);
+    setUploading(false);
+    if (updErr) toast.error(updErr.message);
+    else {
+      toast.success("Immagine aggiornata");
+      load();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!character || !confirm("Eliminare questa scheda?")) return;
+    const { error } = await supabase.from("characters").delete().eq("id", character.id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Scheda eliminata");
+      navigate(`/groups/${character.group_id}`);
+    }
+  };
+
+  const submitNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !character) return;
+    setNoteSubmitting(true);
+    const { error } = await supabase.from("session_notes").insert({
+      character_id: character.id,
+      author_id: user.id,
+      title: noteTitle,
+      content: noteContent,
+      session_date: noteDate || null,
+    });
+    setNoteSubmitting(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Annotazione aggiunta al diario");
+      setNoteOpen(false);
+      setNoteTitle(""); setNoteContent(""); setNoteDate("");
+      load();
+    }
+  };
+
+  const deleteNote = async (id: string) => {
+    if (!confirm("Eliminare questa annotazione?")) return;
+    const { error } = await supabase.from("session_notes").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else { toast.success("Annotazione rimossa"); load(); }
+  };
+
+  if (loading || !character) {
+    return (
+      <div className="min-h-screen">
+        <SiteHeader />
+        <div className="flex justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen">
+      <SiteHeader />
+      <main className="container py-8">
+        <Link to={`/groups/${character.group_id}`} className="inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary mb-4">
+          <ArrowLeft className="h-4 w-4" /> Torna alla compagnia
+        </Link>
+
+        <div className="grid lg:grid-cols-[320px_1fr] gap-6">
+          {/* Sidebar: foto + dadi */}
+          <aside className="space-y-5">
+            <div className="parchment-panel p-4">
+              <div className="aspect-[3/4] bg-gradient-to-br from-parchment-deep to-parchment-shadow rounded overflow-hidden relative group">
+                {character.image_url ? (
+                  <img src={character.image_url} alt={character.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ScrollText className="h-20 w-20 text-primary/40" />
+                  </div>
+                )}
+                {canEdit && (
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
+                    className="absolute inset-0 bg-ink/0 hover:bg-ink/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                  >
+                    <div className="text-primary-foreground flex flex-col items-center gap-1">
+                      {uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Camera className="h-6 w-6" />}
+                      <span className="text-xs font-heading">Cambia immagine</span>
+                    </div>
+                  </button>
+                )}
+                <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
+              </div>
+            </div>
+
+            <DiceRoller />
+          </aside>
+
+          {/* Main */}
+          <div className="space-y-5">
+            <div className="parchment-panel p-6">
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="flex-1">
+                  {canEdit ? (
+                    <>
+                      <Input value={name} onChange={(e) => setName(e.target.value)} className="font-display text-3xl gold-text bg-transparent border-0 border-b border-border rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary h-auto py-1" />
+                      <Input value={concept} onChange={(e) => setConcept(e.target.value)} placeholder="Concept del personaggio..." className="font-script italic text-ink-faded bg-transparent border-0 px-0 focus-visible:ring-0 mt-1 h-auto" />
+                    </>
+                  ) : (
+                    <>
+                      <h1 className="font-display text-3xl gold-text">{character.name}</h1>
+                      {character.concept && <p className="font-script italic text-ink-faded">{character.concept}</p>}
+                    </>
+                  )}
+                </div>
+                {canEdit && (
+                  <Button variant="ghost" size="sm" onClick={handleDelete} className="text-destructive shrink-0">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
+              <Tabs defaultValue="sheet">
+                <TabsList className="bg-parchment-deep/40">
+                  <TabsTrigger value="sheet" className="font-heading"><ScrollText className="h-4 w-4 mr-1" /> Scheda</TabsTrigger>
+                  <TabsTrigger value="diary" className="font-heading"><BookMarked className="h-4 w-4 mr-1" /> Diario ({notes.length})</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="sheet" className="space-y-3 mt-4">
+                  {fields.length === 0 && (
+                    <p className="text-center font-script italic text-ink-faded py-6">
+                      {canEdit ? "Nessun campo. Aggiungi caratteristiche, abilità, equipaggiamento, incantesimi..." : "Scheda vuota."}
+                    </p>
+                  )}
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {fields.map((f) => (
+                      <div key={f.id} className="bg-parchment-deep/20 border border-border/60 rounded p-3 group">
+                        {canEdit ? (
+                          <>
+                            <div className="flex items-center gap-1 mb-1">
+                              <Input
+                                value={f.label}
+                                onChange={(e) => updateField(f.id, "label", e.target.value)}
+                                className="font-heading text-xs uppercase tracking-wider bg-transparent border-0 px-0 h-6 focus-visible:ring-0"
+                              />
+                              <button onClick={() => removeField(f.id)} className="opacity-0 group-hover:opacity-100 text-destructive">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            <Textarea
+                              value={f.value}
+                              onChange={(e) => updateField(f.id, "value", e.target.value)}
+                              className="bg-transparent border-0 px-0 min-h-[40px] font-script focus-visible:ring-0 resize-none"
+                              rows={1}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <div className="font-heading text-xs uppercase tracking-wider text-ink-faded">{f.label}</div>
+                            <div className="font-script whitespace-pre-wrap">{f.value}</div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {canEdit && (
+                    <div className="flex gap-2 pt-3 border-t border-border/40">
+                      <Button variant="outline" size="sm" onClick={addField} className="font-heading">
+                        <Plus className="h-4 w-4 mr-1" /> Aggiungi campo
+                      </Button>
+                      <Button size="sm" onClick={handleSave} disabled={saving} className="font-heading ml-auto">
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salva scheda</>}
+                      </Button>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="diary" className="space-y-4 mt-4">
+                  <div className="flex justify-end">
+                    <Dialog open={noteOpen} onOpenChange={setNoteOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" className="font-heading"><Plus className="h-4 w-4 mr-1" /> Nuova annotazione</Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle className="font-display gold-text">Annotazione di sessione</DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={submitNote} className="space-y-3">
+                          <div>
+                            <Label className="font-heading">Titolo</Label>
+                            <Input value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} required />
+                          </div>
+                          <div>
+                            <Label className="font-heading">Data sessione</Label>
+                            <Input type="date" value={noteDate} onChange={(e) => setNoteDate(e.target.value)} />
+                          </div>
+                          <div>
+                            <Label className="font-heading">Cronaca</Label>
+                            <Textarea value={noteContent} onChange={(e) => setNoteContent(e.target.value)} rows={6} required />
+                          </div>
+                          <DialogFooter>
+                            <Button type="submit" disabled={noteSubmitting} className="font-heading">
+                              {noteSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Annota"}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+
+                  {notes.length === 0 ? (
+                    <p className="text-center font-script italic text-ink-faded py-6">Nessuna pagina ancora scritta nel diario.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {notes.map((n) => (
+                        <article key={n.id} className="bg-parchment-deep/20 border border-border/60 rounded p-4">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div>
+                              <h4 className="font-heading text-lg">{n.title}</h4>
+                              <p className="text-xs font-script italic text-ink-faded">
+                                {n.session_date ? new Date(n.session_date).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" }) : new Date(n.created_at).toLocaleDateString("it-IT")}
+                              </p>
+                            </div>
+                            {n.author_id === user?.id && (
+                              <button onClick={() => deleteNote(n.id)} className="text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                          <p className="font-script whitespace-pre-wrap text-ink leading-relaxed drop-cap">{n.content}</p>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default CharacterDetail;
