@@ -1,96 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=IM+Fell+English:ital@0;1&family=Uncial+Antiqua&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/*
+  Codex of Heroes — Design System (Fantasy Pergamena)
+  Tutti i colori sono in HSL.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Pergamena & inchiostro */
+    --background: 38 45% 88%;
+    --foreground: 25 45% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --parchment: 38 50% 85%;
+    --parchment-deep: 35 40% 75%;
+    --parchment-shadow: 30 35% 60%;
+    --ink: 25 50% 12%;
+    --ink-faded: 25 30% 30%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --card: 38 55% 92%;
+    --card-foreground: 25 45% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --popover: 38 55% 92%;
+    --popover-foreground: 25 45% 15%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Oro reale */
+    --primary: 38 75% 38%;
+    --primary-foreground: 40 60% 95%;
+    --primary-glow: 42 85% 55%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Bordo / accenti */
+    --secondary: 30 35% 75%;
+    --secondary-foreground: 25 50% 15%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --muted: 38 30% 78%;
+    --muted-foreground: 25 25% 35%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --accent: 0 55% 35%; /* sangue di drago */
+    --accent-foreground: 40 60% 95%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --destructive: 0 70% 35%;
+    --destructive-foreground: 40 60% 95%;
 
-    --radius: 0.5rem;
+    --border: 30 40% 55%;
+    --input: 30 35% 65%;
+    --ring: 38 75% 38%;
 
-    --sidebar-background: 0 0% 98%;
+    --radius: 0.25rem;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Gradienti tematici */
+    --gradient-gold: linear-gradient(135deg, hsl(38 75% 38%) 0%, hsl(45 90% 60%) 50%, hsl(38 75% 38%) 100%);
+    --gradient-parchment: linear-gradient(180deg, hsl(38 55% 92%) 0%, hsl(35 45% 82%) 100%);
+    --gradient-ember: linear-gradient(135deg, hsl(15 70% 35%) 0%, hsl(0 60% 30%) 100%);
+    --gradient-vignette: radial-gradient(ellipse at center, transparent 40%, hsl(25 45% 15% / 0.35) 100%);
 
-    --sidebar-primary: 240 5.9% 10%;
+    /* Ombre */
+    --shadow-arcane: 0 10px 40px -10px hsl(25 60% 10% / 0.4), 0 2px 6px hsl(25 50% 20% / 0.2);
+    --shadow-emboss: inset 0 1px 0 hsl(45 70% 75% / 0.6), inset 0 -2px 4px hsl(25 50% 20% / 0.15);
+    --shadow-glow: 0 0 30px hsl(42 85% 55% / 0.4);
 
-    --sidebar-primary-foreground: 0 0% 98%;
+    /* Transizioni */
+    --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 38 45% 88%;
+    --sidebar-foreground: 25 45% 15%;
+    --sidebar-primary: 38 75% 38%;
+    --sidebar-primary-foreground: 40 60% 95%;
+    --sidebar-accent: 38 30% 78%;
+    --sidebar-accent-foreground: 25 50% 15%;
+    --sidebar-border: 30 40% 55%;
+    --sidebar-ring: 38 75% 38%;
   }
 }
 
@@ -99,7 +81,98 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html, body, #root {
+    min-height: 100vh;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    font-family: 'IM Fell English', 'Georgia', serif;
+    background-color: hsl(var(--parchment));
+    background-image:
+      radial-gradient(ellipse at top, hsl(45 60% 85% / 0.6), transparent 60%),
+      radial-gradient(ellipse at bottom, hsl(25 50% 30% / 0.15), transparent 70%),
+      url('/src/assets/parchment-texture.jpg');
+    background-size: cover, cover, 800px 600px;
+    background-attachment: fixed;
+    background-blend-mode: multiply, normal, normal;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Cinzel', 'Times New Roman', serif;
+    @apply tracking-wide;
+  }
+
+  .font-display {
+    font-family: 'Uncial Antiqua', 'Cinzel', serif;
+  }
+
+  .font-script {
+    font-family: 'IM Fell English', serif;
+  }
+}
+
+@layer components {
+  /* Pannello pergamena */
+  .parchment-panel {
+    background:
+      linear-gradient(180deg, hsl(var(--card) / 0.92) 0%, hsl(35 45% 82% / 0.92) 100%);
+    border: 1px solid hsl(var(--border) / 0.6);
+    box-shadow: var(--shadow-arcane), var(--shadow-emboss);
+    border-radius: var(--radius);
+    position: relative;
+  }
+
+  .parchment-panel::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid hsl(var(--primary) / 0.25);
+    border-radius: calc(var(--radius) - 2px);
+    pointer-events: none;
+  }
+
+  /* Divisore decorato */
+  .ornament-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: hsl(var(--primary));
+  }
+
+  .ornament-divider::before,
+  .ornament-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.6), transparent);
+  }
+
+  /* Titolo dorato */
+  .gold-text {
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 1px 0 hsl(25 50% 20% / 0.15);
+  }
+
+  /* Initial cap stile manoscritto */
+  .drop-cap::first-letter {
+    font-family: 'Uncial Antiqua', serif;
+    float: left;
+    font-size: 3.5rem;
+    line-height: 0.9;
+    padding: 0.25rem 0.5rem 0 0;
+    color: hsl(var(--accent));
+  }
+}
+
+@layer utilities {
+  .bg-vignette {
+    background-image: var(--gradient-vignette);
+  }
+  .text-shadow-emboss {
+    text-shadow: 0 1px 0 hsl(40 60% 95% / 0.5), 0 -1px 0 hsl(25 50% 10% / 0.3);
   }
 }
