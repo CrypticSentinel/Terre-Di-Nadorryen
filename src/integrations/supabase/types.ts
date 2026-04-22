@@ -14,16 +14,197 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      characters: {
+        Row: {
+          concept: string | null
+          created_at: string
+          custom_fields: Json
+          group_id: string
+          id: string
+          image_url: string | null
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          concept?: string | null
+          created_at?: string
+          custom_fields?: Json
+          group_id: string
+          id?: string
+          image_url?: string | null
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          concept?: string | null
+          created_at?: string
+          custom_fields?: Json
+          group_id?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "characters_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_members: {
+        Row: {
+          group_id: string
+          id: string
+          joined_at: string
+          role: Database["public"]["Enums"]["group_role"]
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          joined_at?: string
+          role?: Database["public"]["Enums"]["group_role"]
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          joined_at?: string
+          role?: Database["public"]["Enums"]["group_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          invite_code: string
+          master_id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          invite_code?: string
+          master_id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          invite_code?: string
+          master_id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      session_notes: {
+        Row: {
+          author_id: string
+          character_id: string
+          content: string
+          created_at: string
+          id: string
+          session_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          character_id: string
+          content: string
+          created_at?: string
+          id?: string
+          session_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          character_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          session_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_notes_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_access_character: {
+        Args: { _character_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_group_master: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_group_member: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      group_role: "master" | "player"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +331,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      group_role: ["master", "player"],
+    },
   },
 } as const
