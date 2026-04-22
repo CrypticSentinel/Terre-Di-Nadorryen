@@ -29,7 +29,7 @@ const Landing = () => {
         <div className="relative container py-24 md:py-36 text-center">
           <p className="font-script italic text-ink-faded mb-4 animate-fade-up">~ Capitolo Primo ~</p>
           <h1 className="font-display text-5xl md:text-7xl gold-text mb-6 animate-fade-up text-shadow-emboss">
-            Codex of Heroes
+            Terre di Nadorryen
           </h1>
           <p className="font-script text-lg md:text-2xl max-w-2xl mx-auto text-ink-faded mb-10 animate-fade-up">
             Custodisci le schede dei tuoi eroi, condividile con il tuo gruppo, e che le sorti dei dadi
