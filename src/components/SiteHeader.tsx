@@ -15,7 +15,7 @@ export const SiteHeader = () => {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-parchment/80 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between">
-        <Link to={user ? "/groups" : "/"} className="flex items-center gap-2 group">
+        <Link to={user ? "/campaigns" : "/"} className="flex items-center gap-2 group">
           <ScrollText className="h-6 w-6 text-primary group-hover:rotate-6 transition-transform" />
           <span className="font-display text-xl gold-text">Terre di Nadorryen</span>
         </Link>
@@ -23,10 +23,10 @@ export const SiteHeader = () => {
         <nav className="flex items-center gap-2">
           {user ? (
             <>
-              <Link to="/groups">
+              <Link to="/campaigns">
                 <Button variant="ghost" size="sm" className="font-heading">
                   <UserIcon className="h-4 w-4 mr-2" />
-                  I miei gruppi
+                  Le campagne
                 </Button>
               </Link>
               <Button variant="ghost" size="sm" onClick={handleSignOut} className="font-heading">
