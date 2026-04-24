@@ -413,7 +413,7 @@ const CampaignDetail = () => {
           <h2 className="font-heading text-2xl">
             {isNarrator || isAdmin ? "Schede della campagna" : "Le tue schede"}
           </h2>
-          {isMember && !isNarrator && (
+          {((isMember && !isNarrator) || isAdmin) && (
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
               <DialogTrigger asChild>
                 <Button className="font-heading"><Plus className="h-4 w-4 mr-2" /> Nuovo eroe</Button>
