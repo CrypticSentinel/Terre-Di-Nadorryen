@@ -276,7 +276,7 @@ export const OpenSourceGdrSheet = ({ value, onChange, canEdit }: Props) => {
 
       {/* === Stati / Risorse === */}
       <section className="space-y-3">
-        <h3 className="font-display text-xl gold-text">Stati &amp; Risorse</h3>
+        <h3 className="font-display text-xl gold-text">Stati & Risorse</h3>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {([
             ["iniziativa", "Iniziativa"],
