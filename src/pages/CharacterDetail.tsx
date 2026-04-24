@@ -284,54 +284,78 @@ const CharacterDetail = () => {
                   <TabsTrigger value="diary" className="font-heading"><BookMarked className="h-4 w-4 mr-1" /> Diario ({notes.length})</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="sheet" className="space-y-3 mt-4">
-                  {fields.length === 0 && (
-                    <p className="text-center font-script italic text-ink-faded py-6">
-                      {canEdit ? "Nessun campo. Aggiungi caratteristiche, abilità, equipaggiamento, incantesimi..." : "Scheda vuota."}
-                    </p>
-                  )}
-
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {fields.map((f) => (
-                      <div key={f.id} className="bg-parchment-deep/20 border border-border/60 rounded p-3 group">
-                        {canEdit ? (
-                          <>
-                            <div className="flex items-center gap-1 mb-1">
-                              <Input
-                                value={f.label}
-                                onChange={(e) => updateField(f.id, "label", e.target.value)}
-                                className="font-heading text-xs uppercase tracking-wider bg-transparent border-0 px-0 h-6 focus-visible:ring-0"
-                              />
-                              <button onClick={() => removeField(f.id)} className="opacity-0 group-hover:opacity-100 text-destructive">
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                            <Textarea
-                              value={f.value}
-                              onChange={(e) => updateField(f.id, "value", e.target.value)}
-                              className="bg-transparent border-0 px-0 min-h-[40px] font-script focus-visible:ring-0 resize-none"
-                              rows={1}
-                            />
-                          </>
-                        ) : (
-                          <>
-                            <div className="font-heading text-xs uppercase tracking-wider text-ink-faded">{f.label}</div>
-                            <div className="font-script whitespace-pre-wrap">{f.value}</div>
-                          </>
-                        )}
+                <TabsContent value="sheet" className="space-y-4 mt-4">
+                  {useOsgdrForm ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <p className="font-script italic text-xs text-ink-faded">
+                          Scheda <strong>Open Source GDR</strong>
+                        </p>
                       </div>
-                    ))}
-                  </div>
+                      <OpenSourceGdrSheet
+                        value={osgdrSheet}
+                        onChange={setOsgdrSheet}
+                        canEdit={!!canEdit}
+                      />
+                      {canEdit && (
+                        <div className="flex pt-3 border-t border-border/40">
+                          <Button size="sm" onClick={handleSave} disabled={saving} className="font-heading ml-auto">
+                            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salva scheda</>}
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {visibleFields.length === 0 && (
+                        <p className="text-center font-script italic text-ink-faded py-6">
+                          {canEdit ? "Nessun campo. Aggiungi caratteristiche, abilità, equipaggiamento, incantesimi..." : "Scheda vuota."}
+                        </p>
+                      )}
 
-                  {canEdit && (
-                    <div className="flex gap-2 pt-3 border-t border-border/40">
-                      <Button variant="outline" size="sm" onClick={addField} className="font-heading">
-                        <Plus className="h-4 w-4 mr-1" /> Aggiungi campo
-                      </Button>
-                      <Button size="sm" onClick={handleSave} disabled={saving} className="font-heading ml-auto">
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salva scheda</>}
-                      </Button>
-                    </div>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        {visibleFields.map((f) => (
+                          <div key={f.id} className="bg-parchment-deep/20 border border-border/60 rounded p-3 group">
+                            {canEdit ? (
+                              <>
+                                <div className="flex items-center gap-1 mb-1">
+                                  <Input
+                                    value={f.label}
+                                    onChange={(e) => updateField(f.id, "label", e.target.value)}
+                                    className="font-heading text-xs uppercase tracking-wider bg-transparent border-0 px-0 h-6 focus-visible:ring-0"
+                                  />
+                                  <button onClick={() => removeField(f.id)} className="opacity-0 group-hover:opacity-100 text-destructive">
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                                <Textarea
+                                  value={f.value}
+                                  onChange={(e) => updateField(f.id, "value", e.target.value)}
+                                  className="bg-transparent border-0 px-0 min-h-[40px] font-script focus-visible:ring-0 resize-none"
+                                  rows={1}
+                                />
+                              </>
+                            ) : (
+                              <>
+                                <div className="font-heading text-xs uppercase tracking-wider text-ink-faded">{f.label}</div>
+                                <div className="font-script whitespace-pre-wrap">{f.value}</div>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {canEdit && (
+                        <div className="flex gap-2 pt-3 border-t border-border/40">
+                          <Button variant="outline" size="sm" onClick={addField} className="font-heading">
+                            <Plus className="h-4 w-4 mr-1" /> Aggiungi campo
+                          </Button>
+                          <Button size="sm" onClick={handleSave} disabled={saving} className="font-heading ml-auto">
+                            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salva scheda</>}
+                          </Button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </TabsContent>
 
