@@ -12,15 +12,20 @@ import { ScrollText, Loader2 } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isApproved, approvalStatus } = useAuth();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
 
   useEffect(() => {
-    if (!authLoading && user) navigate("/groups", { replace: true });
-  }, [user, authLoading, navigate]);
+    if (authLoading || !user) return;
+    if (isApproved) {
+      navigate("/campaigns", { replace: true });
+    } else if (approvalStatus) {
+      navigate("/pending-approval", { replace: true });
+    }
+  }, [user, authLoading, isApproved, approvalStatus, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +36,6 @@ const Auth = () => {
       toast.error(error.message === "Invalid login credentials" ? "Credenziali non valide" : error.message);
     } else {
       toast.success("Bentornato, avventuriero!");
-      navigate("/groups");
     }
   };
 
@@ -42,7 +46,7 @@ const Auth = () => {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/groups`,
+        emailRedirectTo: `${window.location.origin}/pending-approval`,
         data: { display_name: displayName || email.split("@")[0] },
       },
     });
@@ -50,8 +54,7 @@ const Auth = () => {
     if (error) {
       toast.error(error.message.includes("already") ? "Questo indirizzo è già registrato" : error.message);
     } else {
-      toast.success("Il tuo nome è stato iscritto nel Codex!");
-      navigate("/groups");
+      toast.success("Iscrizione ricevuta! Attendi l'approvazione del cronista.");
     }
   };
 
