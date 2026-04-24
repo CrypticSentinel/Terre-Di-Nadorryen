@@ -455,26 +455,39 @@ const CampaignDetail = () => {
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {visibleCharacters.map((c) => (
-              <Link key={c.id} to={`/characters/${c.id}`}>
-                <article className="parchment-panel overflow-hidden hover:shadow-glow transition-shadow group">
-                  <div className="aspect-[4/3] bg-gradient-ember/20 relative overflow-hidden">
-                    {c.image_url ? (
-                      <img src={c.image_url} alt={c.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-parchment-deep to-parchment-shadow">
-                        <ScrollText className="h-16 w-16 text-primary/40" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-heading text-lg group-hover:text-primary transition-colors">{c.name}</h3>
-                    {c.concept && <p className="font-script italic text-sm text-ink-faded line-clamp-1">{c.concept}</p>}
-                    {c.owner_id === user?.id && <Badge variant="outline" className="mt-2 text-xs">Tuo</Badge>}
-                  </div>
+            {visibleCharacters.map((c) => {
+              const canDelete = c.owner_id === user?.id || isAdmin;
+              return (
+                <article key={c.id} className="parchment-panel overflow-hidden hover:shadow-glow transition-shadow group relative">
+                  {canDelete && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteCharacter(c.id, c.name); }}
+                      title="Elimina scheda"
+                      className="absolute top-2 right-2 z-10 p-1.5 rounded-md bg-ink/50 text-destructive opacity-0 group-hover:opacity-100 hover:bg-ink/70 transition-opacity"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                  <Link to={`/characters/${c.id}`} className="block">
+                    <div className="aspect-[4/3] bg-gradient-ember/20 relative overflow-hidden">
+                      {c.image_url ? (
+                        <img src={c.image_url} alt={c.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-parchment-deep to-parchment-shadow">
+                          <ScrollText className="h-16 w-16 text-primary/40" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-heading text-lg group-hover:text-primary transition-colors">{c.name}</h3>
+                      {c.concept && <p className="font-script italic text-sm text-ink-faded line-clamp-1">{c.concept}</p>}
+                      {c.owner_id === user?.id && <Badge variant="outline" className="mt-2 text-xs">Tuo</Badge>}
+                    </div>
+                  </Link>
                 </article>
-              </Link>
-            ))}
+              );
+            })}
           </div>
         )}
 
