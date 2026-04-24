@@ -35,8 +35,22 @@ const EQUIPMENT_SECTIONS = [
   { key: "armature", label: "Armature" },
 ] as const;
 
+const MAGIC_SCHOOLS = [
+  "Acqua", "Fuoco", "Aria", "Terra",
+  "Vita", "Morte", "Spirito", "Materia",
+  "Mente", "Corpo",
+] as const;
+
+const COIN_TYPES = [
+  { key: "oro", label: "Oro" },
+  { key: "argento", label: "Argento" },
+  { key: "rame", label: "Rame" },
+] as const;
+
 export type Ability = typeof ABILITIES[number]["key"];
 export type EquipmentKey = typeof EQUIPMENT_SECTIONS[number]["key"];
+export type MagicSchool = typeof MAGIC_SCHOOLS[number];
+export type CoinKey = typeof COIN_TYPES[number]["key"];
 
 export interface OsgdrSkill {
   id: string;
@@ -62,6 +76,10 @@ export interface OsgdrSheet {
   fortuna: string;
   fatica: string;
   pe: number;
+  // Magia: punteggio per ciascuna scuola
+  magic: Record<MagicSchool, number>;
+  // Monete
+  coins: Record<CoinKey, number>;
   // Ferite localizzate (testo libero per descrivere stato)
   ferite: Record<string, string>;
   // Equipaggiamento (liste)
@@ -76,6 +94,8 @@ export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
   eta: "", peso: "", altezza: "", capelli: "", carnagione: "", occhi: "",
   abilities: { for: 8, des: 8, cos: 8, vol: 8, pro: 8, emp: 8 },
   iniziativa: "", penalita: "", fortuna: "", fatica: "", pe: 0,
+  magic: Object.fromEntries(MAGIC_SCHOOLS.map((s) => [s, 0])) as Record<MagicSchool, number>,
+  coins: Object.fromEntries(COIN_TYPES.map((c) => [c.key, 0])) as Record<CoinKey, number>,
   ferite: Object.fromEntries(BODY_PARTS.map((p) => [p, ""])) as Record<string, string>,
   equipment: Object.fromEntries(EQUIPMENT_SECTIONS.map((s) => [s.key, [] as string[]])) as Record<EquipmentKey, string[]>,
   note: "",
@@ -84,9 +104,33 @@ export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
 
 export function normalizeOsgdrSheet(input: any): OsgdrSheet {
   const base = EMPTY_OSGDR_SHEET;
-  if (!input || typeof input !== "object") return { ...base, ferite: { ...base.ferite }, equipment: { ...base.equipment }, abilities: { ...base.abilities }, skills: [] };
+  if (!input || typeof input !== "object") {
+    return {
+      ...base,
+      ferite: { ...base.ferite },
+      equipment: { ...base.equipment },
+      abilities: { ...base.abilities },
+      magic: { ...base.magic },
+      coins: { ...base.coins },
+      skills: [],
+    };
+  }
   const abilities = { ...base.abilities, ...(input.abilities ?? {}) };
   const ferite = { ...base.ferite, ...(input.ferite ?? {}) };
+  const magic: Record<MagicSchool, number> = { ...base.magic };
+  if (input.magic && typeof input.magic === "object") {
+    for (const s of MAGIC_SCHOOLS) {
+      const v = Number(input.magic[s]);
+      if (Number.isFinite(v)) magic[s] = v;
+    }
+  }
+  const coins: Record<CoinKey, number> = { ...base.coins };
+  if (input.coins && typeof input.coins === "object") {
+    for (const c of COIN_TYPES) {
+      const v = Number(input.coins[c.key]);
+      if (Number.isFinite(v)) coins[c.key] = v;
+    }
+  }
   const equipment: Record<EquipmentKey, string[]> = { ...base.equipment };
   if (input.equipment) {
     for (const s of EQUIPMENT_SECTIONS) {
@@ -105,6 +149,8 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
     ...base,
     ...input,
     abilities,
+    magic,
+    coins,
     ferite,
     equipment,
     skills,
