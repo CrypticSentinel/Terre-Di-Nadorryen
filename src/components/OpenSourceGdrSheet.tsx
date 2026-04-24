@@ -35,8 +35,22 @@ const EQUIPMENT_SECTIONS = [
   { key: "armature", label: "Armature" },
 ] as const;
 
+const MAGIC_SCHOOLS = [
+  "Acqua", "Fuoco", "Aria", "Terra",
+  "Vita", "Morte", "Spirito", "Materia",
+  "Mente", "Corpo",
+] as const;
+
+const COIN_TYPES = [
+  { key: "oro", label: "Oro" },
+  { key: "argento", label: "Argento" },
+  { key: "rame", label: "Rame" },
+] as const;
+
 export type Ability = typeof ABILITIES[number]["key"];
 export type EquipmentKey = typeof EQUIPMENT_SECTIONS[number]["key"];
+export type MagicSchool = typeof MAGIC_SCHOOLS[number];
+export type CoinKey = typeof COIN_TYPES[number]["key"];
 
 export interface OsgdrSkill {
   id: string;
@@ -62,6 +76,10 @@ export interface OsgdrSheet {
   fortuna: string;
   fatica: string;
   pe: number;
+  // Magia: punteggio per ciascuna scuola
+  magic: Record<MagicSchool, number>;
+  // Monete
+  coins: Record<CoinKey, number>;
   // Ferite localizzate (testo libero per descrivere stato)
   ferite: Record<string, string>;
   // Equipaggiamento (liste)
@@ -76,6 +94,8 @@ export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
   eta: "", peso: "", altezza: "", capelli: "", carnagione: "", occhi: "",
   abilities: { for: 8, des: 8, cos: 8, vol: 8, pro: 8, emp: 8 },
   iniziativa: "", penalita: "", fortuna: "", fatica: "", pe: 0,
+  magic: Object.fromEntries(MAGIC_SCHOOLS.map((s) => [s, 0])) as Record<MagicSchool, number>,
+  coins: Object.fromEntries(COIN_TYPES.map((c) => [c.key, 0])) as Record<CoinKey, number>,
   ferite: Object.fromEntries(BODY_PARTS.map((p) => [p, ""])) as Record<string, string>,
   equipment: Object.fromEntries(EQUIPMENT_SECTIONS.map((s) => [s.key, [] as string[]])) as Record<EquipmentKey, string[]>,
   note: "",
@@ -84,9 +104,33 @@ export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
 
 export function normalizeOsgdrSheet(input: any): OsgdrSheet {
   const base = EMPTY_OSGDR_SHEET;
-  if (!input || typeof input !== "object") return { ...base, ferite: { ...base.ferite }, equipment: { ...base.equipment }, abilities: { ...base.abilities }, skills: [] };
+  if (!input || typeof input !== "object") {
+    return {
+      ...base,
+      ferite: { ...base.ferite },
+      equipment: { ...base.equipment },
+      abilities: { ...base.abilities },
+      magic: { ...base.magic },
+      coins: { ...base.coins },
+      skills: [],
+    };
+  }
   const abilities = { ...base.abilities, ...(input.abilities ?? {}) };
   const ferite = { ...base.ferite, ...(input.ferite ?? {}) };
+  const magic: Record<MagicSchool, number> = { ...base.magic };
+  if (input.magic && typeof input.magic === "object") {
+    for (const s of MAGIC_SCHOOLS) {
+      const v = Number(input.magic[s]);
+      if (Number.isFinite(v)) magic[s] = v;
+    }
+  }
+  const coins: Record<CoinKey, number> = { ...base.coins };
+  if (input.coins && typeof input.coins === "object") {
+    for (const c of COIN_TYPES) {
+      const v = Number(input.coins[c.key]);
+      if (Number.isFinite(v)) coins[c.key] = v;
+    }
+  }
   const equipment: Record<EquipmentKey, string[]> = { ...base.equipment };
   if (input.equipment) {
     for (const s of EQUIPMENT_SECTIONS) {
@@ -105,6 +149,8 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
     ...base,
     ...input,
     abilities,
+    magic,
+    coins,
     ferite,
     equipment,
     skills,
@@ -128,6 +174,16 @@ export const OpenSourceGdrSheet = ({ value, onChange, canEdit }: Props) => {
   const setAbility = (key: Ability, raw: string) => {
     const n = Math.max(0, Math.min(30, Number(raw) || 0));
     onChange({ ...value, abilities: { ...value.abilities, [key]: n } });
+  };
+
+  const setMagic = (school: MagicSchool, raw: string) => {
+    const n = Math.max(0, Math.min(99, Number(raw) || 0));
+    onChange({ ...value, magic: { ...value.magic, [school]: n } });
+  };
+
+  const setCoin = (key: CoinKey, raw: string) => {
+    const n = Math.max(0, Number(raw) || 0);
+    onChange({ ...value, coins: { ...value.coins, [key]: n } });
   };
 
   const setFerita = (part: string, txt: string) =>
@@ -243,6 +299,56 @@ export const OpenSourceGdrSheet = ({ value, onChange, canEdit }: Props) => {
                 />
               ) : (
                 <div className="font-display text-xl">{String((value as any)[k]) || "—"}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* === Magia === */}
+      <section className="space-y-3">
+        <h3 className="font-display text-xl gold-text">Magia</h3>
+        <p className="font-script italic text-xs text-ink-faded">
+          Punteggio per ciascuna delle dieci scuole di magia libera.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          {MAGIC_SCHOOLS.map((school) => (
+            <div key={school} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
+              <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">{school}</Label>
+              {canEdit ? (
+                <Input
+                  type="number"
+                  min={0}
+                  max={99}
+                  value={value.magic[school] ?? 0}
+                  onChange={(e) => setMagic(school, e.target.value)}
+                  className="bg-transparent border-0 text-center font-display text-xl h-9 px-0 focus-visible:ring-0"
+                />
+              ) : (
+                <div className="font-display text-xl">{value.magic[school] ?? 0}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* === Monete === */}
+      <section className="space-y-3">
+        <h3 className="font-display text-xl gold-text">Monete</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {COIN_TYPES.map((c) => (
+            <div key={c.key} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
+              <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">{c.label}</Label>
+              {canEdit ? (
+                <Input
+                  type="number"
+                  min={0}
+                  value={value.coins[c.key] ?? 0}
+                  onChange={(e) => setCoin(c.key, e.target.value)}
+                  className="bg-transparent border-0 text-center font-display text-xl h-9 px-0 focus-visible:ring-0"
+                />
+              ) : (
+                <div className="font-display text-xl">{value.coins[c.key] ?? 0}</div>
               )}
             </div>
           ))}
