@@ -29,6 +29,8 @@ const App = () => (
             <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
             <Route path="/campaigns/:campaignId" element={<ProtectedRoute><CampaignDetail /></ProtectedRoute>} />
             <Route path="/characters/:characterId" element={<ProtectedRoute><CharacterDetail /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            <Route path="/pending-approval" element={<PendingApproval />} />
             {/* Legacy redirects */}
             <Route path="/groups" element={<Navigate to="/campaigns" replace />} />
             <Route path="/groups/:groupId" element={<Navigate to="/campaigns" replace />} />
