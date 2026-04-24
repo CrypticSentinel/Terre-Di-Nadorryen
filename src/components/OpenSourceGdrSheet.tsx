@@ -280,7 +280,7 @@ export const OpenSourceGdrSheet = ({ value, onChange, canEdit }: Props) => {
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {([
             ["iniziativa", "Iniziativa"],
-            ["penalita", "Penalita'"],
+            ["penalita", "Penalità"],
             ["fortuna", "Fortuna"],
             ["fatica", "Fatica"],
             ["pe", "PE"],
