@@ -359,6 +359,26 @@ const CampaignDetail = () => {
                     {m.role === "narratore" && (
                       <Crown className="h-3.5 w-3.5 text-primary" aria-label="Narratore" />
                     )}
+                    {isAdmin && m.role === "giocatore" && !narrator && (
+                      <button
+                        onClick={() => promoteToNarrator(m.id)}
+                        className="text-primary/70 hover:text-primary ml-1"
+                        aria-label="Promuovi a Narratore"
+                        title="Promuovi a Narratore"
+                      >
+                        <Crown className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {isAdmin && m.role === "narratore" && (
+                      <button
+                        onClick={() => demoteNarrator(m.id)}
+                        className="text-ink-faded hover:text-ink ml-1"
+                        aria-label="Rimuovi ruolo Narratore"
+                        title="Rimuovi ruolo Narratore"
+                      >
+                        <Crown className="h-3.5 w-3.5 line-through opacity-60" />
+                      </button>
+                    )}
                     {isAdmin && (
                       <button
                         onClick={() => removeMember(m.id)}
