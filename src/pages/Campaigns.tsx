@@ -13,13 +13,14 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, BookOpen, Loader2, Scroll, ShieldCheck } from "lucide-react";
+import { Plus, BookOpen, Loader2, Scroll, ShieldCheck, Pencil, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 interface Ruleset {
   id: string;
   name: string;
   description: string | null;
+  external_url: string | null;
 }
 interface Campaign {
   id: string;
@@ -45,6 +46,13 @@ const Campaigns = () => {
   const [openRule, setOpenRule] = useState(false);
   const [ruleName, setRuleName] = useState("");
   const [ruleDesc, setRuleDesc] = useState("");
+  const [ruleUrl, setRuleUrl] = useState("");
+
+  // edit ruleset dialog
+  const [editRule, setEditRule] = useState<Ruleset | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editUrl, setEditUrl] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -55,12 +63,12 @@ const Campaigns = () => {
         .from("campaigns")
         .select("id, name, description, ruleset_id, ruleset:rulesets(name)")
         .order("created_at", { ascending: true }),
-      supabase.from("rulesets").select("*").order("name"),
+      supabase.from("rulesets").select("id, name, description, external_url").order("name"),
     ]);
     if (c.error) toast.error("Impossibile caricare le campagne");
     else setCampaigns((c.data ?? []) as any);
     if (r.error) toast.error("Impossibile caricare i regolamenti");
-    else setRulesets(r.data ?? []);
+    else setRulesets((r.data ?? []) as Ruleset[]);
     setLoading(false);
   };
 
@@ -96,13 +104,42 @@ const Campaigns = () => {
     const { error } = await supabase.from("rulesets").insert({
       name: ruleName,
       description: ruleDesc || null,
+      external_url: ruleUrl.trim() || null,
     });
     setSubmitting(false);
     if (error) toast.error(error.message);
     else {
       toast.success("Regolamento creato!");
       setOpenRule(false);
-      setRuleName(""); setRuleDesc("");
+      setRuleName(""); setRuleDesc(""); setRuleUrl("");
+      load();
+    }
+  };
+
+  const openEditRuleset = (r: Ruleset) => {
+    setEditRule(r);
+    setEditName(r.name);
+    setEditDesc(r.description ?? "");
+    setEditUrl(r.external_url ?? "");
+  };
+
+  const saveRuleset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editRule) return;
+    setSubmitting(true);
+    const { error } = await supabase
+      .from("rulesets")
+      .update({
+        name: editName,
+        description: editDesc || null,
+        external_url: editUrl.trim() || null,
+      })
+      .eq("id", editRule.id);
+    setSubmitting(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Regolamento aggiornato");
+      setEditRule(null);
       load();
     }
   };
@@ -140,6 +177,16 @@ const Campaigns = () => {
                     <div>
                       <Label htmlFor="rdesc" className="font-heading">Descrizione</Label>
                       <Textarea id="rdesc" value={ruleDesc} onChange={(e) => setRuleDesc(e.target.value)} rows={3} />
+                    </div>
+                    <div>
+                      <Label htmlFor="rurl" className="font-heading">Link al regolamento</Label>
+                      <Input
+                        id="rurl"
+                        type="url"
+                        placeholder="https://..."
+                        value={ruleUrl}
+                        onChange={(e) => setRuleUrl(e.target.value)}
+                      />
                     </div>
                     <DialogFooter>
                       <Button type="submit" disabled={submitting} className="font-heading">
@@ -247,17 +294,74 @@ const Campaigns = () => {
           <div className="grid sm:grid-cols-2 gap-4">
             {rulesets.map((r) => (
               <div key={r.id} className="parchment-panel p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <BookOpen className="h-4 w-4 text-primary" />
-                  <h3 className="font-heading text-lg">{r.name}</h3>
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-primary" />
+                    <h3 className="font-heading text-lg">{r.name}</h3>
+                  </div>
+                  {isAdmin && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2"
+                      onClick={() => openEditRuleset(r)}
+                      aria-label="Modifica regolamento"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
                 {r.description && (
-                  <p className="font-script text-sm text-ink-faded">{r.description}</p>
+                  <p className="font-script text-sm text-ink-faded mb-2">{r.description}</p>
+                )}
+                {r.external_url && (
+                  <a
+                    href={r.external_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline font-heading"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" /> Apri il regolamento
+                  </a>
                 )}
               </div>
             ))}
           </div>
         </section>
+
+        {/* Edit ruleset dialog */}
+        <Dialog open={!!editRule} onOpenChange={(o) => !o && setEditRule(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="font-display gold-text">Modifica regolamento</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={saveRuleset} className="space-y-4">
+              <div>
+                <Label htmlFor="ename" className="font-heading">Nome</Label>
+                <Input id="ename" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+              </div>
+              <div>
+                <Label htmlFor="edesc" className="font-heading">Descrizione</Label>
+                <Textarea id="edesc" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={3} />
+              </div>
+              <div>
+                <Label htmlFor="eurl" className="font-heading">Link al regolamento</Label>
+                <Input
+                  id="eurl"
+                  type="url"
+                  placeholder="https://..."
+                  value={editUrl}
+                  onChange={(e) => setEditUrl(e.target.value)}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={submitting} className="font-heading">
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salva"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

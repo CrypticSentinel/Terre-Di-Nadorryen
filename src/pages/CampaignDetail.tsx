@@ -14,8 +14,9 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  ArrowLeft, Plus, Crown, Loader2, Trash2, ScrollText, UserPlus, ShieldCheck,
+  ArrowLeft, Plus, Crown, Loader2, Trash2, ScrollText, UserPlus, ShieldCheck, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -66,6 +67,11 @@ const CampaignDetail = () => {
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [newMemberId, setNewMemberId] = useState<string>("");
   const [newMemberRole, setNewMemberRole] = useState<"giocatore" | "narratore">("giocatore");
+
+  // edit campaign dialog (admin)
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
 
   const myMembership = members.find((m) => m.user_id === user?.id);
   const isNarrator = myMembership?.role === "narratore";
@@ -177,6 +183,52 @@ const CampaignDetail = () => {
     else { toast.success("Membro rimosso"); load(); }
   };
 
+  const openEditCampaign = () => {
+    if (!campaign) return;
+    setEditName(campaign.name);
+    setEditDesc(campaign.description ?? "");
+    setEditOpen(true);
+  };
+
+  const saveCampaign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!campaign) return;
+    setSubmitting(true);
+    const { error } = await supabase
+      .from("campaigns")
+      .update({ name: editName, description: editDesc || null })
+      .eq("id", campaign.id);
+    setSubmitting(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Campagna aggiornata");
+      setEditOpen(false);
+      load();
+    }
+  };
+
+  const promoteToNarrator = async (memberId: string) => {
+    if (narrator) {
+      toast.error("C'è già un Narratore in questa campagna. Rimuovi prima il ruolo all'attuale Narratore.");
+      return;
+    }
+    const { error } = await supabase
+      .from("campaign_members")
+      .update({ role: "narratore" })
+      .eq("id", memberId);
+    if (error) toast.error(error.message);
+    else { toast.success("Narratore assegnato"); load(); }
+  };
+
+  const demoteNarrator = async (memberId: string) => {
+    const { error } = await supabase
+      .from("campaign_members")
+      .update({ role: "giocatore" })
+      .eq("id", memberId);
+    if (error) toast.error(error.message);
+    else { toast.success("Ruolo di Narratore rimosso"); load(); }
+  };
+
   const deleteCampaign = async () => {
     if (!campaign || !confirm("Eliminare definitivamente questa campagna e tutte le sue schede?")) return;
     const { error } = await supabase.from("campaigns").delete().eq("id", campaign.id);
@@ -227,9 +279,14 @@ const CampaignDetail = () => {
               )}
             </div>
             {isAdmin && (
-              <Button variant="ghost" size="sm" onClick={deleteCampaign} className="text-destructive">
-                <Trash2 className="h-4 w-4 mr-1" /> Elimina
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={openEditCampaign}>
+                  <Pencil className="h-4 w-4 mr-1" /> Modifica
+                </Button>
+                <Button variant="ghost" size="sm" onClick={deleteCampaign} className="text-destructive">
+                  <Trash2 className="h-4 w-4 mr-1" /> Elimina
+                </Button>
+              </div>
             )}
           </div>
 
@@ -301,6 +358,26 @@ const CampaignDetail = () => {
                     <span className="text-sm font-script">{m.profile?.display_name ?? "..."}</span>
                     {m.role === "narratore" && (
                       <Crown className="h-3.5 w-3.5 text-primary" aria-label="Narratore" />
+                    )}
+                    {isAdmin && m.role === "giocatore" && !narrator && (
+                      <button
+                        onClick={() => promoteToNarrator(m.id)}
+                        className="text-primary/70 hover:text-primary ml-1"
+                        aria-label="Promuovi a Narratore"
+                        title="Promuovi a Narratore"
+                      >
+                        <Crown className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {isAdmin && m.role === "narratore" && (
+                      <button
+                        onClick={() => demoteNarrator(m.id)}
+                        className="text-ink-faded hover:text-ink ml-1"
+                        aria-label="Rimuovi ruolo Narratore"
+                        title="Rimuovi ruolo Narratore"
+                      >
+                        <Crown className="h-3.5 w-3.5 line-through opacity-60" />
+                      </button>
                     )}
                     {isAdmin && (
                       <button
@@ -393,6 +470,30 @@ const CampaignDetail = () => {
             ))}
           </div>
         )}
+
+        {/* Edit campaign dialog */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="font-display gold-text">Modifica campagna</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={saveCampaign} className="space-y-4">
+              <div>
+                <Label htmlFor="ecname" className="font-heading">Nome</Label>
+                <Input id="ecname" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+              </div>
+              <div>
+                <Label htmlFor="ecdesc" className="font-heading">Descrizione</Label>
+                <Textarea id="ecdesc" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={4} />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={submitting} className="font-heading">
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salva"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
