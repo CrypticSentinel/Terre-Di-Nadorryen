@@ -239,6 +239,13 @@ const CampaignDetail = () => {
     }
   };
 
+  const deleteCharacter = async (charId: string, charName: string) => {
+    if (!confirm(`Eliminare la scheda di "${charName}"? L'azione è irreversibile.`)) return;
+    const { error } = await supabase.from("characters").delete().eq("id", charId);
+    if (error) toast.error(error.message);
+    else { toast.success("Scheda eliminata"); load(); }
+  };
+
   if (loading || !campaign) {
     return (
       <div className="min-h-screen">
