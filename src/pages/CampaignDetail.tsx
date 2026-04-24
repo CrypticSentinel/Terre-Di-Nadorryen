@@ -279,9 +279,14 @@ const CampaignDetail = () => {
               )}
             </div>
             {isAdmin && (
-              <Button variant="ghost" size="sm" onClick={deleteCampaign} className="text-destructive">
-                <Trash2 className="h-4 w-4 mr-1" /> Elimina
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={openEditCampaign}>
+                  <Pencil className="h-4 w-4 mr-1" /> Modifica
+                </Button>
+                <Button variant="ghost" size="sm" onClick={deleteCampaign} className="text-destructive">
+                  <Trash2 className="h-4 w-4 mr-1" /> Elimina
+                </Button>
+              </div>
             )}
           </div>
 
