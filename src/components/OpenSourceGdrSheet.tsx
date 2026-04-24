@@ -298,7 +298,7 @@ export const OpenSourceGdrSheet = ({ value, onChange, canEdit }: Props) => {
                   className="bg-transparent border-0 text-center font-display text-xl h-9 px-0 focus-visible:ring-0"
                 />
               ) : (
-                <div className="font-display text-xl">{String((value as any)[k]) || "-"}</div>
+                <div className="font-display text-xl">{String((value as any)[k]) || "—"}</div>
               )}
             </div>
           ))}
