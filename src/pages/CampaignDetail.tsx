@@ -470,6 +470,30 @@ const CampaignDetail = () => {
             ))}
           </div>
         )}
+
+        {/* Edit campaign dialog */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="font-display gold-text">Modifica campagna</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={saveCampaign} className="space-y-4">
+              <div>
+                <Label htmlFor="ecname" className="font-heading">Nome</Label>
+                <Input id="ecname" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+              </div>
+              <div>
+                <Label htmlFor="ecdesc" className="font-heading">Descrizione</Label>
+                <Textarea id="ecdesc" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={4} />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={submitting} className="font-heading">
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salva"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
