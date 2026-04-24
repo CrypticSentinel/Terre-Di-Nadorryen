@@ -174,6 +174,7 @@ export const OpenSourceGdrSheet = ({ value, onChange, canEdit }: Props) => {
   const setAbility = (key: Ability, raw: string) => {
     const n = Math.max(0, Math.min(30, Number(raw) || 0));
     onChange({ ...value, abilities: { ...value.abilities, [key]: n } });
+  };
 
   const setMagic = (school: MagicSchool, raw: string) => {
     const n = Math.max(0, Math.min(99, Number(raw) || 0));
@@ -185,6 +186,7 @@ export const OpenSourceGdrSheet = ({ value, onChange, canEdit }: Props) => {
     onChange({ ...value, coins: { ...value.coins, [key]: n } });
   };
 
+  const setFerita = (part: string, txt: string) =>
     onChange({ ...value, ferite: { ...value.ferite, [part]: txt } });
 
   const setEquipItem = (sec: EquipmentKey, idx: number, txt: string) => {
