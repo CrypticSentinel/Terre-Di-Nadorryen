@@ -14,6 +14,13 @@ import {
 } from "@/components/ui/dialog";
 import { ArrowLeft, Plus, Trash2, Loader2, Camera, BookMarked, ScrollText, Save } from "lucide-react";
 import { toast } from "sonner";
+import { isOpenSourceGdr } from "@/lib/rulesets";
+import {
+  OpenSourceGdrSheet,
+  EMPTY_OSGDR_SHEET,
+  normalizeOsgdrSheet,
+  type OsgdrSheet,
+} from "@/components/OpenSourceGdrSheet";
 
 interface CustomField {
   id: string;
@@ -28,6 +35,20 @@ interface Character {
   concept: string | null;
   image_url: string | null;
   custom_fields: CustomField[];
+}
+
+const OSGDR_FIELD_ID = "__osgdr_sheet__";
+
+function extractOsgdrSheet(fields: CustomField[]): OsgdrSheet {
+  const f = fields.find((x) => x.id === OSGDR_FIELD_ID);
+  if (!f) return { ...EMPTY_OSGDR_SHEET, ferite: { ...EMPTY_OSGDR_SHEET.ferite }, equipment: { ...EMPTY_OSGDR_SHEET.equipment }, abilities: { ...EMPTY_OSGDR_SHEET.abilities }, skills: [] };
+  try { return normalizeOsgdrSheet(JSON.parse(f.value)); }
+  catch { return normalizeOsgdrSheet({}); }
+}
+
+function packOsgdrSheet(fields: CustomField[], sheet: OsgdrSheet): CustomField[] {
+  const others = fields.filter((x) => x.id !== OSGDR_FIELD_ID);
+  return [...others, { id: OSGDR_FIELD_ID, label: "Open Source GDR", value: JSON.stringify(sheet) }];
 }
 interface Note {
   id: string;
