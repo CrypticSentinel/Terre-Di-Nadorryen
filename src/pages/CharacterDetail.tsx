@@ -130,9 +130,10 @@ const CharacterDetail = () => {
   const handleSave = async () => {
     if (!character) return;
     setSaving(true);
+    const finalFields = useOsgdrForm ? packOsgdrSheet(fields, osgdrSheet) : fields;
     const { error } = await supabase
       .from("characters")
-      .update({ name, concept: concept || null, custom_fields: fields as any })
+      .update({ name, concept: concept || null, custom_fields: finalFields as any })
       .eq("id", character.id);
     setSaving(false);
     if (error) toast.error(error.message);
