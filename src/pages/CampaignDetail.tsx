@@ -68,6 +68,11 @@ const CampaignDetail = () => {
   const [newMemberId, setNewMemberId] = useState<string>("");
   const [newMemberRole, setNewMemberRole] = useState<"giocatore" | "narratore">("giocatore");
 
+  // edit campaign dialog (admin)
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+
   const myMembership = members.find((m) => m.user_id === user?.id);
   const isNarrator = myMembership?.role === "narratore";
   const isMember = !!myMembership;
