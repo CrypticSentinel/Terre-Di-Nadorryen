@@ -14,6 +14,13 @@ import {
 } from "@/components/ui/dialog";
 import { ArrowLeft, Plus, Trash2, Loader2, Camera, BookMarked, ScrollText, Save } from "lucide-react";
 import { toast } from "sonner";
+import { isOpenSourceGdr } from "@/lib/rulesets";
+import {
+  OpenSourceGdrSheet,
+  EMPTY_OSGDR_SHEET,
+  normalizeOsgdrSheet,
+  type OsgdrSheet,
+} from "@/components/OpenSourceGdrSheet";
 
 interface CustomField {
   id: string;
@@ -28,6 +35,20 @@ interface Character {
   concept: string | null;
   image_url: string | null;
   custom_fields: CustomField[];
+}
+
+const OSGDR_FIELD_ID = "__osgdr_sheet__";
+
+function extractOsgdrSheet(fields: CustomField[]): OsgdrSheet {
+  const f = fields.find((x) => x.id === OSGDR_FIELD_ID);
+  if (!f) return { ...EMPTY_OSGDR_SHEET, ferite: { ...EMPTY_OSGDR_SHEET.ferite }, equipment: { ...EMPTY_OSGDR_SHEET.equipment }, abilities: { ...EMPTY_OSGDR_SHEET.abilities }, skills: [] };
+  try { return normalizeOsgdrSheet(JSON.parse(f.value)); }
+  catch { return normalizeOsgdrSheet({}); }
+}
+
+function packOsgdrSheet(fields: CustomField[], sheet: OsgdrSheet): CustomField[] {
+  const others = fields.filter((x) => x.id !== OSGDR_FIELD_ID);
+  return [...others, { id: OSGDR_FIELD_ID, label: "Open Source GDR", value: JSON.stringify(sheet) }];
 }
 interface Note {
   id: string;
@@ -45,6 +66,7 @@ const CharacterDetail = () => {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [character, setCharacter] = useState<Character | null>(null);
+  const [rulesetName, setRulesetName] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -54,6 +76,7 @@ const CharacterDetail = () => {
   const [name, setName] = useState("");
   const [concept, setConcept] = useState("");
   const [fields, setFields] = useState<CustomField[]>([]);
+  const [osgdrSheet, setOsgdrSheet] = useState<OsgdrSheet>(EMPTY_OSGDR_SHEET);
 
   // notes dialog
   const [noteOpen, setNoteOpen] = useState(false);
@@ -63,12 +86,15 @@ const CharacterDetail = () => {
   const [noteSubmitting, setNoteSubmitting] = useState(false);
 
   const canEdit = character && user && character.owner_id === user.id;
+  const useOsgdrForm = isOpenSourceGdr(rulesetName);
+  // Campi liberi visibili = tutti tranne quello riservato OSGDR
+  const visibleFields = fields.filter((f) => f.id !== OSGDR_FIELD_ID);
 
   const load = async () => {
     if (!characterId) return;
     setLoading(true);
     const [c, n] = await Promise.all([
-      supabase.from("characters").select("*").eq("id", characterId).maybeSingle(),
+      supabase.from("characters").select("*, campaigns(ruleset_id, rulesets(name))").eq("id", characterId).maybeSingle(),
       supabase.from("session_notes").select("*").eq("character_id", characterId).order("created_at", { ascending: false }),
     ]);
     if (c.error || !c.data) {
@@ -76,13 +102,15 @@ const CharacterDetail = () => {
       navigate("/campaigns");
       return;
     }
-    const ch = c.data as any as Character;
-    // Normalizza custom_fields
+    const raw = c.data as any;
+    const ch = raw as Character;
     if (!Array.isArray(ch.custom_fields)) ch.custom_fields = [];
     setCharacter(ch);
+    setRulesetName(raw?.campaigns?.rulesets?.name ?? null);
     setName(ch.name);
     setConcept(ch.concept ?? "");
     setFields(ch.custom_fields);
+    setOsgdrSheet(extractOsgdrSheet(ch.custom_fields));
     setNotes((n.data ?? []) as Note[]);
     setLoading(false);
   };
@@ -102,9 +130,10 @@ const CharacterDetail = () => {
   const handleSave = async () => {
     if (!character) return;
     setSaving(true);
+    const finalFields = useOsgdrForm ? packOsgdrSheet(fields, osgdrSheet) : fields;
     const { error } = await supabase
       .from("characters")
-      .update({ name, concept: concept || null, custom_fields: fields as any })
+      .update({ name, concept: concept || null, custom_fields: finalFields as any })
       .eq("id", character.id);
     setSaving(false);
     if (error) toast.error(error.message);
@@ -255,54 +284,78 @@ const CharacterDetail = () => {
                   <TabsTrigger value="diary" className="font-heading"><BookMarked className="h-4 w-4 mr-1" /> Diario ({notes.length})</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="sheet" className="space-y-3 mt-4">
-                  {fields.length === 0 && (
-                    <p className="text-center font-script italic text-ink-faded py-6">
-                      {canEdit ? "Nessun campo. Aggiungi caratteristiche, abilità, equipaggiamento, incantesimi..." : "Scheda vuota."}
-                    </p>
-                  )}
-
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {fields.map((f) => (
-                      <div key={f.id} className="bg-parchment-deep/20 border border-border/60 rounded p-3 group">
-                        {canEdit ? (
-                          <>
-                            <div className="flex items-center gap-1 mb-1">
-                              <Input
-                                value={f.label}
-                                onChange={(e) => updateField(f.id, "label", e.target.value)}
-                                className="font-heading text-xs uppercase tracking-wider bg-transparent border-0 px-0 h-6 focus-visible:ring-0"
-                              />
-                              <button onClick={() => removeField(f.id)} className="opacity-0 group-hover:opacity-100 text-destructive">
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                            <Textarea
-                              value={f.value}
-                              onChange={(e) => updateField(f.id, "value", e.target.value)}
-                              className="bg-transparent border-0 px-0 min-h-[40px] font-script focus-visible:ring-0 resize-none"
-                              rows={1}
-                            />
-                          </>
-                        ) : (
-                          <>
-                            <div className="font-heading text-xs uppercase tracking-wider text-ink-faded">{f.label}</div>
-                            <div className="font-script whitespace-pre-wrap">{f.value}</div>
-                          </>
-                        )}
+                <TabsContent value="sheet" className="space-y-4 mt-4">
+                  {useOsgdrForm ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <p className="font-script italic text-xs text-ink-faded">
+                          Scheda <strong>Open Source GDR</strong>
+                        </p>
                       </div>
-                    ))}
-                  </div>
+                      <OpenSourceGdrSheet
+                        value={osgdrSheet}
+                        onChange={setOsgdrSheet}
+                        canEdit={!!canEdit}
+                      />
+                      {canEdit && (
+                        <div className="flex pt-3 border-t border-border/40">
+                          <Button size="sm" onClick={handleSave} disabled={saving} className="font-heading ml-auto">
+                            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salva scheda</>}
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {visibleFields.length === 0 && (
+                        <p className="text-center font-script italic text-ink-faded py-6">
+                          {canEdit ? "Nessun campo. Aggiungi caratteristiche, abilità, equipaggiamento, incantesimi..." : "Scheda vuota."}
+                        </p>
+                      )}
 
-                  {canEdit && (
-                    <div className="flex gap-2 pt-3 border-t border-border/40">
-                      <Button variant="outline" size="sm" onClick={addField} className="font-heading">
-                        <Plus className="h-4 w-4 mr-1" /> Aggiungi campo
-                      </Button>
-                      <Button size="sm" onClick={handleSave} disabled={saving} className="font-heading ml-auto">
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salva scheda</>}
-                      </Button>
-                    </div>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        {visibleFields.map((f) => (
+                          <div key={f.id} className="bg-parchment-deep/20 border border-border/60 rounded p-3 group">
+                            {canEdit ? (
+                              <>
+                                <div className="flex items-center gap-1 mb-1">
+                                  <Input
+                                    value={f.label}
+                                    onChange={(e) => updateField(f.id, "label", e.target.value)}
+                                    className="font-heading text-xs uppercase tracking-wider bg-transparent border-0 px-0 h-6 focus-visible:ring-0"
+                                  />
+                                  <button onClick={() => removeField(f.id)} className="opacity-0 group-hover:opacity-100 text-destructive">
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                                <Textarea
+                                  value={f.value}
+                                  onChange={(e) => updateField(f.id, "value", e.target.value)}
+                                  className="bg-transparent border-0 px-0 min-h-[40px] font-script focus-visible:ring-0 resize-none"
+                                  rows={1}
+                                />
+                              </>
+                            ) : (
+                              <>
+                                <div className="font-heading text-xs uppercase tracking-wider text-ink-faded">{f.label}</div>
+                                <div className="font-script whitespace-pre-wrap">{f.value}</div>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {canEdit && (
+                        <div className="flex gap-2 pt-3 border-t border-border/40">
+                          <Button variant="outline" size="sm" onClick={addField} className="font-heading">
+                            <Plus className="h-4 w-4 mr-1" /> Aggiungi campo
+                          </Button>
+                          <Button size="sm" onClick={handleSave} disabled={saving} className="font-heading ml-auto">
+                            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salva scheda</>}
+                          </Button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </TabsContent>
 
