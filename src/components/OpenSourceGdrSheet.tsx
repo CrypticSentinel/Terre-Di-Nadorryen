@@ -276,11 +276,11 @@ export const OpenSourceGdrSheet = ({ value, onChange, canEdit }: Props) => {
 
       {/* === Stati / Risorse === */}
       <section className="space-y-3">
-        <h3 className="font-display text-xl gold-text">Stati & Risorse</h3>
+        <h3 className="font-display text-xl gold-text">Stati &amp; Risorse</h3>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {([
             ["iniziativa", "Iniziativa"],
-            ["penalita", "Penalità"],
+            ["penalita", "Penalita'"],
             ["fortuna", "Fortuna"],
             ["fatica", "Fatica"],
             ["pe", "PE"],
@@ -298,7 +298,57 @@ export const OpenSourceGdrSheet = ({ value, onChange, canEdit }: Props) => {
                   className="bg-transparent border-0 text-center font-display text-xl h-9 px-0 focus-visible:ring-0"
                 />
               ) : (
-                <div className="font-display text-xl">{String((value as any)[k]) || "—"}</div>
+                <div className="font-display text-xl">{String((value as any)[k]) || "-"}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* === Magia === */}
+      <section className="space-y-3">
+        <h3 className="font-display text-xl gold-text">Magia</h3>
+        <p className="font-script italic text-xs text-ink-faded">
+          Punteggio per ciascuna delle dieci scuole di magia libera.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          {MAGIC_SCHOOLS.map((school) => (
+            <div key={school} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
+              <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">{school}</Label>
+              {canEdit ? (
+                <Input
+                  type="number"
+                  min={0}
+                  max={99}
+                  value={value.magic[school] ?? 0}
+                  onChange={(e) => setMagic(school, e.target.value)}
+                  className="bg-transparent border-0 text-center font-display text-xl h-9 px-0 focus-visible:ring-0"
+                />
+              ) : (
+                <div className="font-display text-xl">{value.magic[school] ?? 0}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* === Monete === */}
+      <section className="space-y-3">
+        <h3 className="font-display text-xl gold-text">Monete</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {COIN_TYPES.map((c) => (
+            <div key={c.key} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
+              <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">{c.label}</Label>
+              {canEdit ? (
+                <Input
+                  type="number"
+                  min={0}
+                  value={value.coins[c.key] ?? 0}
+                  onChange={(e) => setCoin(c.key, e.target.value)}
+                  className="bg-transparent border-0 text-center font-display text-xl h-9 px-0 focus-visible:ring-0"
+                />
+              ) : (
+                <div className="font-display text-xl">{value.coins[c.key] ?? 0}</div>
               )}
             </div>
           ))}
