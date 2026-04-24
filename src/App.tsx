@@ -10,6 +10,8 @@ import Auth from "./pages/Auth";
 import Campaigns from "./pages/Campaigns";
 import CampaignDetail from "./pages/CampaignDetail";
 import CharacterDetail from "./pages/CharacterDetail";
+import PendingApproval from "./pages/PendingApproval";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
