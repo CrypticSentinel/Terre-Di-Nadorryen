@@ -183,6 +183,52 @@ const CampaignDetail = () => {
     else { toast.success("Membro rimosso"); load(); }
   };
 
+  const openEditCampaign = () => {
+    if (!campaign) return;
+    setEditName(campaign.name);
+    setEditDesc(campaign.description ?? "");
+    setEditOpen(true);
+  };
+
+  const saveCampaign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!campaign) return;
+    setSubmitting(true);
+    const { error } = await supabase
+      .from("campaigns")
+      .update({ name: editName, description: editDesc || null })
+      .eq("id", campaign.id);
+    setSubmitting(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Campagna aggiornata");
+      setEditOpen(false);
+      load();
+    }
+  };
+
+  const promoteToNarrator = async (memberId: string) => {
+    if (narrator) {
+      toast.error("C'è già un Narratore in questa campagna. Rimuovi prima il ruolo all'attuale Narratore.");
+      return;
+    }
+    const { error } = await supabase
+      .from("campaign_members")
+      .update({ role: "narratore" })
+      .eq("id", memberId);
+    if (error) toast.error(error.message);
+    else { toast.success("Narratore assegnato"); load(); }
+  };
+
+  const demoteNarrator = async (memberId: string) => {
+    const { error } = await supabase
+      .from("campaign_members")
+      .update({ role: "giocatore" })
+      .eq("id", memberId);
+    if (error) toast.error(error.message);
+    else { toast.success("Ruolo di Narratore rimosso"); load(); }
+  };
+
   const deleteCampaign = async () => {
     if (!campaign || !confirm("Eliminare definitivamente questa campagna e tutte le sue schede?")) return;
     const { error } = await supabase.from("campaigns").delete().eq("id", campaign.id);
