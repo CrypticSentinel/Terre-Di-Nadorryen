@@ -66,6 +66,7 @@ const CharacterDetail = () => {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [character, setCharacter] = useState<Character | null>(null);
+  const [rulesetName, setRulesetName] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -75,6 +76,7 @@ const CharacterDetail = () => {
   const [name, setName] = useState("");
   const [concept, setConcept] = useState("");
   const [fields, setFields] = useState<CustomField[]>([]);
+  const [osgdrSheet, setOsgdrSheet] = useState<OsgdrSheet>(EMPTY_OSGDR_SHEET);
 
   // notes dialog
   const [noteOpen, setNoteOpen] = useState(false);
@@ -84,12 +86,15 @@ const CharacterDetail = () => {
   const [noteSubmitting, setNoteSubmitting] = useState(false);
 
   const canEdit = character && user && character.owner_id === user.id;
+  const useOsgdrForm = isOpenSourceGdr(rulesetName);
+  // Campi liberi visibili = tutti tranne quello riservato OSGDR
+  const visibleFields = fields.filter((f) => f.id !== OSGDR_FIELD_ID);
 
   const load = async () => {
     if (!characterId) return;
     setLoading(true);
     const [c, n] = await Promise.all([
-      supabase.from("characters").select("*").eq("id", characterId).maybeSingle(),
+      supabase.from("characters").select("*, campaigns(ruleset_id, rulesets(name))").eq("id", characterId).maybeSingle(),
       supabase.from("session_notes").select("*").eq("character_id", characterId).order("created_at", { ascending: false }),
     ]);
     if (c.error || !c.data) {
@@ -97,13 +102,15 @@ const CharacterDetail = () => {
       navigate("/campaigns");
       return;
     }
-    const ch = c.data as any as Character;
-    // Normalizza custom_fields
+    const raw = c.data as any;
+    const ch = raw as Character;
     if (!Array.isArray(ch.custom_fields)) ch.custom_fields = [];
     setCharacter(ch);
+    setRulesetName(raw?.campaigns?.rulesets?.name ?? null);
     setName(ch.name);
     setConcept(ch.concept ?? "");
     setFields(ch.custom_fields);
+    setOsgdrSheet(extractOsgdrSheet(ch.custom_fields));
     setNotes((n.data ?? []) as Note[]);
     setLoading(false);
   };
