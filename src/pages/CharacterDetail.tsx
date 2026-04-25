@@ -85,7 +85,7 @@ interface Note {
 
 const CharacterDetail = () => {
   const { characterId } = useParams<{ characterId: string }>();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -101,6 +101,7 @@ const CharacterDetail = () => {
   const [concept, setConcept] = useState("");
   const [fields, setFields] = useState<CustomField[]>([]);
   const [osgdrSheet, setOsgdrSheet] = useState<OsgdrSheet>(EMPTY_OSGDR_SHEET);
+  const [labelOverrides, setLabelOverrides] = useState<LabelOverridesMap>({});
 
   // notes dialog
   const [noteOpen, setNoteOpen] = useState(false);
@@ -111,8 +112,10 @@ const CharacterDetail = () => {
 
   const canEdit = character && user && character.owner_id === user.id;
   const useOsgdrForm = isOpenSourceGdr(rulesetName);
-  // Campi liberi visibili = tutti tranne quello riservato OSGDR
-  const visibleFields = fields.filter((f) => f.id !== OSGDR_FIELD_ID);
+  // Campi liberi visibili = tutti tranne i record riservati
+  const visibleFields = fields.filter(
+    (f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID,
+  );
 
   const load = async () => {
     if (!characterId) return;
@@ -135,6 +138,7 @@ const CharacterDetail = () => {
     setConcept(ch.concept ?? "");
     setFields(ch.custom_fields);
     setOsgdrSheet(extractOsgdrSheet(ch.custom_fields));
+    setLabelOverrides(extractLabelOverrides(ch.custom_fields));
     setNotes((n.data ?? []) as Note[]);
     setLoading(false);
   };
@@ -151,10 +155,34 @@ const CharacterDetail = () => {
     setFields((prev) => prev.filter((f) => f.id !== id));
   };
 
+  /**
+   * Persist label overrides immediately so the admin can fine-tune labels
+   * without having to remember to save the whole sheet afterwards.
+   */
+  const persistLabelOverride = async (key: string, override: LabelOverride | undefined) => {
+    if (!character) return;
+    const next = { ...labelOverrides };
+    if (!override || (override.text === undefined && override.size === undefined)) {
+      delete next[key];
+    } else {
+      next[key] = override;
+    }
+    setLabelOverrides(next);
+    const newFields = packLabelOverrides(fields, next);
+    setFields(newFields);
+    const { error } = await supabase
+      .from("characters")
+      .update({ custom_fields: newFields as any })
+      .eq("id", character.id);
+    if (error) toast.error(error.message);
+    else toast.success("Etichetta aggiornata");
+  };
+
   const handleSave = async () => {
     if (!character) return;
     setSaving(true);
-    const finalFields = useOsgdrForm ? packOsgdrSheet(fields, osgdrSheet) : fields;
+    let finalFields = useOsgdrForm ? packOsgdrSheet(fields, osgdrSheet) : fields;
+    finalFields = packLabelOverrides(finalFields, labelOverrides);
     const { error } = await supabase
       .from("characters")
       .update({ name, concept: concept || null, custom_fields: finalFields as any })
