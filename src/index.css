@@ -1,78 +1,71 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=IM+Fell+English:ital@0;1&family=Uncial+Antiqua&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /*
-  Terre di Nadorryen — Design System (Fantasy Pergamena)
+  Terre di Nadorryen — Design System (Clean / SpellCheck-inspired)
+  Sfondo bianco-azzurrino, accenti blu, tipografia serif classica.
   Tutti i colori sono in HSL.
 */
 
 @layer base {
   :root {
-    /* Pergamena & inchiostro */
-    --background: 38 45% 88%;
-    --foreground: 25 45% 15%;
+    /* Base — bianco con sfumatura azzurrina */
+    --background: 210 40% 98%;
+    --foreground: 215 28% 17%;
 
-    --parchment: 38 50% 85%;
-    --parchment-deep: 35 40% 75%;
-    --parchment-shadow: 30 35% 60%;
-    --ink: 25 50% 12%;
-    --ink-faded: 25 30% 30%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 28% 17%;
 
-    --card: 38 55% 92%;
-    --card-foreground: 25 45% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 17%;
 
-    --popover: 38 55% 92%;
-    --popover-foreground: 25 45% 15%;
+    /* Blu primario (stile SpellCheck) */
+    --primary: 217 91% 55%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 213 94% 68%;
 
-    /* Oro reale */
-    --primary: 38 75% 38%;
-    --primary-foreground: 40 60% 95%;
-    --primary-glow: 42 85% 55%;
+    /* Secondari neutri */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 215 28% 17%;
 
-    /* Bordo / accenti */
-    --secondary: 30 35% 75%;
-    --secondary-foreground: 25 50% 15%;
+    --muted: 210 40% 94%;
+    --muted-foreground: 215 16% 45%;
 
-    --muted: 38 30% 78%;
-    --muted-foreground: 25 25% 35%;
+    --accent: 217 91% 55%;
+    --accent-foreground: 0 0% 100%;
 
-    --accent: 0 55% 35%; /* sangue di drago */
-    --accent-foreground: 40 60% 95%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --destructive: 0 70% 35%;
-    --destructive-foreground: 40 60% 95%;
+    --border: 215 20% 88%;
+    --input: 215 20% 88%;
+    --ring: 217 91% 55%;
 
-    --border: 30 40% 55%;
-    --input: 30 35% 65%;
-    --ring: 38 75% 38%;
-
-    --radius: 0.25rem;
+    --radius: 0.625rem;
 
     /* Gradienti tematici */
-    --gradient-gold: linear-gradient(135deg, hsl(38 75% 38%) 0%, hsl(45 90% 60%) 50%, hsl(38 75% 38%) 100%);
-    --gradient-parchment: linear-gradient(180deg, hsl(38 55% 92%) 0%, hsl(35 45% 82%) 100%);
-    --gradient-ember: linear-gradient(135deg, hsl(15 70% 35%) 0%, hsl(0 60% 30%) 100%);
-    --gradient-vignette: radial-gradient(ellipse at center, transparent 40%, hsl(25 45% 15% / 0.35) 100%);
+    --gradient-sky: linear-gradient(180deg, hsl(210 60% 98%) 0%, hsl(215 50% 94%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 55%) 0%, hsl(213 94% 68%) 100%);
 
-    /* Ombre */
-    --shadow-arcane: 0 10px 40px -10px hsl(25 60% 10% / 0.4), 0 2px 6px hsl(25 50% 20% / 0.2);
-    --shadow-emboss: inset 0 1px 0 hsl(45 70% 75% / 0.6), inset 0 -2px 4px hsl(25 50% 20% / 0.15);
-    --shadow-glow: 0 0 30px hsl(42 85% 55% / 0.4);
+    /* Ombre soft */
+    --shadow-soft: 0 1px 2px hsl(215 28% 17% / 0.04), 0 1px 3px hsl(215 28% 17% / 0.06);
+    --shadow-card: 0 4px 12px -2px hsl(215 28% 17% / 0.06), 0 2px 4px -1px hsl(215 28% 17% / 0.04);
+    --shadow-glow: 0 0 24px hsl(217 91% 55% / 0.25);
 
     /* Transizioni */
     --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 
-    --sidebar-background: 38 45% 88%;
-    --sidebar-foreground: 25 45% 15%;
-    --sidebar-primary: 38 75% 38%;
-    --sidebar-primary-foreground: 40 60% 95%;
-    --sidebar-accent: 38 30% 78%;
-    --sidebar-accent-foreground: 25 50% 15%;
-    --sidebar-border: 30 40% 55%;
-    --sidebar-ring: 38 75% 38%;
+    --sidebar-background: 210 40% 98%;
+    --sidebar-foreground: 215 28% 17%;
+    --sidebar-primary: 217 91% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 94%;
+    --sidebar-accent-foreground: 215 28% 17%;
+    --sidebar-border: 215 20% 88%;
+    --sidebar-ring: 217 91% 55%;
   }
 }
 
@@ -87,57 +80,45 @@
 
   body {
     @apply text-foreground;
-    font-family: 'IM Fell English', 'Georgia', serif;
-    background-color: hsl(var(--parchment));
+    font-family: 'Source Serif 4', 'Lora', Georgia, 'Times New Roman', serif;
+    background-color: hsl(var(--background));
     background-image:
-      radial-gradient(ellipse at top, hsl(45 60% 85% / 0.6), transparent 60%),
-      radial-gradient(ellipse at bottom, hsl(25 50% 30% / 0.15), transparent 70%),
-      url('/src/assets/parchment-texture.jpg');
-    background-size: cover, cover, 800px 600px;
+      linear-gradient(180deg, hsl(210 60% 99%) 0%, hsl(215 50% 95%) 100%);
     background-attachment: fixed;
-    background-blend-mode: multiply, normal, normal;
   }
 
   h1, h2, h3, h4 {
-    font-family: 'Cinzel', 'Times New Roman', serif;
-    @apply tracking-wide;
+    font-family: 'Source Serif 4', 'Lora', Georgia, 'Times New Roman', serif;
+    @apply tracking-normal;
+    color: hsl(215 30% 25%);
   }
 
   .font-display {
-    font-family: 'Uncial Antiqua', 'Cinzel', serif;
+    font-family: 'Source Serif 4', 'Lora', Georgia, serif;
+    font-weight: 600;
   }
 
   .font-script {
-    font-family: 'IM Fell English', serif;
+    font-family: 'Lora', Georgia, serif;
+    font-style: italic;
   }
 }
 
 @layer components {
-  /* Pannello pergamena */
+  /* Pannello card pulito */
   .parchment-panel {
-    background:
-      linear-gradient(180deg, hsl(var(--card) / 0.92) 0%, hsl(35 45% 82% / 0.92) 100%);
-    border: 1px solid hsl(var(--border) / 0.6);
-    box-shadow: var(--shadow-arcane), var(--shadow-emboss);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-card);
     border-radius: var(--radius);
-    position: relative;
   }
 
-  .parchment-panel::before {
-    content: '';
-    position: absolute;
-    inset: 4px;
-    border: 1px solid hsl(var(--primary) / 0.25);
-    border-radius: calc(var(--radius) - 2px);
-    pointer-events: none;
-  }
-
-  /* Divisore decorato */
+  /* Divisore minimale */
   .ornament-divider {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    color: hsl(var(--primary));
+    color: hsl(var(--muted-foreground));
   }
 
   .ornament-divider::before,
@@ -145,34 +126,41 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.6), transparent);
+    background: hsl(var(--border));
   }
 
-  /* Titolo dorato */
+  /* Titolo (ex dorato) — ora blu pieno */
   .gold-text {
-    background: var(--gradient-gold);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    text-shadow: 0 1px 0 hsl(25 50% 20% / 0.15);
+    color: hsl(var(--primary));
   }
 
-  /* Initial cap stile manoscritto */
+  /* Initial cap stile sobrio */
   .drop-cap::first-letter {
-    font-family: 'Uncial Antiqua', serif;
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 700;
     float: left;
-    font-size: 3.5rem;
+    font-size: 3rem;
     line-height: 0.9;
     padding: 0.25rem 0.5rem 0 0;
-    color: hsl(var(--accent));
+    color: hsl(var(--primary));
+  }
+
+  /* Bottone pill stile SpellCheck */
+  .btn-pill {
+    @apply inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-medium text-primary-foreground transition-all;
+    background: hsl(var(--primary));
+    box-shadow: var(--shadow-soft);
+  }
+  .btn-pill:hover {
+    background: hsl(var(--primary-glow));
   }
 }
 
 @layer utilities {
   .bg-vignette {
-    background-image: var(--gradient-vignette);
+    background-image: none;
   }
   .text-shadow-emboss {
-    text-shadow: 0 1px 0 hsl(40 60% 95% / 0.5), 0 -1px 0 hsl(25 50% 10% / 0.3);
+    text-shadow: none;
   }
 }
