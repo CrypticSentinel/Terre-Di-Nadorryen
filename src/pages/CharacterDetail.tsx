@@ -397,8 +397,36 @@ const CharacterDetail = () => {
                               </>
                             ) : (
                               <>
-                                <div className="font-heading text-xs uppercase tracking-wider text-ink-faded">{f.label}</div>
-                                <div className="font-script whitespace-pre-wrap">{f.value}</div>
+                                <EditableLabel
+                                  defaultText={f.label}
+                                  override={labelOverrides[`free.${f.id}`]}
+                                  onChange={(o) => persistLabelOverride(`free.${f.id}`, o)}
+                                  canCustomize={isAdmin}
+                                  className="font-heading text-xs uppercase tracking-wider text-ink-faded"
+                                  as="div"
+                                />
+                                <div
+                                  className="font-script whitespace-pre-wrap"
+                                  style={
+                                    labelOverrides[`free.${f.id}.value`]?.size
+                                      ? { fontSize: `${labelOverrides[`free.${f.id}.value`]!.size}px` }
+                                      : undefined
+                                  }
+                                >
+                                  {f.value}
+                                </div>
+                                {isAdmin && (
+                                  <div className="mt-1">
+                                    <EditableLabel
+                                      defaultText="Dimensione testo"
+                                      override={labelOverrides[`free.${f.id}.value`]}
+                                      onChange={(o) => persistLabelOverride(`free.${f.id}.value`, o)}
+                                      canCustomize={isAdmin}
+                                      className="font-script italic text-[10px] text-ink-faded/70"
+                                      as="span"
+                                    />
+                                  </div>
+                                )}
                               </>
                             )}
                           </div>
