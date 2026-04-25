@@ -12,9 +12,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['"Uncial Antiqua"', '"Cinzel"', "serif"],
-        heading: ['"Cinzel"', '"Times New Roman"', "serif"],
-        script: ['"IM Fell English"', "Georgia", "serif"],
+        display: ['"Source Serif 4"', '"Lora"', "Georgia", "serif"],
+        heading: ['"Source Serif 4"', '"Lora"', "Georgia", "serif"],
+        script: ['"Lora"', "Georgia", "serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -72,14 +72,18 @@ export default {
         },
       },
       backgroundImage: {
-        "gradient-gold": "var(--gradient-gold)",
-        "gradient-parchment": "var(--gradient-parchment)",
-        "gradient-ember": "var(--gradient-ember)",
+        "gradient-gold": "var(--gradient-primary)",
+        "gradient-parchment": "var(--gradient-sky)",
+        "gradient-ember": "var(--gradient-primary)",
+        "gradient-primary": "var(--gradient-primary)",
+        "gradient-sky": "var(--gradient-sky)",
       },
       boxShadow: {
-        arcane: "var(--shadow-arcane)",
-        emboss: "var(--shadow-emboss)",
+        arcane: "var(--shadow-card)",
+        emboss: "var(--shadow-soft)",
         glow: "var(--shadow-glow)",
+        soft: "var(--shadow-soft)",
+        card: "var(--shadow-card)",
       },
       borderRadius: {
         lg: "var(--radius)",
