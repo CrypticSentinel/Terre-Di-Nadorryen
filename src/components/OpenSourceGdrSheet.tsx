@@ -360,11 +360,11 @@ export const OpenSourceGdrSheet = ({
 
       {/* === Monete === */}
       <section className="space-y-3">
-        <h3 className="font-display text-xl gold-text">Monete</h3>
+        {lbl("section.monete", "Monete", "font-display text-xl gold-text", "h3")}
         <div className="grid grid-cols-3 gap-2">
           {COIN_TYPES.map((c) => (
             <div key={c.key} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
-              <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">{c.label}</Label>
+              {lbl(`coin.${c.key}`, c.label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
               {canEdit ? (
                 <Input
                   type="number"
