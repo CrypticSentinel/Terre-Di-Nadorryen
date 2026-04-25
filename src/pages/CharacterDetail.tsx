@@ -21,6 +21,7 @@ import {
   normalizeOsgdrSheet,
   type OsgdrSheet,
 } from "@/components/OpenSourceGdrSheet";
+import { EditableLabel, type LabelOverride } from "@/components/EditableLabel";
 
 interface CustomField {
   id: string;
@@ -38,6 +39,9 @@ interface Character {
 }
 
 const OSGDR_FIELD_ID = "__osgdr_sheet__";
+const LABEL_OVERRIDES_FIELD_ID = "__label_overrides__";
+
+type LabelOverridesMap = Record<string, LabelOverride>;
 
 function extractOsgdrSheet(fields: CustomField[]): OsgdrSheet {
   const f = fields.find((x) => x.id === OSGDR_FIELD_ID);
@@ -50,6 +54,26 @@ function packOsgdrSheet(fields: CustomField[], sheet: OsgdrSheet): CustomField[]
   const others = fields.filter((x) => x.id !== OSGDR_FIELD_ID);
   return [...others, { id: OSGDR_FIELD_ID, label: "Open Source GDR", value: JSON.stringify(sheet) }];
 }
+
+function extractLabelOverrides(fields: CustomField[]): LabelOverridesMap {
+  const f = fields.find((x) => x.id === LABEL_OVERRIDES_FIELD_ID);
+  if (!f) return {};
+  try {
+    const parsed = JSON.parse(f.value);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function packLabelOverrides(fields: CustomField[], overrides: LabelOverridesMap): CustomField[] {
+  const others = fields.filter((x) => x.id !== LABEL_OVERRIDES_FIELD_ID);
+  if (Object.keys(overrides).length === 0) return others;
+  return [
+    ...others,
+    { id: LABEL_OVERRIDES_FIELD_ID, label: "Label overrides", value: JSON.stringify(overrides) },
+  ];
+}
 interface Note {
   id: string;
   title: string;
@@ -61,7 +85,7 @@ interface Note {
 
 const CharacterDetail = () => {
   const { characterId } = useParams<{ characterId: string }>();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -77,6 +101,7 @@ const CharacterDetail = () => {
   const [concept, setConcept] = useState("");
   const [fields, setFields] = useState<CustomField[]>([]);
   const [osgdrSheet, setOsgdrSheet] = useState<OsgdrSheet>(EMPTY_OSGDR_SHEET);
+  const [labelOverrides, setLabelOverrides] = useState<LabelOverridesMap>({});
 
   // notes dialog
   const [noteOpen, setNoteOpen] = useState(false);
@@ -87,8 +112,10 @@ const CharacterDetail = () => {
 
   const canEdit = character && user && character.owner_id === user.id;
   const useOsgdrForm = isOpenSourceGdr(rulesetName);
-  // Campi liberi visibili = tutti tranne quello riservato OSGDR
-  const visibleFields = fields.filter((f) => f.id !== OSGDR_FIELD_ID);
+  // Campi liberi visibili = tutti tranne i record riservati
+  const visibleFields = fields.filter(
+    (f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID,
+  );
 
   const load = async () => {
     if (!characterId) return;
@@ -111,6 +138,7 @@ const CharacterDetail = () => {
     setConcept(ch.concept ?? "");
     setFields(ch.custom_fields);
     setOsgdrSheet(extractOsgdrSheet(ch.custom_fields));
+    setLabelOverrides(extractLabelOverrides(ch.custom_fields));
     setNotes((n.data ?? []) as Note[]);
     setLoading(false);
   };
@@ -127,10 +155,34 @@ const CharacterDetail = () => {
     setFields((prev) => prev.filter((f) => f.id !== id));
   };
 
+  /**
+   * Persist label overrides immediately so the admin can fine-tune labels
+   * without having to remember to save the whole sheet afterwards.
+   */
+  const persistLabelOverride = async (key: string, override: LabelOverride | undefined) => {
+    if (!character) return;
+    const next = { ...labelOverrides };
+    if (!override || (override.text === undefined && override.size === undefined)) {
+      delete next[key];
+    } else {
+      next[key] = override;
+    }
+    setLabelOverrides(next);
+    const newFields = packLabelOverrides(fields, next);
+    setFields(newFields);
+    const { error } = await supabase
+      .from("characters")
+      .update({ custom_fields: newFields as any })
+      .eq("id", character.id);
+    if (error) toast.error(error.message);
+    else toast.success("Etichetta aggiornata");
+  };
+
   const handleSave = async () => {
     if (!character) return;
     setSaving(true);
-    const finalFields = useOsgdrForm ? packOsgdrSheet(fields, osgdrSheet) : fields;
+    let finalFields = useOsgdrForm ? packOsgdrSheet(fields, osgdrSheet) : fields;
+    finalFields = packLabelOverrides(finalFields, labelOverrides);
     const { error } = await supabase
       .from("characters")
       .update({ name, concept: concept || null, custom_fields: finalFields as any })
@@ -223,11 +275,11 @@ const CharacterDetail = () => {
           <ArrowLeft className="h-4 w-4" /> Torna alla campagna
         </Link>
 
-        <div className="grid lg:grid-cols-[320px_1fr] gap-6">
+        <div className="grid lg:grid-cols-[200px_1fr] gap-6">
           {/* Sidebar: foto + dadi */}
           <aside className="space-y-5">
-            <div className="parchment-panel p-4">
-              <div className="aspect-[3/4] bg-gradient-to-br from-parchment-deep to-parchment-shadow rounded overflow-hidden relative group">
+            <div className="parchment-panel p-3">
+              <div className="w-[160px] h-[213px] mx-auto bg-gradient-to-br from-parchment-deep to-parchment-shadow rounded overflow-hidden relative group">
                 {character.image_url ? (
                   <img src={character.image_url} alt={character.name} className="w-full h-full object-cover" />
                 ) : (
@@ -287,15 +339,23 @@ const CharacterDetail = () => {
                 <TabsContent value="sheet" className="space-y-4 mt-4">
                   {useOsgdrForm ? (
                     <>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
                         <p className="font-script italic text-xs text-ink-faded">
                           Scheda <strong>Open Source GDR</strong>
+                          {isAdmin && (
+                            <span className="ml-2 text-primary not-italic">
+                              · Admin: passa il mouse sulle etichette per modificarne testo e dimensione.
+                            </span>
+                          )}
                         </p>
                       </div>
                       <OpenSourceGdrSheet
                         value={osgdrSheet}
                         onChange={setOsgdrSheet}
                         canEdit={!!canEdit}
+                        labelOverrides={labelOverrides}
+                        canCustomizeLabels={isAdmin}
+                        onLabelOverrideChange={persistLabelOverride}
                       />
                       {canEdit && (
                         <div className="flex pt-3 border-t border-border/40">
@@ -337,8 +397,36 @@ const CharacterDetail = () => {
                               </>
                             ) : (
                               <>
-                                <div className="font-heading text-xs uppercase tracking-wider text-ink-faded">{f.label}</div>
-                                <div className="font-script whitespace-pre-wrap">{f.value}</div>
+                                <EditableLabel
+                                  defaultText={f.label}
+                                  override={labelOverrides[`free.${f.id}`]}
+                                  onChange={(o) => persistLabelOverride(`free.${f.id}`, o)}
+                                  canCustomize={isAdmin}
+                                  className="font-heading text-xs uppercase tracking-wider text-ink-faded"
+                                  as="div"
+                                />
+                                <div
+                                  className="font-script whitespace-pre-wrap"
+                                  style={
+                                    labelOverrides[`free.${f.id}.value`]?.size
+                                      ? { fontSize: `${labelOverrides[`free.${f.id}.value`]!.size}px` }
+                                      : undefined
+                                  }
+                                >
+                                  {f.value}
+                                </div>
+                                {isAdmin && (
+                                  <div className="mt-1">
+                                    <EditableLabel
+                                      defaultText="Dimensione testo"
+                                      override={labelOverrides[`free.${f.id}.value`]}
+                                      onChange={(o) => persistLabelOverride(`free.${f.id}.value`, o)}
+                                      canCustomize={isAdmin}
+                                      className="font-script italic text-[10px] text-ink-faded/70"
+                                      as="span"
+                                    />
+                                  </div>
+                                )}
                               </>
                             )}
                           </div>
