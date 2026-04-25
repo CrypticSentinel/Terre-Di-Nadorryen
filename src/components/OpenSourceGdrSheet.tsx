@@ -245,7 +245,7 @@ export const OpenSourceGdrSheet = ({
     <div className="space-y-6">
       {/* === Anagrafica === */}
       <section className="space-y-3">
-        <h3 className="font-display text-xl gold-text">Anagrafica</h3>
+        {lbl("section.anagrafica", "Anagrafica", "font-display text-xl gold-text", "h3")}
         <div className="grid sm:grid-cols-3 gap-3">
           {([
             ["razza", "Razza"], ["provenienza", "Provenienza"], ["eta", "Età"],
@@ -253,7 +253,7 @@ export const OpenSourceGdrSheet = ({
             ["capelli", "Capelli"], ["occhi", "Occhi"],
           ] as const).map(([k, label]) => (
             <div key={k} className="bg-parchment-deep/20 border border-border/60 rounded p-3">
-              <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">{label}</Label>
+              {lbl(`field.${k}`, label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
               {canEdit ? (
                 <Input
                   value={(value as any)[k] ?? ""}
@@ -269,7 +269,7 @@ export const OpenSourceGdrSheet = ({
       {/* === Caratteristiche === */}
       <section className="space-y-3">
         <div className="flex items-baseline justify-between flex-wrap gap-2">
-          <h3 className="font-display text-xl gold-text">Caratteristiche</h3>
+          {lbl("section.caratteristiche", "Caratteristiche", "font-display text-xl gold-text", "h3")}
           <p className="font-script italic text-xs text-ink-faded">
             Totale punti distribuiti: <strong>{totalPoints}</strong> · base 48 + 5d4 + 1d6
           </p>
