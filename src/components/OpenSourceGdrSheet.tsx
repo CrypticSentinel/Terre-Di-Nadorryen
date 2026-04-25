@@ -384,7 +384,7 @@ export const OpenSourceGdrSheet = ({
       {/* === Abilità apprese === */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-xl gold-text">Abilità</h3>
+          {lbl("section.abilita", "Abilità", "font-display text-xl gold-text", "h3")}
           {canEdit && (
             <Button variant="outline" size="sm" onClick={addSkill} className="font-heading">
               <Plus className="h-4 w-4 mr-1" /> Aggiungi
