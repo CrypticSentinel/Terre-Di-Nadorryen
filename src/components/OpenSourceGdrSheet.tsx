@@ -280,7 +280,7 @@ export const OpenSourceGdrSheet = ({
             const mod = abilityModifier(v);
             return (
               <div key={a.key} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
-                <div className="font-heading text-xs uppercase tracking-wider text-ink-faded" title={a.full}>{a.label}</div>
+                {lbl(`ability.${a.key}`, a.label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "div")}
                 {canEdit ? (
                   <Input
                     type="number"
