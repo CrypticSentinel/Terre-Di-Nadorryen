@@ -430,11 +430,11 @@ export const OpenSourceGdrSheet = ({
 
       {/* === Ferite localizzate === */}
       <section className="space-y-3">
-        <h3 className="font-display text-xl gold-text">Ferite & Stato del corpo</h3>
+        {lbl("section.ferite", "Ferite & Stato del corpo", "font-display text-xl gold-text", "h3")}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {BODY_PARTS.map((p) => (
             <div key={p} className="bg-parchment-deep/20 border border-border/60 rounded p-3">
-              <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">{p}</Label>
+              {lbl(`ferita.${p}`, p, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
               {canEdit ? (
                 <Input
                   value={value.ferite[p] ?? ""}
