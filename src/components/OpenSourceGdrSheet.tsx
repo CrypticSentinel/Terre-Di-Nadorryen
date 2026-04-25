@@ -302,7 +302,7 @@ export const OpenSourceGdrSheet = ({
 
       {/* === Stati / Risorse === */}
       <section className="space-y-3">
-        <h3 className="font-display text-xl gold-text">Stati & Risorse</h3>
+        {lbl("section.stati", "Stati & Risorse", "font-display text-xl gold-text", "h3")}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {([
             ["iniziativa", "Iniziativa"],
@@ -312,7 +312,7 @@ export const OpenSourceGdrSheet = ({
             ["pe", "PE"],
           ] as const).map(([k, label]) => (
             <div key={k} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
-              <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">{label}</Label>
+              {lbl(`stat.${k}`, label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
               {canEdit ? (
                 <Input
                   value={(value as any)[k] ?? ""}
