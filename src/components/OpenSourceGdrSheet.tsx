@@ -162,9 +162,22 @@ interface Props {
   value: OsgdrSheet;
   onChange: (next: OsgdrSheet) => void;
   canEdit: boolean;
+  /** Override map (key → text/size) used for admin label customisation */
+  labelOverrides?: Record<string, LabelOverride>;
+  /** Whether the current user can customise labels (admin) */
+  canCustomizeLabels?: boolean;
+  /** Persist a label override change (called immediately on save) */
+  onLabelOverrideChange?: (key: string, override: LabelOverride | undefined) => void;
 }
 
-export const OpenSourceGdrSheet = ({ value, onChange, canEdit }: Props) => {
+export const OpenSourceGdrSheet = ({
+  value,
+  onChange,
+  canEdit,
+  labelOverrides = {},
+  canCustomizeLabels = false,
+  onLabelOverrideChange,
+}: Props) => {
   const totalPoints = useMemo(
     () => ABILITIES.reduce((acc, a) => acc + (Number(value.abilities[a.key]) || 0), 0),
     [value.abilities],
