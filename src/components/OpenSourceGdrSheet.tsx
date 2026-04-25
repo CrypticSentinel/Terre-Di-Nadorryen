@@ -229,6 +229,18 @@ export const OpenSourceGdrSheet = ({
     <span className="font-script whitespace-pre-wrap">{val || "—"}</span>
   );
 
+  // Shorthand: render an editable label that admins can rename/resize.
+  const lbl = (key: string, defaultText: string, className: string, as: "span" | "div" | "label" | "h3" = "span") => (
+    <EditableLabel
+      defaultText={defaultText}
+      override={labelOverrides[key]}
+      onChange={(o) => onLabelOverrideChange?.(key, o)}
+      canCustomize={canCustomizeLabels && !!onLabelOverrideChange}
+      className={className}
+      as={as}
+    />
+  );
+
   return (
     <div className="space-y-6">
       {/* === Anagrafica === */}
