@@ -496,7 +496,7 @@ export const OpenSourceGdrSheet = ({
 
       {/* === Note === */}
       <section className="space-y-3">
-        <h3 className="font-display text-xl gold-text">Note</h3>
+        {lbl("section.note", "Note", "font-display text-xl gold-text", "h3")}
         {canEdit ? (
           <Textarea
             value={value.note}
