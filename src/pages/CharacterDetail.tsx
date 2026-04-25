@@ -21,6 +21,7 @@ import {
   normalizeOsgdrSheet,
   type OsgdrSheet,
 } from "@/components/OpenSourceGdrSheet";
+import { EditableLabel, type LabelOverride } from "@/components/EditableLabel";
 
 interface CustomField {
   id: string;
@@ -38,6 +39,9 @@ interface Character {
 }
 
 const OSGDR_FIELD_ID = "__osgdr_sheet__";
+const LABEL_OVERRIDES_FIELD_ID = "__label_overrides__";
+
+type LabelOverridesMap = Record<string, LabelOverride>;
 
 function extractOsgdrSheet(fields: CustomField[]): OsgdrSheet {
   const f = fields.find((x) => x.id === OSGDR_FIELD_ID);
@@ -49,6 +53,26 @@ function extractOsgdrSheet(fields: CustomField[]): OsgdrSheet {
 function packOsgdrSheet(fields: CustomField[], sheet: OsgdrSheet): CustomField[] {
   const others = fields.filter((x) => x.id !== OSGDR_FIELD_ID);
   return [...others, { id: OSGDR_FIELD_ID, label: "Open Source GDR", value: JSON.stringify(sheet) }];
+}
+
+function extractLabelOverrides(fields: CustomField[]): LabelOverridesMap {
+  const f = fields.find((x) => x.id === LABEL_OVERRIDES_FIELD_ID);
+  if (!f) return {};
+  try {
+    const parsed = JSON.parse(f.value);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function packLabelOverrides(fields: CustomField[], overrides: LabelOverridesMap): CustomField[] {
+  const others = fields.filter((x) => x.id !== LABEL_OVERRIDES_FIELD_ID);
+  if (Object.keys(overrides).length === 0) return others;
+  return [
+    ...others,
+    { id: LABEL_OVERRIDES_FIELD_ID, label: "Label overrides", value: JSON.stringify(overrides) },
+  ];
 }
 interface Note {
   id: string;
