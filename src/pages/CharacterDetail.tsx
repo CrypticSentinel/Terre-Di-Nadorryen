@@ -339,9 +339,14 @@ const CharacterDetail = () => {
                 <TabsContent value="sheet" className="space-y-4 mt-4">
                   {useOsgdrForm ? (
                     <>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
                         <p className="font-script italic text-xs text-ink-faded">
                           Scheda <strong>Open Source GDR</strong>
+                          {isAdmin && (
+                            <span className="ml-2 text-primary not-italic">
+                              · Admin: passa il mouse sulle etichette per modificarne testo e dimensione.
+                            </span>
+                          )}
                         </p>
                       </div>
                       <OpenSourceGdrSheet
