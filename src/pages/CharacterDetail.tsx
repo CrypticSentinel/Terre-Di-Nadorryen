@@ -348,6 +348,9 @@ const CharacterDetail = () => {
                         value={osgdrSheet}
                         onChange={setOsgdrSheet}
                         canEdit={!!canEdit}
+                        labelOverrides={labelOverrides}
+                        canCustomizeLabels={isAdmin}
+                        onLabelOverrideChange={persistLabelOverride}
                       />
                       {canEdit && (
                         <div className="flex pt-3 border-t border-border/40">
