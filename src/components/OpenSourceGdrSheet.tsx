@@ -333,14 +333,14 @@ export const OpenSourceGdrSheet = ({
 
       {/* === Magia === */}
       <section className="space-y-3">
-        <h3 className="font-display text-xl gold-text">Magia</h3>
+        {lbl("section.magia", "Magia", "font-display text-xl gold-text", "h3")}
         <p className="font-script italic text-xs text-ink-faded">
           Punteggio per ciascuna delle dieci scuole di magia libera.
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {MAGIC_SCHOOLS.map((school) => (
             <div key={school} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
-              <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">{school}</Label>
+              {lbl(`magic.${school}`, school, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
               {canEdit ? (
                 <Input
                   type="number"
