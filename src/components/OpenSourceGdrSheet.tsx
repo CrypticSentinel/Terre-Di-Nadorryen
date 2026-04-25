@@ -450,14 +450,14 @@ export const OpenSourceGdrSheet = ({
 
       {/* === Equipaggiamento === */}
       <section className="space-y-3">
-        <h3 className="font-display text-xl gold-text">Equipaggiamento</h3>
+        {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
         <div className="grid sm:grid-cols-2 gap-3">
           {EQUIPMENT_SECTIONS.map((sec) => {
             const items = value.equipment[sec.key] ?? [];
             return (
               <div key={sec.key} className="bg-parchment-deep/20 border border-border/60 rounded p-3 space-y-1">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-heading text-sm uppercase tracking-wider text-ink-faded">{sec.label}</h4>
+                  {lbl(`equip.${sec.key}`, sec.label, "font-heading text-sm uppercase tracking-wider text-ink-faded", "h3")}
                   {canEdit && (
                     <button onClick={() => addEquipItem(sec.key)} className="text-primary hover:text-primary/80">
                       <Plus className="h-3.5 w-3.5" />
