@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
 import { abilityModifier, formatModifier } from "@/lib/rulesets";
+import { EditableLabel, type LabelOverride } from "@/components/EditableLabel";
 
 // === Schema dati Open Source GDR ===
 const ABILITIES = [
