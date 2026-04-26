@@ -158,6 +158,40 @@ const CampaignDetail = () => {
     }
   };
 
+  const useOsgdr = isOpenSourceGdr(campaign?.ruleset?.name);
+  const OSGDR_FIELD_ID = "__osgdr_sheet__";
+
+  const handleWizardComplete = async (result: WizardResult) => {
+    if (!user || !campaignId) return;
+    setSubmitting(true);
+    const customFields = [
+      {
+        id: OSGDR_FIELD_ID,
+        label: "Open Source GDR",
+        value: JSON.stringify(result.sheet),
+      },
+    ];
+    const { data, error } = await supabase
+      .from("characters")
+      .insert({
+        name: result.name,
+        concept: result.concept || null,
+        campaign_id: campaignId,
+        owner_id: user.id,
+        custom_fields: customFields as any,
+      })
+      .select()
+      .single();
+    setSubmitting(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Eroe creato!");
+      setWizardOpen(false);
+      navigate(`/characters/${data.id}`);
+    }
+  };
+
   const addMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!campaignId || !newMemberId) return;
