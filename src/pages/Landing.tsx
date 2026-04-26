@@ -27,7 +27,6 @@ const Landing = () => {
         </div>
 
         <div className="relative container py-24 md:py-36 text-center">
-          <p className="font-script italic text-ink-faded mb-4 animate-fade-up">~ Capitolo Primo ~</p>
           <h1 className="font-display text-5xl md:text-7xl gold-text mb-6 animate-fade-up text-shadow-emboss">
             Terre di Nadorryen
           </h1>
@@ -35,35 +34,24 @@ const Landing = () => {
             Custodisci le schede dei tuoi eroi, condividile con il tuo gruppo, e che le sorti dei dadi
             ti siano sempre favorevoli.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4 animate-fade-up">
-            <Link to={user ? "/campaigns" : "/auth"}>
-              <Button size="lg" className="font-heading text-base px-8 shadow-glow">
-                <ScrollText className="mr-2 h-5 w-5" />
-                {user ? "Vai alle campagne" : "Apri il Codice"}
-              </Button>
-            </Link>
-            <a href="#features">
-              <Button size="lg" variant="outline" className="font-heading text-base px-8">
-                Scopri di più
-              </Button>
-            </a>
-          </div>
+          {user && (
+            <div className="flex flex-wrap items-center justify-center gap-4 animate-fade-up">
+              <Link to="/campaigns">
+                <Button size="lg" className="font-heading text-base px-8 shadow-glow">
+                  <ScrollText className="mr-2 h-5 w-5" />
+                  Vai alle campagne
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Features */}
       <section id="features" className="container py-20">
-        <div className="ornament-divider mb-4">
-          <span className="font-display text-2xl">✦</span>
-        </div>
-        <h2 className="font-heading text-3xl md:text-4xl text-center mb-3">Le arti del cronista</h2>
-        <p className="text-center text-ink-faded font-script italic mb-14 max-w-xl mx-auto">
-          Tutto ciò che serve per dare vita ai tuoi personaggi e alla tua compagnia.
-        </p>
-
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { icon: ScrollText, title: "Schede personalizzabili", desc: "Crea schede con i campi che vuoi tu, adatte a qualsiasi sistema di gioco." },
+            { icon: ScrollText, title: "Schede personalizzabili", desc: "Crea, modifica e interagisci in tempo reale le tue schede." },
             { icon: Users, title: "Gruppi condivisi", desc: "Invita master e giocatori con un codice. Le schede sono visibili a tutta la compagnia." },
             { icon: Dices, title: "Tiri di dado", desc: "Lancia d4, d6, d8, d10, d12, d20 e d100 con un clic, dalla tua scheda." },
             { icon: BookMarked, title: "Diario di campagna", desc: "Annota le imprese e i ricordi sessione dopo sessione, accanto al tuo eroe." },

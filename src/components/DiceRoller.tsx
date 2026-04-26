@@ -23,6 +23,8 @@ interface RollResult {
   dice: RolledDie[];
   modifier: number;
   total: number;
+  cumulativeTotal?: number;
+  bonusRolls?: number[];
 }
 
 const formatExpression = (groups: DiceGroup[], modifier: number) => {
@@ -41,8 +43,8 @@ export const DiceRoller = () => {
   const [modifier, setModifier] = useState(0);
   const [rolling, setRolling] = useState(false);
   const [lastResult, setLastResult] = useState<RollResult | null>(null);
-  const [bonusRoll, setBonusRoll] = useState<{ value: number; total: number } | null>(null);
-  const [bonusRolling, setBonusRolling] = useState(false);
+  // Quando true, il prossimo tiro è un "ritira d20" che si somma all'ultimo
+  const [pendingBonusD20, setPendingBonusD20] = useState(false);
 
   const expression = useMemo(() => formatExpression(groups, modifier), [groups, modifier]);
 
@@ -60,7 +62,6 @@ export const DiceRoller = () => {
       return;
     }
     setRolling(true);
-    setBonusRoll(null);
     setTimeout(() => {
       const dice: RolledDie[] = [];
       for (const g of active) {
@@ -74,6 +75,7 @@ export const DiceRoller = () => {
       const result: RollResult = { expression, dice, modifier, total };
       setLastResult(result);
       setRolling(false);
+      setPendingBonusD20(false);
 
       // Regola speciale: 1d20 singolo
       const isSingleD20 = active.length === 1 && active[0].count === 1 && active[0].sides === 20;
@@ -83,6 +85,7 @@ export const DiceRoller = () => {
           toast.error("💀 Fallimento critico!");
         } else if (v === 20) {
           toast.success("✨ 20 Naturale, ritira e ricordati di aggiungere 1 Punto Esperienza");
+          setPendingBonusD20(true);
         } else {
           toast(`🎲 d20 → ${v}${modifier ? ` (totale ${total})` : ""}`);
         }
@@ -92,22 +95,36 @@ export const DiceRoller = () => {
     }, 500);
   };
 
-  const rollBonusD20 = () => {
+  const performBonusD20 = () => {
     if (!lastResult) return;
-    setBonusRolling(true);
+    setRolling(true);
     setTimeout(() => {
       const v = Math.floor(Math.random() * 20) + 1;
-      setBonusRoll({ value: v, total: lastResult.total + v });
-      setBonusRolling(false);
-      toast(`🎲 Ritiro d20 → ${v} · totale cumulato ${lastResult.total + v}`);
+      const previousCumulative = lastResult.cumulativeTotal ?? lastResult.total;
+      const newCumulative = previousCumulative + v;
+      const bonusRolls = [...(lastResult.bonusRolls ?? []), v];
+      const updated: RollResult = {
+        ...lastResult,
+        bonusRolls,
+        cumulativeTotal: newCumulative,
+      };
+      setLastResult(updated);
+      setRolling(false);
+
+      if (v === 20) {
+        toast.success(`✨ Ancora 20! Ritira di nuovo · cumulato ${newCumulative}`);
+        setPendingBonusD20(true);
+      } else if (v === 1) {
+        toast.error(`💀 Ritiro = 1 · cumulato ${newCumulative}`);
+        setPendingBonusD20(false);
+      } else {
+        toast(`🎲 Ritiro d20 → ${v} · cumulato ${newCumulative}`);
+        setPendingBonusD20(false);
+      }
     }, 400);
   };
 
-  const showBonusButton =
-    lastResult &&
-    lastResult.dice.length === 1 &&
-    lastResult.dice[0].sides === 20 &&
-    lastResult.dice[0].value === 20;
+  const displayedTotal = lastResult?.cumulativeTotal ?? lastResult?.total ?? 0;
 
   return (
     <div className="parchment-panel p-5 space-y-4">
@@ -128,7 +145,7 @@ export const DiceRoller = () => {
               onChange={(e) =>
                 updateGroup(g.id, { count: Math.max(1, Math.min(50, Number(e.target.value) || 1)) })
               }
-              className="w-16 h-9 text-center font-display"
+              className="w-14 h-9 text-center font-display px-1"
               aria-label="Numero di dadi"
             />
             <span className="font-script text-ink-faded">d</span>
@@ -147,7 +164,7 @@ export const DiceRoller = () => {
             {groups.length > 1 && (
               <button
                 onClick={() => removeGroup(g.id)}
-                className="text-destructive hover:opacity-80"
+                className="text-destructive hover:opacity-80 ml-auto"
                 aria-label="Rimuovi gruppo"
               >
                 <Trash2 className="h-4 w-4" />
@@ -155,33 +172,46 @@ export const DiceRoller = () => {
             )}
           </div>
         ))}
-        <Button variant="outline" size="sm" onClick={addGroup} className="font-heading">
+        <Button variant="outline" size="sm" onClick={addGroup} className="font-heading w-full">
           <Plus className="h-3.5 w-3.5 mr-1" /> Aggiungi dado
         </Button>
       </div>
 
-      {/* Modificatore fisso */}
+      {/* Modificatore fisso (compatto, non esce dal riquadro) */}
       <div className="flex items-center gap-2">
-        <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">
-          Modificatore
+        <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded shrink-0">
+          Mod.
         </Label>
         <Input
           type="number"
           value={modifier}
           onChange={(e) => setModifier(Math.floor(Number(e.target.value) || 0))}
-          className="w-20 h-9 text-center font-display"
+          className="w-16 h-9 text-center font-display px-1"
         />
       </div>
 
       {/* Anteprima formula */}
-      <div className="text-center font-script italic text-sm text-ink-faded">
+      <div className="text-center font-script italic text-sm text-ink-faded break-all">
         Formula: <strong className="not-italic font-heading text-foreground">{expression}</strong>
       </div>
 
-      <Button onClick={performRoll} disabled={rolling} className="w-full font-heading">
-        <Dices className="h-4 w-4 mr-1" />
-        {rolling ? "Tiro in corso..." : "Tira"}
-      </Button>
+      {/* Tasto principale: Tira oppure Ritira d20 (sostituisce Tira) */}
+      {pendingBonusD20 ? (
+        <Button
+          onClick={performBonusD20}
+          disabled={rolling}
+          className="w-full font-heading"
+          variant="default"
+        >
+          <RotateCw className="h-4 w-4 mr-1" />
+          {rolling ? "Tiro in corso..." : "Ritira d20 e somma al totale"}
+        </Button>
+      ) : (
+        <Button onClick={performRoll} disabled={rolling} className="w-full font-heading">
+          <Dices className="h-4 w-4 mr-1" />
+          {rolling ? "Tiro in corso..." : "Tira"}
+        </Button>
+      )}
 
       {/* Risultato */}
       {lastResult && (
@@ -192,8 +222,11 @@ export const DiceRoller = () => {
         >
           <div className="font-script text-xs text-ink-faded uppercase tracking-wider">
             {lastResult.expression}
+            {lastResult.bonusRolls && lastResult.bonusRolls.length > 0 && (
+              <> + {lastResult.bonusRolls.map((b) => `d20`).join(" + ")}</>
+            )}
           </div>
-          <div className="font-display text-4xl gold-text">{lastResult.total}</div>
+          <div className="font-display text-4xl gold-text">{displayedTotal}</div>
           <div className="font-script text-xs text-ink-faded mt-1 break-words px-2">
             {lastResult.dice.map((d, i) => (
               <span key={i}>
@@ -207,29 +240,18 @@ export const DiceRoller = () => {
                 {lastResult.modifier > 0 ? "+" : "−"} {Math.abs(lastResult.modifier)}
               </>
             )}
+            {lastResult.bonusRolls && lastResult.bonusRolls.length > 0 && (
+              <>
+                {" + "}
+                {lastResult.bonusRolls.map((b, i) => (
+                  <span key={`b${i}`}>
+                    {i > 0 && " + "}
+                    <span className="text-primary font-semibold">{b}</span>
+                  </span>
+                ))}
+              </>
+            )}
           </div>
-
-          {showBonusButton && (
-            <div className="mt-3 space-y-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={rollBonusD20}
-                disabled={bonusRolling || !!bonusRoll}
-                className="font-heading"
-              >
-                <RotateCw className="h-3.5 w-3.5 mr-1" />
-                {bonusRoll ? "Ritirato" : "Ritira d20 e somma"}
-              </Button>
-              {bonusRoll && (
-                <div className="font-script text-sm">
-                  Ritiro: <strong className="font-display text-primary">{bonusRoll.value}</strong> ·
-                  Totale cumulato:{" "}
-                  <strong className="font-display gold-text">{bonusRoll.total}</strong>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
     </div>

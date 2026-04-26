@@ -275,11 +275,11 @@ const CharacterDetail = () => {
           <ArrowLeft className="h-4 w-4" /> Torna alla campagna
         </Link>
 
-        <div className="grid lg:grid-cols-[200px_1fr] gap-6">
+        <div className="grid lg:grid-cols-[300px_1fr] gap-6">
           {/* Sidebar: foto + dadi */}
           <aside className="space-y-5">
             <div className="parchment-panel p-3">
-              <div className="w-[160px] h-[213px] mx-auto bg-gradient-to-br from-parchment-deep to-parchment-shadow rounded overflow-hidden relative group">
+              <div className="w-[240px] h-[320px] mx-auto bg-gradient-to-br from-parchment-deep to-parchment-shadow rounded overflow-hidden relative group">
                 {character.image_url ? (
                   <img src={character.image_url} alt={character.name} className="w-full h-full object-cover" />
                 ) : (
@@ -314,7 +314,7 @@ const CharacterDetail = () => {
                   {canEdit ? (
                     <>
                       <Input value={name} onChange={(e) => setName(e.target.value)} className="font-display text-3xl gold-text bg-transparent border-0 border-b border-border rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary h-auto py-1" />
-                      <Input value={concept} onChange={(e) => setConcept(e.target.value)} placeholder="Concept del personaggio..." className="font-script italic text-ink-faded bg-transparent border-0 px-0 focus-visible:ring-0 mt-1 h-auto" />
+                      <Input value={concept} onChange={(e) => setConcept(e.target.value)} placeholder="Breve descrizione del personaggio..." className="font-script italic text-ink-faded bg-transparent border-0 px-0 focus-visible:ring-0 mt-1 h-auto" />
                     </>
                   ) : (
                     <>

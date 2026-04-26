@@ -164,3 +164,14 @@
     text-shadow: none;
   }
 }
+
+/* === Open Source GDR — dimensioni testo richieste dall'utente === */
+/* Tutti i campi testo/numero della scheda OSGDR usano font-size 18px,
+   mentre i modificatori (caratteristiche e iniziativa) usano 22px. */
+.osgdr-sheet input,
+.osgdr-sheet textarea,
+.osgdr-sheet select,
+.osgdr-sheet .font-script:not(.text-xs):not(.text-sm),
+.osgdr-sheet .font-display:not(.text-xl):not(.text-2xl):not(.gold-text) {
+  font-size: 18px;
+}

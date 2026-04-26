@@ -242,7 +242,8 @@ export const OpenSourceGdrSheet = ({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 osgdr-sheet">
+      {/* osgdr-sheet applica font-size 18px ai campi e 22px ai modificatori (regola in index.css) */}
       {/* === Anagrafica === */}
       <section className="space-y-3">
         {lbl("section.anagrafica", "Anagrafica", "font-display text-xl gold-text", "h3")}
@@ -288,12 +289,13 @@ export const OpenSourceGdrSheet = ({
                     max={30}
                     value={v}
                     onChange={(e) => setAbility(a.key, e.target.value)}
-                    className="bg-transparent border-0 text-center font-display text-2xl h-10 px-0 focus-visible:ring-0"
+                    className="bg-transparent border-0 text-center font-display h-10 px-0 focus-visible:ring-0"
+                    style={{ fontSize: "18px" }}
                   />
                 ) : (
-                  <div className="font-display text-2xl">{v}</div>
+                  <div className="font-display" style={{ fontSize: "18px" }}>{v}</div>
                 )}
-                <div className="font-script text-xs text-primary">{formatModifier(mod)}</div>
+                <div className="font-script text-primary" style={{ fontSize: "22px" }}>{formatModifier(mod)}</div>
               </div>
             );
           })}
@@ -303,6 +305,9 @@ export const OpenSourceGdrSheet = ({
       {/* === Stati / Risorse === */}
       <section className="space-y-3">
         {lbl("section.stati", "Stati & Risorse", "font-display text-xl gold-text", "h3")}
+        <p className="font-script italic text-xs text-ink-faded">
+          L'<strong>Iniziativa</strong> è calcolata automaticamente come <em>Mod. Destrezza + Mod. Prontezza</em>.
+        </p>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {([
             ["iniziativa", "Iniziativa"],
@@ -310,24 +315,40 @@ export const OpenSourceGdrSheet = ({
             ["fortuna", "Fortuna"],
             ["fatica", "Fatica"],
             ["pe", "PE"],
-          ] as const).map(([k, label]) => (
-            <div key={k} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
-              {lbl(`stat.${k}`, label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
-              {canEdit ? (
-                <Input
-                  value={(value as any)[k] ?? ""}
-                  onChange={(e) =>
-                    k === "pe"
-                      ? set("pe", Math.max(0, Number(e.target.value) || 0) as any)
-                      : set(k as any, e.target.value as any)
-                  }
-                  className="bg-transparent border-0 text-center font-display text-xl h-9 px-0 focus-visible:ring-0"
-                />
-              ) : (
-                <div className="font-display text-xl">{String((value as any)[k]) || "—"}</div>
-              )}
-            </div>
-          ))}
+          ] as const).map(([k, label]) => {
+            // Iniziativa autocalcolata = mod(des) + mod(pro)
+            const autoIniziativa =
+              abilityModifier(value.abilities.des ?? 0) + abilityModifier(value.abilities.pro ?? 0);
+            const isInit = k === "iniziativa";
+            const displayValue = isInit ? formatModifier(autoIniziativa) : String((value as any)[k]) || "—";
+            return (
+              <div key={k} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
+                {lbl(`stat.${k}`, label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
+                {isInit ? (
+                  <div
+                    className="font-display text-primary"
+                    style={{ fontSize: "22px" }}
+                    title="Calcolata automaticamente: Mod. DES + Mod. PRO"
+                  >
+                    {formatModifier(autoIniziativa)}
+                  </div>
+                ) : canEdit ? (
+                  <Input
+                    value={(value as any)[k] ?? ""}
+                    onChange={(e) =>
+                      k === "pe"
+                        ? set("pe", Math.max(0, Number(e.target.value) || 0) as any)
+                        : set(k as any, e.target.value as any)
+                    }
+                    className="bg-transparent border-0 text-center font-display h-9 px-0 focus-visible:ring-0"
+                    style={{ fontSize: "18px" }}
+                  />
+                ) : (
+                  <div className="font-display" style={{ fontSize: "18px" }}>{displayValue}</div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
