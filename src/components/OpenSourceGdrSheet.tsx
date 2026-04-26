@@ -242,7 +242,8 @@ export const OpenSourceGdrSheet = ({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 osgdr-sheet">
+      {/* osgdr-sheet applica font-size 18px ai campi e 22px ai modificatori (regola in index.css) */}
       {/* === Anagrafica === */}
       <section className="space-y-3">
         {lbl("section.anagrafica", "Anagrafica", "font-display text-xl gold-text", "h3")}
