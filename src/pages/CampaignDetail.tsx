@@ -61,6 +61,7 @@ const CampaignDetail = () => {
 
   // create char dialog
   const [createOpen, setCreateOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [name, setName] = useState("");
   const [concept, setConcept] = useState("");
   const [submitting, setSubmitting] = useState(false);
