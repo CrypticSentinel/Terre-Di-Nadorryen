@@ -557,6 +557,14 @@ const CampaignDetail = () => {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Wizard creazione personaggio OSGDR */}
+        <OsgdrCharacterWizard
+          open={wizardOpen}
+          submitting={submitting}
+          onCancel={() => setWizardOpen(false)}
+          onComplete={handleWizardComplete}
+        />
       </main>
     </div>
   );
