@@ -19,6 +19,8 @@ import {
   ArrowLeft, Plus, Crown, Loader2, Trash2, ScrollText, UserPlus, ShieldCheck, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
+import { isOpenSourceGdr } from "@/lib/rulesets";
+import { OsgdrCharacterWizard, type WizardResult } from "@/components/OsgdrCharacterWizard";
 
 interface Character {
   id: string;
@@ -59,6 +61,7 @@ const CampaignDetail = () => {
 
   // create char dialog
   const [createOpen, setCreateOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [name, setName] = useState("");
   const [concept, setConcept] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -151,6 +154,40 @@ const CampaignDetail = () => {
       toast.success("Eroe creato!");
       setCreateOpen(false);
       setName(""); setConcept("");
+      navigate(`/characters/${data.id}`);
+    }
+  };
+
+  const useOsgdr = isOpenSourceGdr(campaign?.ruleset?.name);
+  const OSGDR_FIELD_ID = "__osgdr_sheet__";
+
+  const handleWizardComplete = async (result: WizardResult) => {
+    if (!user || !campaignId) return;
+    setSubmitting(true);
+    const customFields = [
+      {
+        id: OSGDR_FIELD_ID,
+        label: "Open Source GDR",
+        value: JSON.stringify(result.sheet),
+      },
+    ];
+    const { data, error } = await supabase
+      .from("characters")
+      .insert({
+        name: result.name,
+        concept: result.concept || null,
+        campaign_id: campaignId,
+        owner_id: user.id,
+        custom_fields: customFields as any,
+      })
+      .select()
+      .single();
+    setSubmitting(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Eroe creato!");
+      setWizardOpen(false);
       navigate(`/characters/${data.id}`);
     }
   };
@@ -414,31 +451,37 @@ const CampaignDetail = () => {
             {isNarrator || isAdmin ? "Schede della campagna" : "Le tue schede"}
           </h2>
           {((isMember && !isNarrator) || isAdmin) && (
-            <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-              <DialogTrigger asChild>
-                <Button className="font-heading"><Plus className="h-4 w-4 mr-2" /> Nuovo eroe</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle className="font-display gold-text">Forgia un nuovo eroe</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleCreateChar} className="space-y-4">
-                  <div>
-                    <Label htmlFor="cname" className="font-heading">Nome</Label>
-                    <Input id="cname" value={name} onChange={(e) => setName(e.target.value)} required />
-                  </div>
-                  <div>
-                    <Label htmlFor="cconcept" className="font-heading">Breve descrizione</Label>
-                    <Input id="cconcept" value={concept} onChange={(e) => setConcept(e.target.value)} placeholder="Es. Ladro elfico in cerca di redenzione" />
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit" disabled={submitting} className="font-heading">
-                      {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Forgia"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+            useOsgdr ? (
+              <Button className="font-heading" onClick={() => setWizardOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" /> Nuovo eroe
+              </Button>
+            ) : (
+              <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                <DialogTrigger asChild>
+                  <Button className="font-heading"><Plus className="h-4 w-4 mr-2" /> Nuovo eroe</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="font-display gold-text">Forgia un nuovo eroe</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleCreateChar} className="space-y-4">
+                    <div>
+                      <Label htmlFor="cname" className="font-heading">Nome</Label>
+                      <Input id="cname" value={name} onChange={(e) => setName(e.target.value)} required />
+                    </div>
+                    <div>
+                      <Label htmlFor="cconcept" className="font-heading">Breve descrizione</Label>
+                      <Input id="cconcept" value={concept} onChange={(e) => setConcept(e.target.value)} placeholder="Es. Ladro elfico in cerca di redenzione" />
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit" disabled={submitting} className="font-heading">
+                        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Forgia"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )
           )}
         </div>
 
@@ -514,6 +557,14 @@ const CampaignDetail = () => {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Wizard creazione personaggio OSGDR */}
+        <OsgdrCharacterWizard
+          open={wizardOpen}
+          submitting={submitting}
+          onCancel={() => setWizardOpen(false)}
+          onComplete={handleWizardComplete}
+        />
       </main>
     </div>
   );
