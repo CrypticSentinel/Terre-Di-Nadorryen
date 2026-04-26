@@ -428,7 +428,7 @@ const CampaignDetail = () => {
                     <Input id="cname" value={name} onChange={(e) => setName(e.target.value)} required />
                   </div>
                   <div>
-                    <Label htmlFor="cconcept" className="font-heading">Concept (opzionale)</Label>
+                    <Label htmlFor="cconcept" className="font-heading">Breve descrizione</Label>
                     <Input id="cconcept" value={concept} onChange={(e) => setConcept(e.target.value)} placeholder="Es. Ladro elfico in cerca di redenzione" />
                   </div>
                   <DialogFooter>
