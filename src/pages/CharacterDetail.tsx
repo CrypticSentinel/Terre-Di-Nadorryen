@@ -314,7 +314,7 @@ const CharacterDetail = () => {
                   {canEdit ? (
                     <>
                       <Input value={name} onChange={(e) => setName(e.target.value)} className="font-display text-3xl gold-text bg-transparent border-0 border-b border-border rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary h-auto py-1" />
-                      <Input value={concept} onChange={(e) => setConcept(e.target.value)} placeholder="Concept del personaggio..." className="font-script italic text-ink-faded bg-transparent border-0 px-0 focus-visible:ring-0 mt-1 h-auto" />
+                      <Input value={concept} onChange={(e) => setConcept(e.target.value)} placeholder="Breve descrizione del personaggio..." className="font-script italic text-ink-faded bg-transparent border-0 px-0 focus-visible:ring-0 mt-1 h-auto" />
                     </>
                   ) : (
                     <>
