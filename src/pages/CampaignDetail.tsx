@@ -19,6 +19,8 @@ import {
   ArrowLeft, Plus, Crown, Loader2, Trash2, ScrollText, UserPlus, ShieldCheck, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
+import { isOpenSourceGdr } from "@/lib/rulesets";
+import { OsgdrCharacterWizard, type WizardResult } from "@/components/OsgdrCharacterWizard";
 
 interface Character {
   id: string;
