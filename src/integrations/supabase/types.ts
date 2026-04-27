@@ -226,6 +226,30 @@ export type Database = {
           },
         ]
       }
+      ui_text_overrides: {
+        Row: {
+          key: string
+          size: number | null
+          text: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          key: string
+          size?: number | null
+          text?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          key?: string
+          size?: number | null
+          text?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
