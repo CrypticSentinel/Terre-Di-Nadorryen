@@ -118,6 +118,25 @@ const CharacterDetail = () => {
   const [background, setBackground] = useState<string>("");
   const [bgSaving, setBgSaving] = useState(false);
 
+  // Audit log
+  interface AuditEntry {
+    id: string;
+    user_id: string;
+    user_display_name: string | null;
+    summary: string;
+    details: any;
+    created_at: string;
+  }
+  const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
+  // Snapshot del valore corrente in DB per generare il diff al salvataggio
+  const dbSnapshotRef = useRef<{
+    name: string;
+    concept: string;
+    fields: CustomField[];
+    osgdrSheet: OsgdrSheet;
+    background: string;
+  } | null>(null);
+
   // notes dialog
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteTitle, setNoteTitle] = useState("");
@@ -160,6 +179,15 @@ const CharacterDetail = () => {
     setBackground(extractBackground(ch.custom_fields));
     setNotes((n.data ?? []) as Note[]);
 
+    // Snapshot per il diff successivo
+    dbSnapshotRef.current = {
+      name: ch.name,
+      concept: ch.concept ?? "",
+      fields: ch.custom_fields,
+      osgdrSheet: extractOsgdrSheet(ch.custom_fields),
+      background: extractBackground(ch.custom_fields),
+    };
+
     // Carica profilo del proprietario per mostrare l'etichetta
     const { data: prof } = await supabase
       .from("profiles")
@@ -167,6 +195,16 @@ const CharacterDetail = () => {
       .eq("id", ch.owner_id)
       .maybeSingle();
     setOwnerProfile(prof ?? null);
+
+    // Carica audit log (max 100 entries)
+    const { data: auditRows } = await supabase
+      .from("character_audit_log")
+      .select("id, user_id, user_display_name, summary, details, created_at")
+      .eq("character_id", ch.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setAuditLog((auditRows ?? []) as AuditEntry[]);
+
     setLoading(false);
   };
 
