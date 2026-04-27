@@ -560,6 +560,31 @@ const CharacterDetail = () => {
                     </div>
                   )}
                 </TabsContent>
+
+                <TabsContent value="background" className="space-y-3 mt-4">
+                  {canEditBackground ? (
+                    <>
+                      <Textarea
+                        value={background}
+                        onChange={(e) => setBackground(e.target.value)}
+                        rows={14}
+                        placeholder="Scrivi qui il background del personaggio: origini, motivazioni, legami, segreti..."
+                        className="bg-parchment-deep/20 border-border/60 font-script focus-visible:ring-0"
+                      />
+                      <div className="flex justify-end pt-2 border-t border-border/40">
+                        <Button size="sm" onClick={saveBackground} disabled={bgSaving} className="font-heading">
+                          {bgSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salva background</>}
+                        </Button>
+                      </div>
+                    </>
+                  ) : background.trim() ? (
+                    <p className="font-script whitespace-pre-wrap text-ink leading-relaxed drop-cap">{background}</p>
+                  ) : (
+                    <p className="text-center font-script italic text-ink-faded py-6">
+                      Nessun background scritto.
+                    </p>
+                  )}
+                </TabsContent>
               </Tabs>
             </div>
           </div>
