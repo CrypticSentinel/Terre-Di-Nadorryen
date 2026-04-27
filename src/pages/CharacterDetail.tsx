@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { SiteHeader } from "@/components/SiteHeader";
-import { DiceRoller } from "@/components/DiceRoller";
+import { DiceRollerDock } from "@/components/DiceRoller";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Loader2, Camera, BookMarked, ScrollText, Save, BookOpen } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, Camera, BookMarked, ScrollText, Save, BookOpen, History } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenSourceGdr } from "@/lib/rulesets";
 import {
