@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Loader2, Camera, BookMarked, ScrollText, Save } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, Camera, BookMarked, ScrollText, Save, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenSourceGdr } from "@/lib/rulesets";
 import {
@@ -22,6 +22,7 @@ import {
   type OsgdrSheet,
 } from "@/components/OpenSourceGdrSheet";
 import { EditableLabel, type LabelOverride } from "@/components/EditableLabel";
+import { Badge } from "@/components/ui/badge";
 
 interface CustomField {
   id: string;
@@ -40,6 +41,7 @@ interface Character {
 
 const OSGDR_FIELD_ID = "__osgdr_sheet__";
 const LABEL_OVERRIDES_FIELD_ID = "__label_overrides__";
+const BACKGROUND_FIELD_ID = "__background__";
 
 type LabelOverridesMap = Record<string, LabelOverride>;
 
@@ -53,6 +55,16 @@ function extractOsgdrSheet(fields: CustomField[]): OsgdrSheet {
 function packOsgdrSheet(fields: CustomField[], sheet: OsgdrSheet): CustomField[] {
   const others = fields.filter((x) => x.id !== OSGDR_FIELD_ID);
   return [...others, { id: OSGDR_FIELD_ID, label: "Open Source GDR", value: JSON.stringify(sheet) }];
+}
+
+function extractBackground(fields: CustomField[]): string {
+  const f = fields.find((x) => x.id === BACKGROUND_FIELD_ID);
+  return f?.value ?? "";
+}
+function packBackground(fields: CustomField[], background: string): CustomField[] {
+  const others = fields.filter((x) => x.id !== BACKGROUND_FIELD_ID);
+  if (!background.trim()) return others;
+  return [...others, { id: BACKGROUND_FIELD_ID, label: "Background", value: background }];
 }
 
 function extractLabelOverrides(fields: CustomField[]): LabelOverridesMap {
