@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Loader2, Camera, BookMarked, ScrollText, Save } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, Camera, BookMarked, ScrollText, Save, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenSourceGdr } from "@/lib/rulesets";
 import {
@@ -22,6 +22,7 @@ import {
   type OsgdrSheet,
 } from "@/components/OpenSourceGdrSheet";
 import { EditableLabel, type LabelOverride } from "@/components/EditableLabel";
+import { Badge } from "@/components/ui/badge";
 
 interface CustomField {
   id: string;
@@ -40,6 +41,7 @@ interface Character {
 
 const OSGDR_FIELD_ID = "__osgdr_sheet__";
 const LABEL_OVERRIDES_FIELD_ID = "__label_overrides__";
+const BACKGROUND_FIELD_ID = "__background__";
 
 type LabelOverridesMap = Record<string, LabelOverride>;
 
@@ -53,6 +55,16 @@ function extractOsgdrSheet(fields: CustomField[]): OsgdrSheet {
 function packOsgdrSheet(fields: CustomField[], sheet: OsgdrSheet): CustomField[] {
   const others = fields.filter((x) => x.id !== OSGDR_FIELD_ID);
   return [...others, { id: OSGDR_FIELD_ID, label: "Open Source GDR", value: JSON.stringify(sheet) }];
+}
+
+function extractBackground(fields: CustomField[]): string {
+  const f = fields.find((x) => x.id === BACKGROUND_FIELD_ID);
+  return f?.value ?? "";
+}
+function packBackground(fields: CustomField[], background: string): CustomField[] {
+  const others = fields.filter((x) => x.id !== BACKGROUND_FIELD_ID);
+  if (!background.trim()) return others;
+  return [...others, { id: BACKGROUND_FIELD_ID, label: "Background", value: background }];
 }
 
 function extractLabelOverrides(fields: CustomField[]): LabelOverridesMap {
@@ -85,11 +97,12 @@ interface Note {
 
 const CharacterDetail = () => {
   const { characterId } = useParams<{ characterId: string }>();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isActingAsNarrator } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [character, setCharacter] = useState<Character | null>(null);
+  const [ownerProfile, setOwnerProfile] = useState<{ display_name: string } | null>(null);
   const [rulesetName, setRulesetName] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,6 +115,8 @@ const CharacterDetail = () => {
   const [fields, setFields] = useState<CustomField[]>([]);
   const [osgdrSheet, setOsgdrSheet] = useState<OsgdrSheet>(EMPTY_OSGDR_SHEET);
   const [labelOverrides, setLabelOverrides] = useState<LabelOverridesMap>({});
+  const [background, setBackground] = useState<string>("");
+  const [bgSaving, setBgSaving] = useState(false);
 
   // notes dialog
   const [noteOpen, setNoteOpen] = useState(false);
@@ -110,11 +125,14 @@ const CharacterDetail = () => {
   const [noteDate, setNoteDate] = useState("");
   const [noteSubmitting, setNoteSubmitting] = useState(false);
 
-  const canEdit = character && user && character.owner_id === user.id;
+  const isOwner = !!character && !!user && character.owner_id === user.id;
+  const canEdit = isOwner;
+  // Owner, Narratore (impersonante) e Admin (impersonante) possono modificare il background
+  const canEditBackground = isOwner || isActingAsNarrator || isAdmin;
   const useOsgdrForm = isOpenSourceGdr(rulesetName);
   // Campi liberi visibili = tutti tranne i record riservati
   const visibleFields = fields.filter(
-    (f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID,
+    (f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID && f.id !== BACKGROUND_FIELD_ID,
   );
 
   const load = async () => {
@@ -139,7 +157,16 @@ const CharacterDetail = () => {
     setFields(ch.custom_fields);
     setOsgdrSheet(extractOsgdrSheet(ch.custom_fields));
     setLabelOverrides(extractLabelOverrides(ch.custom_fields));
+    setBackground(extractBackground(ch.custom_fields));
     setNotes((n.data ?? []) as Note[]);
+
+    // Carica profilo del proprietario per mostrare l'etichetta
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", ch.owner_id)
+      .maybeSingle();
+    setOwnerProfile(prof ?? null);
     setLoading(false);
   };
 
@@ -183,6 +210,7 @@ const CharacterDetail = () => {
     setSaving(true);
     let finalFields = useOsgdrForm ? packOsgdrSheet(fields, osgdrSheet) : fields;
     finalFields = packLabelOverrides(finalFields, labelOverrides);
+    finalFields = packBackground(finalFields, background);
     const { error } = await supabase
       .from("characters")
       .update({ name, concept: concept || null, custom_fields: finalFields as any })
@@ -192,6 +220,22 @@ const CharacterDetail = () => {
     else {
       toast.success("Scheda salvata");
       load();
+    }
+  };
+
+  const saveBackground = async () => {
+    if (!character) return;
+    setBgSaving(true);
+    const finalFields = packBackground(fields, background);
+    const { error } = await supabase
+      .from("characters")
+      .update({ custom_fields: finalFields as any })
+      .eq("id", character.id);
+    setBgSaving(false);
+    if (error) toast.error(error.message);
+    else {
+      setFields(finalFields);
+      toast.success("Background salvato");
     }
   };
 
@@ -322,6 +366,16 @@ const CharacterDetail = () => {
                       {character.concept && <p className="font-script italic text-ink-faded">{character.concept}</p>}
                     </>
                   )}
+                  {/* Etichetta proprietario: "Tuo" se sono io, altrimenti il nome del giocatore proprietario */}
+                  <div className="mt-2">
+                    {isOwner ? (
+                      <Badge variant="outline" className="text-xs">Tuo</Badge>
+                    ) : ownerProfile ? (
+                      <Badge variant="outline" className="text-xs">
+                        Di {ownerProfile.display_name}
+                      </Badge>
+                    ) : null}
+                  </div>
                 </div>
                 {canEdit && (
                   <Button variant="ghost" size="sm" onClick={handleDelete} className="text-destructive shrink-0">
@@ -334,6 +388,7 @@ const CharacterDetail = () => {
                 <TabsList className="bg-parchment-deep/40">
                   <TabsTrigger value="sheet" className="font-heading"><ScrollText className="h-4 w-4 mr-1" /> Scheda</TabsTrigger>
                   <TabsTrigger value="diary" className="font-heading"><BookMarked className="h-4 w-4 mr-1" /> Diario ({notes.length})</TabsTrigger>
+                  <TabsTrigger value="background" className="font-heading"><BookOpen className="h-4 w-4 mr-1" /> Background</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="sheet" className="space-y-4 mt-4">
@@ -503,6 +558,31 @@ const CharacterDetail = () => {
                         </article>
                       ))}
                     </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="background" className="space-y-3 mt-4">
+                  {canEditBackground ? (
+                    <>
+                      <Textarea
+                        value={background}
+                        onChange={(e) => setBackground(e.target.value)}
+                        rows={14}
+                        placeholder="Scrivi qui il background del personaggio: origini, motivazioni, legami, segreti..."
+                        className="bg-parchment-deep/20 border-border/60 font-script focus-visible:ring-0"
+                      />
+                      <div className="flex justify-end pt-2 border-t border-border/40">
+                        <Button size="sm" onClick={saveBackground} disabled={bgSaving} className="font-heading">
+                          {bgSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salva background</>}
+                        </Button>
+                      </div>
+                    </>
+                  ) : background.trim() ? (
+                    <p className="font-script whitespace-pre-wrap text-ink leading-relaxed drop-cap">{background}</p>
+                  ) : (
+                    <p className="text-center font-script italic text-ink-faded py-6">
+                      Nessun background scritto.
+                    </p>
                   )}
                 </TabsContent>
               </Tabs>
