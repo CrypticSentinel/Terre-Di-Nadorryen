@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
-import { abilityModifier, formatModifier } from "@/lib/rulesets";
+import { abilityModifier, formatModifier, magicBaseDamage } from "@/lib/rulesets";
 import { EditableLabel, type LabelOverride } from "@/components/EditableLabel";
 
 // === Schema dati Open Source GDR ===
@@ -359,23 +359,33 @@ export const OpenSourceGdrSheet = ({
           Punteggio per ciascuna delle dieci scuole di magia libera.
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          {MAGIC_SCHOOLS.map((school) => (
-            <div key={school} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
-              {lbl(`magic.${school}`, school, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
-              {canEdit ? (
-                <Input
-                  type="number"
-                  min={0}
-                  max={99}
-                  value={value.magic[school] ?? 0}
-                  onChange={(e) => setMagic(school, e.target.value)}
-                  className="bg-transparent border-0 text-center font-display text-xl h-9 px-0 focus-visible:ring-0"
-                />
-              ) : (
-                <div className="font-display text-xl">{value.magic[school] ?? 0}</div>
-              )}
-            </div>
-          ))}
+          {MAGIC_SCHOOLS.map((school) => {
+            const grade = value.magic[school] ?? 0;
+            const dmg = magicBaseDamage(grade);
+            return (
+              <div key={school} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
+                {lbl(`magic.${school}`, school, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
+                {canEdit ? (
+                  <Input
+                    type="number"
+                    min={0}
+                    max={99}
+                    value={grade}
+                    onChange={(e) => setMagic(school, e.target.value)}
+                    className="bg-transparent border-0 text-center font-display text-xl h-9 px-0 focus-visible:ring-0"
+                  />
+                ) : (
+                  <div className="font-display text-xl">{grade}</div>
+                )}
+                <div
+                  className="font-script text-primary text-xs mt-1"
+                  title="Danno base incantesimo per questa scuola"
+                >
+                  Danno base {formatModifier(dmg)}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
