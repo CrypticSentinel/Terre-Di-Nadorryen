@@ -210,6 +210,7 @@ const CharacterDetail = () => {
     setSaving(true);
     let finalFields = useOsgdrForm ? packOsgdrSheet(fields, osgdrSheet) : fields;
     finalFields = packLabelOverrides(finalFields, labelOverrides);
+    finalFields = packBackground(finalFields, background);
     const { error } = await supabase
       .from("characters")
       .update({ name, concept: concept || null, custom_fields: finalFields as any })
