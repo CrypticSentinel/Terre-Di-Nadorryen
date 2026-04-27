@@ -366,6 +366,16 @@ const CharacterDetail = () => {
                       {character.concept && <p className="font-script italic text-ink-faded">{character.concept}</p>}
                     </>
                   )}
+                  {/* Etichetta proprietario: "Tuo" se sono io, altrimenti il nome del giocatore proprietario */}
+                  <div className="mt-2">
+                    {isOwner ? (
+                      <Badge variant="outline" className="text-xs">Tuo</Badge>
+                    ) : ownerProfile ? (
+                      <Badge variant="outline" className="text-xs">
+                        Di {ownerProfile.display_name}
+                      </Badge>
+                    ) : null}
+                  </div>
                 </div>
                 {canEdit && (
                   <Button variant="ghost" size="sm" onClick={handleDelete} className="text-destructive shrink-0">
@@ -378,6 +388,7 @@ const CharacterDetail = () => {
                 <TabsList className="bg-parchment-deep/40">
                   <TabsTrigger value="sheet" className="font-heading"><ScrollText className="h-4 w-4 mr-1" /> Scheda</TabsTrigger>
                   <TabsTrigger value="diary" className="font-heading"><BookMarked className="h-4 w-4 mr-1" /> Diario ({notes.length})</TabsTrigger>
+                  <TabsTrigger value="background" className="font-heading"><BookOpen className="h-4 w-4 mr-1" /> Background</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="sheet" className="space-y-4 mt-4">
