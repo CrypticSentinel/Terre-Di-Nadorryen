@@ -97,11 +97,12 @@ interface Note {
 
 const CharacterDetail = () => {
   const { characterId } = useParams<{ characterId: string }>();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isActingAsNarrator } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [character, setCharacter] = useState<Character | null>(null);
+  const [ownerProfile, setOwnerProfile] = useState<{ display_name: string } | null>(null);
   const [rulesetName, setRulesetName] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,6 +115,8 @@ const CharacterDetail = () => {
   const [fields, setFields] = useState<CustomField[]>([]);
   const [osgdrSheet, setOsgdrSheet] = useState<OsgdrSheet>(EMPTY_OSGDR_SHEET);
   const [labelOverrides, setLabelOverrides] = useState<LabelOverridesMap>({});
+  const [background, setBackground] = useState<string>("");
+  const [bgSaving, setBgSaving] = useState(false);
 
   // notes dialog
   const [noteOpen, setNoteOpen] = useState(false);
@@ -122,11 +125,14 @@ const CharacterDetail = () => {
   const [noteDate, setNoteDate] = useState("");
   const [noteSubmitting, setNoteSubmitting] = useState(false);
 
-  const canEdit = character && user && character.owner_id === user.id;
+  const isOwner = !!character && !!user && character.owner_id === user.id;
+  const canEdit = isOwner;
+  // Owner, Narratore (impersonante) e Admin (impersonante) possono modificare il background
+  const canEditBackground = isOwner || isActingAsNarrator || isAdmin;
   const useOsgdrForm = isOpenSourceGdr(rulesetName);
   // Campi liberi visibili = tutti tranne i record riservati
   const visibleFields = fields.filter(
-    (f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID,
+    (f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID && f.id !== BACKGROUND_FIELD_ID,
   );
 
   const load = async () => {
@@ -151,7 +157,16 @@ const CharacterDetail = () => {
     setFields(ch.custom_fields);
     setOsgdrSheet(extractOsgdrSheet(ch.custom_fields));
     setLabelOverrides(extractLabelOverrides(ch.custom_fields));
+    setBackground(extractBackground(ch.custom_fields));
     setNotes((n.data ?? []) as Note[]);
+
+    // Carica profilo del proprietario per mostrare l'etichetta
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", ch.owner_id)
+      .maybeSingle();
+    setOwnerProfile(prof ?? null);
     setLoading(false);
   };
 
