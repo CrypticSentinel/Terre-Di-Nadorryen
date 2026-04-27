@@ -5,6 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollText, LogOut, User as UserIcon, ShieldCheck } from "lucide-react";
+import { EditableUiText } from "@/components/EditableUiText";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { RoleSwitcher } from "@/components/RoleSwitcher";
 
 export const SiteHeader = () => {
   const { user, signOut, isAdmin } = useAuth();
@@ -48,23 +51,29 @@ export const SiteHeader = () => {
       <div className="container flex h-16 items-center justify-between">
         <Link to={user ? "/campaigns" : "/"} className="flex items-center gap-2 group">
           <ScrollText className="h-6 w-6 text-primary group-hover:rotate-6 transition-transform" />
-          <span className="font-display text-xl gold-text">Terre di Nadorryen</span>
+          <EditableUiText
+            textKey="header.title"
+            defaultText="Terre di Nadorryen"
+            className="font-display text-xl gold-text"
+          />
         </Link>
 
         <nav className="flex items-center gap-2">
+          <ThemeSwitcher />
           {user ? (
             <>
+              <RoleSwitcher />
               <Link to="/campaigns">
                 <Button variant="ghost" size="sm" className="font-heading">
                   <UserIcon className="h-4 w-4 mr-2" />
-                  Le campagne
+                  <EditableUiText textKey="nav.campaigns" defaultText="Le campagne" />
                 </Button>
               </Link>
               {isAdmin && (
                 <Link to="/admin" className="relative">
                   <Button variant="ghost" size="sm" className="font-heading">
                     <ShieldCheck className="h-4 w-4 mr-2" />
-                    Admin
+                    <EditableUiText textKey="nav.admin" defaultText="Admin" />
                     {pendingCount > 0 && (
                       <Badge variant="destructive" className="ml-2 h-5 min-w-5 px-1.5 text-xs">
                         {pendingCount}
@@ -75,13 +84,13 @@ export const SiteHeader = () => {
               )}
               <Button variant="ghost" size="sm" onClick={handleSignOut} className="font-heading">
                 <LogOut className="h-4 w-4 mr-2" />
-                Esci
+                <EditableUiText textKey="nav.signout" defaultText="Esci" />
               </Button>
             </>
           ) : (
             <Link to="/auth">
               <Button variant="default" size="sm" className="font-heading">
-                Entra nella sala
+                <EditableUiText textKey="nav.signin" defaultText="Entra nella sala" />
               </Button>
             </Link>
           )}
