@@ -527,7 +527,25 @@ const CampaignDetail = () => {
                     <div className="p-4">
                       <h3 className="font-heading text-lg group-hover:text-primary transition-colors">{c.name}</h3>
                       {c.concept && <p className="font-script italic text-sm text-ink-faded line-clamp-1">{c.concept}</p>}
-                      {c.owner_id === user?.id && <Badge variant="outline" className="mt-2 text-xs">Tuo</Badge>}
+                      {(() => {
+                        if (c.owner_id === user?.id) {
+                          return <Badge variant="outline" className="mt-2 text-xs">Tuo</Badge>;
+                        }
+                        // Per Admin/Narratore mostra il nome del giocatore proprietario
+                        if (isAdmin || isActingAsNarrator || isNarrator) {
+                          const ownerMember = members.find((m) => m.user_id === c.owner_id);
+                          const ownerName =
+                            ownerMember?.profile?.display_name ??
+                            allProfiles.find((p) => p.id === c.owner_id)?.display_name ??
+                            "Giocatore";
+                          return (
+                            <Badge variant="outline" className="mt-2 text-xs">
+                              Di {ownerName}
+                            </Badge>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </Link>
                 </article>
