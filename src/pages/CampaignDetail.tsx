@@ -50,7 +50,7 @@ interface ProfileLite {
 
 const CampaignDetail = () => {
   const { campaignId } = useParams<{ campaignId: string }>();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isActingAsNarrator, isActingAsPlayer } = useAuth();
   const navigate = useNavigate();
 
   const [campaign, setCampaign] = useState<CampaignData | null>(null);
@@ -451,7 +451,9 @@ const CampaignDetail = () => {
             {isNarrator || isAdmin ? "Schede della campagna" : "Le tue schede"}
           </h2>
           {((isMember && !isNarrator) || isAdmin) && (
-            useOsgdr ? (
+            // Il wizard OSGDR si attiva SOLO se l'utente sta agendo come Giocatore.
+            // Admin e Narratore aprono direttamente la compilazione libera.
+            useOsgdr && isActingAsPlayer ? (
               <Button className="font-heading" onClick={() => setWizardOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" /> Nuovo eroe
               </Button>
