@@ -488,10 +488,11 @@ const CharacterDetail = () => {
               </div>
 
               <Tabs defaultValue="sheet">
-                <TabsList className="bg-parchment-deep/40">
+                <TabsList className="bg-parchment-deep/40 flex-wrap h-auto">
                   <TabsTrigger value="sheet" className="font-heading"><ScrollText className="h-4 w-4 mr-1" /> Scheda</TabsTrigger>
                   <TabsTrigger value="diary" className="font-heading"><BookMarked className="h-4 w-4 mr-1" /> Diario ({notes.length})</TabsTrigger>
                   <TabsTrigger value="background" className="font-heading"><BookOpen className="h-4 w-4 mr-1" /> Background</TabsTrigger>
+                  <TabsTrigger value="audit" className="font-heading"><History className="h-4 w-4 mr-1" /> Modifiche</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="sheet" className="space-y-4 mt-4">
