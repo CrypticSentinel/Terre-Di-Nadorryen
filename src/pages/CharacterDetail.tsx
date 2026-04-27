@@ -243,9 +243,56 @@ const CharacterDetail = () => {
     else toast.success("Etichetta aggiornata");
   };
 
+  const logAudit = async (summary: string, details?: any) => {
+    if (!character || !user) return;
+    let userName: string | null = null;
+    try {
+      const { data: prof } = await supabase
+        .from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+      userName = prof?.display_name ?? null;
+    } catch { /* noop */ }
+    await supabase.from("character_audit_log").insert({
+      character_id: character.id,
+      user_id: user.id,
+      user_display_name: userName,
+      summary,
+      details: details ?? null,
+    });
+  };
+
+  const buildChangeSummary = (snap: NonNullable<typeof dbSnapshotRef.current>) => {
+    const changes: string[] = [];
+    if (snap.name !== name) changes.push(`Nome: "${snap.name}" → "${name}"`);
+    if ((snap.concept ?? "") !== (concept ?? "")) changes.push("Descrizione aggiornata");
+    if (useOsgdrForm) {
+      const a1 = snap.osgdrSheet, a2 = osgdrSheet;
+      const abilityKeys = Object.keys(a2.abilities ?? {}) as (keyof typeof a2.abilities)[];
+      for (const k of abilityKeys) {
+        if ((a1.abilities?.[k] ?? 0) !== (a2.abilities?.[k] ?? 0)) {
+          changes.push(`${String(k).toUpperCase()}: ${a1.abilities?.[k] ?? 0} → ${a2.abilities?.[k] ?? 0}`);
+        }
+      }
+      for (const sk of Object.keys(a2.magic ?? {})) {
+        if ((a1.magic as any)?.[sk] !== (a2.magic as any)?.[sk]) {
+          changes.push(`Magia ${sk}: ${(a1.magic as any)?.[sk] ?? 0} → ${(a2.magic as any)?.[sk] ?? 0}`);
+        }
+      }
+      if ((a1.note ?? "") !== (a2.note ?? "")) changes.push("Note aggiornate");
+      if ((a1.skills?.length ?? 0) !== (a2.skills?.length ?? 0)) {
+        changes.push(`Abilità: ${a1.skills?.length ?? 0} → ${a2.skills?.length ?? 0}`);
+      }
+    } else {
+      const v1 = snap.fields.filter((f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID && f.id !== BACKGROUND_FIELD_ID);
+      const v2 = fields.filter((f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID && f.id !== BACKGROUND_FIELD_ID);
+      if (JSON.stringify(v1) !== JSON.stringify(v2)) changes.push("Campi liberi modificati");
+    }
+    return changes;
+  };
+
   const handleSave = async () => {
     if (!character) return;
     setSaving(true);
+    const snap = dbSnapshotRef.current;
     let finalFields = useOsgdrForm ? packOsgdrSheet(fields, osgdrSheet) : fields;
     finalFields = packLabelOverrides(finalFields, labelOverrides);
     finalFields = packBackground(finalFields, background);
@@ -257,6 +304,15 @@ const CharacterDetail = () => {
     if (error) toast.error(error.message);
     else {
       toast.success("Scheda salvata");
+      if (snap) {
+        const changes = buildChangeSummary(snap);
+        if (changes.length > 0) {
+          await logAudit(
+            changes.length === 1 ? changes[0] : `${changes.length} modifiche alla scheda`,
+            { changes },
+          );
+        }
+      }
       load();
     }
   };
@@ -264,6 +320,7 @@ const CharacterDetail = () => {
   const saveBackground = async () => {
     if (!character) return;
     setBgSaving(true);
+    const prev = dbSnapshotRef.current?.background ?? "";
     const finalFields = packBackground(fields, background);
     const { error } = await supabase
       .from("characters")
@@ -274,6 +331,10 @@ const CharacterDetail = () => {
     else {
       setFields(finalFields);
       toast.success("Background salvato");
+      if (prev !== background) {
+        await logAudit("Background aggiornato", { length_before: prev.length, length_after: background.length });
+      }
+      load();
     }
   };
 
