@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { SiteHeader } from "@/components/SiteHeader";
-import { DiceRoller } from "@/components/DiceRoller";
+import { DiceRollerDock } from "@/components/DiceRoller";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Loader2, Camera, BookMarked, ScrollText, Save, BookOpen } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, Camera, BookMarked, ScrollText, Save, BookOpen, History } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenSourceGdr } from "@/lib/rulesets";
 import {
@@ -118,6 +118,25 @@ const CharacterDetail = () => {
   const [background, setBackground] = useState<string>("");
   const [bgSaving, setBgSaving] = useState(false);
 
+  // Audit log
+  interface AuditEntry {
+    id: string;
+    user_id: string;
+    user_display_name: string | null;
+    summary: string;
+    details: any;
+    created_at: string;
+  }
+  const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
+  // Snapshot del valore corrente in DB per generare il diff al salvataggio
+  const dbSnapshotRef = useRef<{
+    name: string;
+    concept: string;
+    fields: CustomField[];
+    osgdrSheet: OsgdrSheet;
+    background: string;
+  } | null>(null);
+
   // notes dialog
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteTitle, setNoteTitle] = useState("");
@@ -160,6 +179,15 @@ const CharacterDetail = () => {
     setBackground(extractBackground(ch.custom_fields));
     setNotes((n.data ?? []) as Note[]);
 
+    // Snapshot per il diff successivo
+    dbSnapshotRef.current = {
+      name: ch.name,
+      concept: ch.concept ?? "",
+      fields: ch.custom_fields,
+      osgdrSheet: extractOsgdrSheet(ch.custom_fields),
+      background: extractBackground(ch.custom_fields),
+    };
+
     // Carica profilo del proprietario per mostrare l'etichetta
     const { data: prof } = await supabase
       .from("profiles")
@@ -167,6 +195,16 @@ const CharacterDetail = () => {
       .eq("id", ch.owner_id)
       .maybeSingle();
     setOwnerProfile(prof ?? null);
+
+    // Carica audit log (max 100 entries)
+    const { data: auditRows } = await supabase
+      .from("character_audit_log")
+      .select("id, user_id, user_display_name, summary, details, created_at")
+      .eq("character_id", ch.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setAuditLog((auditRows ?? []) as AuditEntry[]);
+
     setLoading(false);
   };
 
@@ -205,9 +243,56 @@ const CharacterDetail = () => {
     else toast.success("Etichetta aggiornata");
   };
 
+  const logAudit = async (summary: string, details?: any) => {
+    if (!character || !user) return;
+    let userName: string | null = null;
+    try {
+      const { data: prof } = await supabase
+        .from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+      userName = prof?.display_name ?? null;
+    } catch { /* noop */ }
+    await supabase.from("character_audit_log").insert({
+      character_id: character.id,
+      user_id: user.id,
+      user_display_name: userName,
+      summary,
+      details: details ?? null,
+    });
+  };
+
+  const buildChangeSummary = (snap: NonNullable<typeof dbSnapshotRef.current>) => {
+    const changes: string[] = [];
+    if (snap.name !== name) changes.push(`Nome: "${snap.name}" → "${name}"`);
+    if ((snap.concept ?? "") !== (concept ?? "")) changes.push("Descrizione aggiornata");
+    if (useOsgdrForm) {
+      const a1 = snap.osgdrSheet, a2 = osgdrSheet;
+      const abilityKeys = Object.keys(a2.abilities ?? {}) as (keyof typeof a2.abilities)[];
+      for (const k of abilityKeys) {
+        if ((a1.abilities?.[k] ?? 0) !== (a2.abilities?.[k] ?? 0)) {
+          changes.push(`${String(k).toUpperCase()}: ${a1.abilities?.[k] ?? 0} → ${a2.abilities?.[k] ?? 0}`);
+        }
+      }
+      for (const sk of Object.keys(a2.magic ?? {})) {
+        if ((a1.magic as any)?.[sk] !== (a2.magic as any)?.[sk]) {
+          changes.push(`Magia ${sk}: ${(a1.magic as any)?.[sk] ?? 0} → ${(a2.magic as any)?.[sk] ?? 0}`);
+        }
+      }
+      if ((a1.note ?? "") !== (a2.note ?? "")) changes.push("Note aggiornate");
+      if ((a1.skills?.length ?? 0) !== (a2.skills?.length ?? 0)) {
+        changes.push(`Abilità: ${a1.skills?.length ?? 0} → ${a2.skills?.length ?? 0}`);
+      }
+    } else {
+      const v1 = snap.fields.filter((f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID && f.id !== BACKGROUND_FIELD_ID);
+      const v2 = fields.filter((f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID && f.id !== BACKGROUND_FIELD_ID);
+      if (JSON.stringify(v1) !== JSON.stringify(v2)) changes.push("Campi liberi modificati");
+    }
+    return changes;
+  };
+
   const handleSave = async () => {
     if (!character) return;
     setSaving(true);
+    const snap = dbSnapshotRef.current;
     let finalFields = useOsgdrForm ? packOsgdrSheet(fields, osgdrSheet) : fields;
     finalFields = packLabelOverrides(finalFields, labelOverrides);
     finalFields = packBackground(finalFields, background);
@@ -219,6 +304,15 @@ const CharacterDetail = () => {
     if (error) toast.error(error.message);
     else {
       toast.success("Scheda salvata");
+      if (snap) {
+        const changes = buildChangeSummary(snap);
+        if (changes.length > 0) {
+          await logAudit(
+            changes.length === 1 ? changes[0] : `${changes.length} modifiche alla scheda`,
+            { changes },
+          );
+        }
+      }
       load();
     }
   };
@@ -226,6 +320,7 @@ const CharacterDetail = () => {
   const saveBackground = async () => {
     if (!character) return;
     setBgSaving(true);
+    const prev = dbSnapshotRef.current?.background ?? "";
     const finalFields = packBackground(fields, background);
     const { error } = await supabase
       .from("characters")
@@ -236,6 +331,10 @@ const CharacterDetail = () => {
     else {
       setFields(finalFields);
       toast.success("Background salvato");
+      if (prev !== background) {
+        await logAudit("Background aggiornato", { length_before: prev.length, length_after: background.length });
+      }
+      load();
     }
   };
 
@@ -319,11 +418,11 @@ const CharacterDetail = () => {
           <ArrowLeft className="h-4 w-4" /> Torna alla campagna
         </Link>
 
-        <div className="grid lg:grid-cols-[300px_1fr] gap-6">
-          {/* Sidebar: foto + dadi */}
+        <div className="grid lg:grid-cols-[300px_1fr] gap-4 lg:gap-6">
+          {/* Sidebar: foto + (dadi solo desktop, mobile usa il FAB) */}
           <aside className="space-y-5">
             <div className="parchment-panel p-3">
-              <div className="w-[240px] h-[320px] mx-auto bg-gradient-to-br from-parchment-deep to-parchment-shadow rounded overflow-hidden relative group">
+              <div className="w-full max-w-[240px] aspect-[3/4] mx-auto bg-gradient-to-br from-parchment-deep to-parchment-shadow rounded overflow-hidden relative group">
                 {character.image_url ? (
                   <img src={character.image_url} alt={character.name} className="w-full h-full object-cover" />
                 ) : (
@@ -347,7 +446,11 @@ const CharacterDetail = () => {
               </div>
             </div>
 
-            <DiceRoller />
+            <DiceRollerDock
+              campaignId={character.campaign_id}
+              characterId={character.id}
+              characterName={character.name}
+            />
           </aside>
 
           {/* Main */}
@@ -385,10 +488,11 @@ const CharacterDetail = () => {
               </div>
 
               <Tabs defaultValue="sheet">
-                <TabsList className="bg-parchment-deep/40">
+                <TabsList className="bg-parchment-deep/40 flex-wrap h-auto">
                   <TabsTrigger value="sheet" className="font-heading"><ScrollText className="h-4 w-4 mr-1" /> Scheda</TabsTrigger>
                   <TabsTrigger value="diary" className="font-heading"><BookMarked className="h-4 w-4 mr-1" /> Diario ({notes.length})</TabsTrigger>
                   <TabsTrigger value="background" className="font-heading"><BookOpen className="h-4 w-4 mr-1" /> Background</TabsTrigger>
+                  <TabsTrigger value="audit" className="font-heading"><History className="h-4 w-4 mr-1" /> Modifiche</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="sheet" className="space-y-4 mt-4">

@@ -81,6 +81,36 @@ export type Database = {
           },
         ]
       }
+      character_audit_log: {
+        Row: {
+          character_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          summary: string
+          user_display_name: string | null
+          user_id: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          summary: string
+          user_display_name?: string | null
+          user_id: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          summary?: string
+          user_display_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       characters: {
         Row: {
           campaign_id: string
@@ -124,6 +154,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      dice_rolls: {
+        Row: {
+          campaign_id: string
+          character_id: string | null
+          character_name: string | null
+          created_at: string
+          dice: Json
+          expression: string
+          id: string
+          message: string | null
+          modifier: number
+          total: number
+          user_display_name: string | null
+          user_id: string
+        }
+        Insert: {
+          campaign_id: string
+          character_id?: string | null
+          character_name?: string | null
+          created_at?: string
+          dice?: Json
+          expression: string
+          id?: string
+          message?: string | null
+          modifier?: number
+          total?: number
+          user_display_name?: string | null
+          user_id: string
+        }
+        Update: {
+          campaign_id?: string
+          character_id?: string | null
+          character_name?: string | null
+          created_at?: string
+          dice?: Json
+          expression?: string
+          id?: string
+          message?: string | null
+          modifier?: number
+          total?: number
+          user_display_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -296,6 +371,7 @@ export type Database = {
         Returns: boolean
       }
       is_user_approved: { Args: { _user_id: string }; Returns: boolean }
+      purge_old_dice_rolls: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "narratore" | "giocatore"
