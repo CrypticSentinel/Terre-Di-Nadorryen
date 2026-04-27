@@ -223,6 +223,22 @@ const CharacterDetail = () => {
     }
   };
 
+  const saveBackground = async () => {
+    if (!character) return;
+    setBgSaving(true);
+    const finalFields = packBackground(fields, background);
+    const { error } = await supabase
+      .from("characters")
+      .update({ custom_fields: finalFields as any })
+      .eq("id", character.id);
+    setBgSaving(false);
+    if (error) toast.error(error.message);
+    else {
+      setFields(finalFields);
+      toast.success("Background salvato");
+    }
+  };
+
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !character || !user) return;
