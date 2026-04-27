@@ -319,11 +319,11 @@ const CharacterDetail = () => {
           <ArrowLeft className="h-4 w-4" /> Torna alla campagna
         </Link>
 
-        <div className="grid lg:grid-cols-[300px_1fr] gap-6">
-          {/* Sidebar: foto + dadi */}
+        <div className="grid lg:grid-cols-[300px_1fr] gap-4 lg:gap-6">
+          {/* Sidebar: foto + (dadi solo desktop, mobile usa il FAB) */}
           <aside className="space-y-5">
             <div className="parchment-panel p-3">
-              <div className="w-[240px] h-[320px] mx-auto bg-gradient-to-br from-parchment-deep to-parchment-shadow rounded overflow-hidden relative group">
+              <div className="w-full max-w-[240px] aspect-[3/4] mx-auto bg-gradient-to-br from-parchment-deep to-parchment-shadow rounded overflow-hidden relative group">
                 {character.image_url ? (
                   <img src={character.image_url} alt={character.name} className="w-full h-full object-cover" />
                 ) : (
@@ -347,7 +347,11 @@ const CharacterDetail = () => {
               </div>
             </div>
 
-            <DiceRoller />
+            <DiceRollerDock
+              campaignId={character.campaign_id}
+              characterId={character.id}
+              characterName={character.name}
+            />
           </aside>
 
           {/* Main */}
