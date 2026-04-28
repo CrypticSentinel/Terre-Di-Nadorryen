@@ -689,6 +689,53 @@ const CharacterDetail = () => {
                     </p>
                   )}
                 </TabsContent>
+
+                <TabsContent value="audit" className="space-y-3 mt-4">
+                  {auditLog.length === 0 ? (
+                    <p className="text-center font-script italic text-ink-faded py-6">
+                      Nessuna modifica registrata.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {auditLog.map((entry) => {
+                        const changes: string[] = Array.isArray(entry.details?.changes)
+                          ? entry.details.changes
+                          : [];
+                        return (
+                          <li
+                            key={entry.id}
+                            className="bg-parchment-deep/20 border border-border/60 rounded p-3"
+                          >
+                            <div className="flex items-start justify-between gap-2 flex-wrap">
+                              <div className="font-heading text-sm">
+                                {entry.summary}
+                              </div>
+                              <div className="text-xs font-script italic text-ink-faded">
+                                {new Date(entry.created_at).toLocaleString("it-IT", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </div>
+                            </div>
+                            <div className="text-xs font-script italic text-ink-faded mt-1">
+                              di {entry.user_display_name ?? "Utente sconosciuto"}
+                            </div>
+                            {changes.length > 1 && (
+                              <ul className="mt-2 list-disc list-inside text-sm font-script space-y-0.5">
+                                {changes.map((c, i) => (
+                                  <li key={i}>{c}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </TabsContent>
               </Tabs>
             </div>
           </div>
