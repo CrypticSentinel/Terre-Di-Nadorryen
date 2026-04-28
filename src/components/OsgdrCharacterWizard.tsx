@@ -286,73 +286,132 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
           {step === 1 && (
             <div className="space-y-4">
               <p className="font-script italic text-sm text-ink-faded">
-                Le caratteristiche partono da <strong>8</strong> ciascuna (totale base{" "}
-                <strong>{minBaseSum}</strong>). Tira <strong>5d4 + 1d6</strong> per ottenere i
-                punti bonus da distribuire (max 20 per caratteristica).
+                Distribuisci liberamente <strong>48 punti</strong> tra le sei caratteristiche
+                (minimo <strong>1</strong>, massimo <strong>20</strong> ciascuna).
               </p>
 
-              <div className="flex items-center gap-3 flex-wrap">
-                <Button onClick={tiraBonus} variant="outline" className="font-heading">
-                  <Dices className="h-4 w-4 mr-2" />
-                  {bonusPool === null ? "Tira 5d4 + 1d6" : "Ritira"}
-                </Button>
-                {bonusPool !== null && (
-                  <div className="text-sm">
-                    <div className="font-heading">
-                      Punti bonus: <span className="text-primary">+{bonusPool}</span>
-                    </div>
-                    <div className="font-script italic text-xs text-ink-faded">{bonusRollDetail}</div>
-                  </div>
-                )}
+              <div className="flex items-baseline justify-between flex-wrap gap-2">
+                <span className="font-heading text-sm">
+                  Distribuiti: <strong>{totalBaseSum}</strong> / {TOTAL_POOL}
+                </span>
+                <span
+                  className={`font-heading text-sm ${
+                    remainingPoints === 0
+                      ? "text-primary"
+                      : remainingPoints < 0
+                      ? "text-destructive"
+                      : "text-ink-faded"
+                  }`}
+                >
+                  Rimanenti: {remainingPoints}
+                </span>
               </div>
 
-              {bonusPool !== null && (
-                <>
-                  <div className="flex items-baseline justify-between flex-wrap gap-2">
-                    <span className="font-heading text-sm">
-                      Distribuiti: <strong>{totalAbilitySum}</strong> / {maxAbilitySum}
-                    </span>
-                    <span
-                      className={`font-heading text-sm ${
-                        remainingAbilityPoints === 0
-                          ? "text-primary"
-                          : remainingAbilityPoints! < 0
-                          ? "text-destructive"
-                          : "text-ink-faded"
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {ABILITIES.map((a) => {
+                  const base = baseAbilities[a.key] ?? 1;
+                  const bonus = bonusRolls ? (bonusRolls[a.key] || 0) : 0;
+                  const total = base + bonus;
+                  const isD6 = d6Choice === a.key;
+                  const mod = abilityModifier(total);
+                  return (
+                    <div
+                      key={a.key}
+                      className={`bg-parchment-deep/20 border rounded-lg p-3 text-center transition ${
+                        isD6 ? "border-primary ring-1 ring-primary/40" : "border-border/60"
                       }`}
                     >
-                      Rimanenti: {remainingAbilityPoints}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {ABILITIES.map((a) => {
-                      const v = abilities[a.key] ?? 8;
-                      const mod = abilityModifier(v);
-                      return (
-                        <div
-                          key={a.key}
-                          className="bg-parchment-deep/20 border border-border/60 rounded-lg p-3 text-center"
-                        >
-                          <div className="font-heading text-xs uppercase tracking-wider text-ink-faded">
-                            {a.label}
+                      <div className="font-heading text-xs uppercase tracking-wider text-ink-faded">
+                        {a.label}
+                      </div>
+                      <Input
+                        type="number"
+                        min={ABILITY_MIN}
+                        max={ABILITY_MAX}
+                        value={base}
+                        onChange={(e) => setBaseAbility(a.key, e.target.value)}
+                        className="bg-transparent border-0 text-center font-display h-10 px-0 focus-visible:ring-0"
+                        style={{ fontSize: "20px" }}
+                      />
+                      {bonusesAssigned ? (
+                        <>
+                          <div className="font-heading text-xs text-ink-faded">
+                            +{bonus} ({isD6 ? "d6" : "d4"})
                           </div>
-                          <Input
-                            type="number"
-                            min={8}
-                            max={20}
-                            value={v}
-                            onChange={(e) => setAbility(a.key, e.target.value)}
-                            className="bg-transparent border-0 text-center font-display h-10 px-0 focus-visible:ring-0"
-                            style={{ fontSize: "20px" }}
-                          />
-                          <div className="font-script text-primary text-lg">
+                          <div className="font-display text-lg">
+                            = <span className="text-primary">{total}</span>
+                          </div>
+                          <div className="font-script text-primary text-sm">
                             {formatModifier(mod)}
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
+                          {isD6 ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="mt-2 h-7 text-xs font-heading w-full"
+                              onClick={rerollD6}
+                              disabled={d6Rerolled}
+                            >
+                              <Dices className="h-3 w-3 mr-1" />
+                              {d6Rerolled ? "d6 ritirato" : "Ritira d6"}
+                            </Button>
+                          ) : (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="mt-2 h-7 text-xs font-heading w-full"
+                              onClick={() => rerollD4(a.key)}
+                              disabled={!!d4Rerolled && d4Rerolled !== a.key}
+                            >
+                              <Dices className="h-3 w-3 mr-1" />
+                              {d4Rerolled === a.key ? "d4 ritirato" : "Ritira d4"}
+                            </Button>
+                          )}
+                        </>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={isD6 ? "default" : "outline"}
+                          className="mt-2 h-7 text-xs font-heading w-full"
+                          onClick={() => setD6Choice(a.key)}
+                        >
+                          {isD6 ? "★ Riceve 1d6" : "Scegli 1d6"}
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {!bonusesAssigned && (
+                <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-border/40">
+                  <Button
+                    onClick={tiraBonus}
+                    variant="outline"
+                    className="font-heading"
+                    disabled={!distributionDone || !d6Choice}
+                  >
+                    <Dices className="h-4 w-4 mr-2" />
+                    Tira bonus (1d6 + 5d4)
+                  </Button>
+                  <span className="font-script italic text-xs text-ink-faded">
+                    {!distributionDone
+                      ? "Completa la distribuzione dei 48 punti."
+                      : !d6Choice
+                      ? "Scegli quale caratteristica riceverà 1d6."
+                      : "La caratteristica scelta riceve 1d6, le altre 1d4."}
+                  </span>
+                </div>
+              )}
+
+              {bonusesAssigned && (
+                <p className="font-script italic text-xs text-ink-faded">
+                  Puoi ritirare il <strong>d6</strong> una sola volta e <strong>uno solo</strong>{" "}
+                  dei d4 a tua scelta.
+                </p>
               )}
             </div>
           )}
