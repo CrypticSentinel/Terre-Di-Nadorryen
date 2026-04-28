@@ -13,11 +13,16 @@ interface AuthContextValue {
   loading: boolean;
   /** Tutti i ruoli effettivi assegnati all'utente */
   roles: AppRole[];
+  /** Ruolo "naturale" non-admin dell'utente (narratore o giocatore); admin se admin-puro */
+  naturalRole: AppRole | null;
   /** Ruolo attualmente impersonato (uno tra `roles`) */
   activeRole: AppRole | null;
+  /** Cambia ruolo attivo. Sono ammesse solo transizioni naturale ⇄ admin. */
   setActiveRole: (role: AppRole) => void;
   /** Vero se l'utente HA il ruolo admin, indipendentemente dall'impersonazione */
   hasAdminRole: boolean;
+  /** Vero se l'utente sta impersonando admin pur avendo un ruolo naturale diverso */
+  isImpersonatingAdmin: boolean;
   /** Vero solo se l'utente sta agendo come admin (impersonazione attiva) */
   isAdmin: boolean;
   /** Vero se sta agendo come narratore (anche se è admin che impersona narratore) */
@@ -33,11 +38,23 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const ROLE_PRIORITY: AppRole[] = ["admin", "narratore", "giocatore"];
-
-function pickDefaultActive(rs: AppRole[]): AppRole | null {
-  for (const r of ROLE_PRIORITY) if (rs.includes(r)) return r;
+/**
+ * Ruolo "naturale" dell'utente: il primo ruolo non-admin disponibile.
+ * Per un admin-puro (senza altri ruoli) il naturale resta "admin".
+ */
+function pickNaturalRole(rs: AppRole[]): AppRole | null {
+  if (rs.includes("narratore")) return "narratore";
+  if (rs.includes("giocatore")) return "giocatore";
+  if (rs.includes("admin")) return "admin";
   return null;
+}
+
+/**
+ * Default iniziale: SEMPRE il ruolo naturale. L'impersonazione admin
+ * deve essere un'azione esplicita dell'utente.
+ */
+function pickDefaultActive(rs: AppRole[]): AppRole | null {
+  return pickNaturalRole(rs);
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -106,11 +123,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, [loadRoles, loadApprovalStatus]);
 
+  const naturalRole = pickNaturalRole(roles);
+
   const setActiveRole = useCallback((role: AppRole) => {
     if (!roles.includes(role)) return;
+    // Sono ammesse solo le transizioni naturale ⇄ admin.
+    // Vietato lo switch diretto giocatore ⇄ narratore.
+    const allowed = role === "admin" || role === naturalRole;
+    if (!allowed) return;
     setActiveRoleState(role);
     try { localStorage.setItem(ACTIVE_ROLE_STORAGE_KEY, role); } catch { /* noop */ }
-  }, [roles]);
+  }, [roles, naturalRole]);
 
   const signOut = async () => {
     try { localStorage.removeItem(ACTIVE_ROLE_STORAGE_KEY); } catch { /* noop */ }
@@ -121,6 +144,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshApprovalStatus = async () => loadApprovalStatus(user?.id);
 
   const hasAdminRole = roles.includes("admin");
+  const isImpersonatingAdmin =
+    activeRole === "admin" && naturalRole !== null && naturalRole !== "admin";
 
   return (
     <AuthContext.Provider
@@ -129,9 +154,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         session,
         loading,
         roles,
+        naturalRole,
         activeRole,
         setActiveRole,
         hasAdminRole,
+        isImpersonatingAdmin,
         isAdmin: activeRole === "admin",
         isActingAsNarrator: activeRole === "narratore",
         isActingAsPlayer: activeRole === "giocatore",
