@@ -105,38 +105,79 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
   // Step 5 — Punti Fortuna
   const [fortuna, setFortuna] = useState<string>("");
 
-  const minBaseSum = ABILITIES.length * 8; // 48
-  const totalAbilitySum = useMemo(
-    () => ABILITIES.reduce((acc, a) => acc + (Number(abilities[a.key]) || 0), 0),
-    [abilities],
+  const totalBaseSum = useMemo(
+    () => ABILITIES.reduce((acc, a) => acc + (Number(baseAbilities[a.key]) || 0), 0),
+    [baseAbilities],
   );
-  const maxAbilitySum = bonusPool === null ? null : minBaseSum + bonusPool;
-  const remainingAbilityPoints =
-    maxAbilitySum === null ? null : maxAbilitySum - totalAbilitySum;
+  const remainingPoints = TOTAL_POOL - totalBaseSum;
+  const distributionDone = remainingPoints === 0;
+  const bonusesAssigned = bonusRolls !== null;
 
-  const tiraBonus = () => {
-    const d4 = rollDice(5, 4);
-    const d6 = rollDice(1, 6);
-    const tot = d4.total + d6.total;
-    setBonusPool(tot);
-    setBonusRollDetail(
-      `5d4 [${d4.rolls.join(", ")}] = ${d4.total} · 1d6 [${d6.rolls[0]}] = ${d6.total} → +${tot}`,
-    );
-    // Reset abilities a base 8
-    setAbilities({ for: 8, des: 8, cos: 8, vol: 8, pro: 8, emp: 8 });
+  // Punteggio finale = base + bonus (d6 sulla scelta, d4 sulle altre)
+  const finalAbilities = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const a of ABILITIES) {
+      const base = Number(baseAbilities[a.key]) || 0;
+      const bonus = bonusRolls ? (bonusRolls[a.key] || 0) : 0;
+      out[a.key] = base + bonus;
+    }
+    return out;
+  }, [baseAbilities, bonusRolls]);
+
+  const setBaseAbility = (key: string, raw: string) => {
+    const n = Math.max(ABILITY_MIN, Math.min(ABILITY_MAX, Number(raw) || 0));
+    const next = { ...baseAbilities, [key]: n };
+    const sum = ABILITIES.reduce((acc, a) => acc + (Number(next[a.key]) || 0), 0);
+    if (sum > TOTAL_POOL) {
+      toast.error(`Il totale non può superare ${TOTAL_POOL} punti.`);
+      return;
+    }
+    if (bonusRolls) {
+      setBonusRolls(null);
+      setD6Rerolled(false);
+      setD4Rerolled(null);
+    }
+    setBaseAbilities(next);
   };
 
-  const setAbility = (key: string, raw: string) => {
-    const n = Math.max(8, Math.min(20, Number(raw) || 0));
-    const next = { ...abilities, [key]: n };
-    if (maxAbilitySum !== null) {
-      const sum = ABILITIES.reduce((acc, a) => acc + (Number(next[a.key]) || 0), 0);
-      if (sum > maxAbilitySum) {
-        toast.error(`Hai superato il totale di ${maxAbilitySum} punti.`);
-        return;
-      }
+  const tiraBonus = () => {
+    if (!d6Choice) {
+      toast.error("Scegli prima la caratteristica che riceverà 1d6.");
+      return;
     }
-    setAbilities(next);
+    if (!distributionDone) {
+      toast.error("Distribuisci tutti i 48 punti prima di tirare i dadi.");
+      return;
+    }
+    const rolls: Record<string, number> = {};
+    for (const a of ABILITIES) {
+      rolls[a.key] = a.key === d6Choice
+        ? 1 + Math.floor(Math.random() * 6)
+        : 1 + Math.floor(Math.random() * 4);
+    }
+    setBonusRolls(rolls);
+    setD6Rerolled(false);
+    setD4Rerolled(null);
+  };
+
+  const rerollD6 = () => {
+    if (!bonusRolls || !d6Choice) return;
+    if (d6Rerolled) {
+      toast.error("Hai già ritirato il d6.");
+      return;
+    }
+    setBonusRolls({ ...bonusRolls, [d6Choice]: 1 + Math.floor(Math.random() * 6) });
+    setD6Rerolled(true);
+  };
+
+  const rerollD4 = (key: string) => {
+    if (!bonusRolls || key === d6Choice) return;
+    if (d4Rerolled) {
+      toast.error("Puoi ritirare un solo d4.");
+      return;
+    }
+    setBonusRolls({ ...bonusRolls, [key]: 1 + Math.floor(Math.random() * 4) });
+    setD4Rerolled(key);
   };
 
   const setMagicScore = (school: string, raw: string) => {
