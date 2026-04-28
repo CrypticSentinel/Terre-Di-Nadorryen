@@ -13,11 +13,16 @@ interface AuthContextValue {
   loading: boolean;
   /** Tutti i ruoli effettivi assegnati all'utente */
   roles: AppRole[];
+  /** Ruolo "naturale" non-admin dell'utente (narratore o giocatore); admin se admin-puro */
+  naturalRole: AppRole | null;
   /** Ruolo attualmente impersonato (uno tra `roles`) */
   activeRole: AppRole | null;
+  /** Cambia ruolo attivo. Sono ammesse solo transizioni naturale ⇄ admin. */
   setActiveRole: (role: AppRole) => void;
   /** Vero se l'utente HA il ruolo admin, indipendentemente dall'impersonazione */
   hasAdminRole: boolean;
+  /** Vero se l'utente sta impersonando admin pur avendo un ruolo naturale diverso */
+  isImpersonatingAdmin: boolean;
   /** Vero solo se l'utente sta agendo come admin (impersonazione attiva) */
   isAdmin: boolean;
   /** Vero se sta agendo come narratore (anche se è admin che impersona narratore) */
