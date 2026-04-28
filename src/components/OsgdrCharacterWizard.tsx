@@ -545,7 +545,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
                 <p className="font-heading text-primary mb-1">Riepilogo</p>
                 <ul className="font-script text-ink-faded space-y-0.5">
                   <li>Nome: <strong className="text-ink">{name || "—"}</strong></li>
-                  <li>Caratteristiche: totale {totalAbilitySum} pt</li>
+                  <li>Caratteristiche: base {totalBaseSum} pt + bonus dadi (totale {ABILITIES.reduce((acc, a) => acc + (finalAbilities[a.key] || 0), 0)})</li>
                   <li>Scuole di magia attive: {MAGIC_SCHOOLS.filter((s) => (magic[s] ?? 0) > 0).length}</li>
                   <li>Abilità apprese: {skills.length}</li>
                   <li>Soldi: {coins.oro} oro · {coins.argento} arg · {coins.rame} rame</li>
