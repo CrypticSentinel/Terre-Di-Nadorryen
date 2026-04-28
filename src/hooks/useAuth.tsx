@@ -33,11 +33,23 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const ROLE_PRIORITY: AppRole[] = ["admin", "narratore", "giocatore"];
-
-function pickDefaultActive(rs: AppRole[]): AppRole | null {
-  for (const r of ROLE_PRIORITY) if (rs.includes(r)) return r;
+/**
+ * Ruolo "naturale" dell'utente: il primo ruolo non-admin disponibile.
+ * Per un admin-puro (senza altri ruoli) il naturale resta "admin".
+ */
+function pickNaturalRole(rs: AppRole[]): AppRole | null {
+  if (rs.includes("narratore")) return "narratore";
+  if (rs.includes("giocatore")) return "giocatore";
+  if (rs.includes("admin")) return "admin";
   return null;
+}
+
+/**
+ * Default iniziale: SEMPRE il ruolo naturale. L'impersonazione admin
+ * deve essere un'azione esplicita dell'utente.
+ */
+function pickDefaultActive(rs: AppRole[]): AppRole | null {
+  return pickNaturalRole(rs);
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
