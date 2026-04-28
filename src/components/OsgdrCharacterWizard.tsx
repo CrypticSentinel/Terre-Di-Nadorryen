@@ -202,8 +202,8 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
       case 0:
         return name.trim().length > 0;
       case 1:
-        // Deve aver tirato i bonus e usato esattamente i punti
-        return bonusPool !== null && remainingAbilityPoints === 0;
+        // Devono essere distribuiti tutti i 48 punti, scelta d6 fatta e bonus tirati
+        return distributionDone && d6Choice !== null && bonusesAssigned;
       default:
         return true;
     }
@@ -212,9 +212,12 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
   const handleNext = () => {
     if (!canGoNext) {
       if (step === 0) toast.error("Inserisci un nome per il personaggio.");
-      else if (step === 1 && bonusPool === null) toast.error("Tira i dadi per ottenere i punti bonus.");
-      else if (step === 1 && remainingAbilityPoints !== 0)
-        toast.error(`Devi distribuire esattamente i punti rimanenti (${remainingAbilityPoints} ancora).`);
+      else if (step === 1 && !distributionDone)
+        toast.error(`Distribuisci tutti i 48 punti (rimanenti: ${remainingPoints}).`);
+      else if (step === 1 && !d6Choice)
+        toast.error("Scegli la caratteristica che riceverà 1d6.");
+      else if (step === 1 && !bonusesAssigned)
+        toast.error("Tira i dadi bonus prima di proseguire.");
       return;
     }
     setStep((s) => Math.min(STEP_LABELS.length - 1, s + 1));
@@ -228,8 +231,8 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
       ferite: { ...EMPTY_OSGDR_SHEET.ferite },
       equipment: { ...EMPTY_OSGDR_SHEET.equipment },
       abilities: {
-        for: abilities.for, des: abilities.des, cos: abilities.cos,
-        vol: abilities.vol, pro: abilities.pro, emp: abilities.emp,
+        for: finalAbilities.for, des: finalAbilities.des, cos: finalAbilities.cos,
+        vol: finalAbilities.vol, pro: finalAbilities.pro, emp: finalAbilities.emp,
       } as any,
       magic: { ...magic } as any,
       coins: { ...coins } as any,
