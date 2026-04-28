@@ -76,12 +76,20 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
   const [concept, setConcept] = useState("");
 
   // Step 1 — Caratteristiche
-  // Base 48 + 5d4 + 1d6 punti distribuibili tra 6 caratteristiche (parten 8 ciascuna)
-  const [bonusPool, setBonusPool] = useState<number | null>(null);
-  const [bonusRollDetail, setBonusRollDetail] = useState<string>("");
-  const [abilities, setAbilities] = useState<Record<string, number>>({
+  // Distribuzione libera di 48 punti tra le 6 caratteristiche (min 1, max 20).
+  // Poi: 1 caratteristica riceve 1d6, le altre 1d4 ciascuna.
+  // Si può ritirare il d6 e un singolo d4 a scelta.
+  const TOTAL_POOL = 48;
+  const ABILITY_MIN = 1;
+  const ABILITY_MAX = 20;
+  const [baseAbilities, setBaseAbilities] = useState<Record<string, number>>({
     for: 8, des: 8, cos: 8, vol: 8, pro: 8, emp: 8,
   });
+  const [d6Choice, setD6Choice] = useState<string | null>(null);
+  const [bonusRolls, setBonusRolls] = useState<Record<string, number> | null>(null);
+  // Caratteristiche già "ritirate" dopo il primo lancio (d6 + un solo d4)
+  const [d6Rerolled, setD6Rerolled] = useState(false);
+  const [d4Rerolled, setD4Rerolled] = useState<string | null>(null);
 
   // Step 2 — Magia
   const [magic, setMagic] = useState<Record<string, number>>(
