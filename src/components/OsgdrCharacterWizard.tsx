@@ -76,12 +76,20 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
   const [concept, setConcept] = useState("");
 
   // Step 1 — Caratteristiche
-  // Base 48 + 5d4 + 1d6 punti distribuibili tra 6 caratteristiche (parten 8 ciascuna)
-  const [bonusPool, setBonusPool] = useState<number | null>(null);
-  const [bonusRollDetail, setBonusRollDetail] = useState<string>("");
-  const [abilities, setAbilities] = useState<Record<string, number>>({
+  // Distribuzione libera di 48 punti tra le 6 caratteristiche (min 1, max 20).
+  // Poi: 1 caratteristica riceve 1d6, le altre 1d4 ciascuna.
+  // Si può ritirare il d6 e un singolo d4 a scelta.
+  const TOTAL_POOL = 48;
+  const ABILITY_MIN = 1;
+  const ABILITY_MAX = 20;
+  const [baseAbilities, setBaseAbilities] = useState<Record<string, number>>({
     for: 8, des: 8, cos: 8, vol: 8, pro: 8, emp: 8,
   });
+  const [d6Choice, setD6Choice] = useState<string | null>(null);
+  const [bonusRolls, setBonusRolls] = useState<Record<string, number> | null>(null);
+  // Caratteristiche già "ritirate" dopo il primo lancio (d6 + un solo d4)
+  const [d6Rerolled, setD6Rerolled] = useState(false);
+  const [d4Rerolled, setD4Rerolled] = useState<string | null>(null);
 
   // Step 2 — Magia
   const [magic, setMagic] = useState<Record<string, number>>(
@@ -97,38 +105,79 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
   // Step 5 — Punti Fortuna
   const [fortuna, setFortuna] = useState<string>("");
 
-  const minBaseSum = ABILITIES.length * 8; // 48
-  const totalAbilitySum = useMemo(
-    () => ABILITIES.reduce((acc, a) => acc + (Number(abilities[a.key]) || 0), 0),
-    [abilities],
+  const totalBaseSum = useMemo(
+    () => ABILITIES.reduce((acc, a) => acc + (Number(baseAbilities[a.key]) || 0), 0),
+    [baseAbilities],
   );
-  const maxAbilitySum = bonusPool === null ? null : minBaseSum + bonusPool;
-  const remainingAbilityPoints =
-    maxAbilitySum === null ? null : maxAbilitySum - totalAbilitySum;
+  const remainingPoints = TOTAL_POOL - totalBaseSum;
+  const distributionDone = remainingPoints === 0;
+  const bonusesAssigned = bonusRolls !== null;
 
-  const tiraBonus = () => {
-    const d4 = rollDice(5, 4);
-    const d6 = rollDice(1, 6);
-    const tot = d4.total + d6.total;
-    setBonusPool(tot);
-    setBonusRollDetail(
-      `5d4 [${d4.rolls.join(", ")}] = ${d4.total} · 1d6 [${d6.rolls[0]}] = ${d6.total} → +${tot}`,
-    );
-    // Reset abilities a base 8
-    setAbilities({ for: 8, des: 8, cos: 8, vol: 8, pro: 8, emp: 8 });
+  // Punteggio finale = base + bonus (d6 sulla scelta, d4 sulle altre)
+  const finalAbilities = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const a of ABILITIES) {
+      const base = Number(baseAbilities[a.key]) || 0;
+      const bonus = bonusRolls ? (bonusRolls[a.key] || 0) : 0;
+      out[a.key] = base + bonus;
+    }
+    return out;
+  }, [baseAbilities, bonusRolls]);
+
+  const setBaseAbility = (key: string, raw: string) => {
+    const n = Math.max(ABILITY_MIN, Math.min(ABILITY_MAX, Number(raw) || 0));
+    const next = { ...baseAbilities, [key]: n };
+    const sum = ABILITIES.reduce((acc, a) => acc + (Number(next[a.key]) || 0), 0);
+    if (sum > TOTAL_POOL) {
+      toast.error(`Il totale non può superare ${TOTAL_POOL} punti.`);
+      return;
+    }
+    if (bonusRolls) {
+      setBonusRolls(null);
+      setD6Rerolled(false);
+      setD4Rerolled(null);
+    }
+    setBaseAbilities(next);
   };
 
-  const setAbility = (key: string, raw: string) => {
-    const n = Math.max(8, Math.min(20, Number(raw) || 0));
-    const next = { ...abilities, [key]: n };
-    if (maxAbilitySum !== null) {
-      const sum = ABILITIES.reduce((acc, a) => acc + (Number(next[a.key]) || 0), 0);
-      if (sum > maxAbilitySum) {
-        toast.error(`Hai superato il totale di ${maxAbilitySum} punti.`);
-        return;
-      }
+  const tiraBonus = () => {
+    if (!d6Choice) {
+      toast.error("Scegli prima la caratteristica che riceverà 1d6.");
+      return;
     }
-    setAbilities(next);
+    if (!distributionDone) {
+      toast.error("Distribuisci tutti i 48 punti prima di tirare i dadi.");
+      return;
+    }
+    const rolls: Record<string, number> = {};
+    for (const a of ABILITIES) {
+      rolls[a.key] = a.key === d6Choice
+        ? 1 + Math.floor(Math.random() * 6)
+        : 1 + Math.floor(Math.random() * 4);
+    }
+    setBonusRolls(rolls);
+    setD6Rerolled(false);
+    setD4Rerolled(null);
+  };
+
+  const rerollD6 = () => {
+    if (!bonusRolls || !d6Choice) return;
+    if (d6Rerolled) {
+      toast.error("Hai già ritirato il d6.");
+      return;
+    }
+    setBonusRolls({ ...bonusRolls, [d6Choice]: 1 + Math.floor(Math.random() * 6) });
+    setD6Rerolled(true);
+  };
+
+  const rerollD4 = (key: string) => {
+    if (!bonusRolls || key === d6Choice) return;
+    if (d4Rerolled) {
+      toast.error("Puoi ritirare un solo d4.");
+      return;
+    }
+    setBonusRolls({ ...bonusRolls, [key]: 1 + Math.floor(Math.random() * 4) });
+    setD4Rerolled(key);
   };
 
   const setMagicScore = (school: string, raw: string) => {
@@ -153,8 +202,8 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
       case 0:
         return name.trim().length > 0;
       case 1:
-        // Deve aver tirato i bonus e usato esattamente i punti
-        return bonusPool !== null && remainingAbilityPoints === 0;
+        // Devono essere distribuiti tutti i 48 punti, scelta d6 fatta e bonus tirati
+        return distributionDone && d6Choice !== null && bonusesAssigned;
       default:
         return true;
     }
@@ -163,9 +212,12 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
   const handleNext = () => {
     if (!canGoNext) {
       if (step === 0) toast.error("Inserisci un nome per il personaggio.");
-      else if (step === 1 && bonusPool === null) toast.error("Tira i dadi per ottenere i punti bonus.");
-      else if (step === 1 && remainingAbilityPoints !== 0)
-        toast.error(`Devi distribuire esattamente i punti rimanenti (${remainingAbilityPoints} ancora).`);
+      else if (step === 1 && !distributionDone)
+        toast.error(`Distribuisci tutti i 48 punti (rimanenti: ${remainingPoints}).`);
+      else if (step === 1 && !d6Choice)
+        toast.error("Scegli la caratteristica che riceverà 1d6.");
+      else if (step === 1 && !bonusesAssigned)
+        toast.error("Tira i dadi bonus prima di proseguire.");
       return;
     }
     setStep((s) => Math.min(STEP_LABELS.length - 1, s + 1));
@@ -179,8 +231,8 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
       ferite: { ...EMPTY_OSGDR_SHEET.ferite },
       equipment: { ...EMPTY_OSGDR_SHEET.equipment },
       abilities: {
-        for: abilities.for, des: abilities.des, cos: abilities.cos,
-        vol: abilities.vol, pro: abilities.pro, emp: abilities.emp,
+        for: finalAbilities.for, des: finalAbilities.des, cos: finalAbilities.cos,
+        vol: finalAbilities.vol, pro: finalAbilities.pro, emp: finalAbilities.emp,
       } as any,
       magic: { ...magic } as any,
       coins: { ...coins } as any,
@@ -234,73 +286,132 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
           {step === 1 && (
             <div className="space-y-4">
               <p className="font-script italic text-sm text-ink-faded">
-                Le caratteristiche partono da <strong>8</strong> ciascuna (totale base{" "}
-                <strong>{minBaseSum}</strong>). Tira <strong>5d4 + 1d6</strong> per ottenere i
-                punti bonus da distribuire (max 20 per caratteristica).
+                Distribuisci liberamente <strong>48 punti</strong> tra le sei caratteristiche
+                (minimo <strong>1</strong>, massimo <strong>20</strong> ciascuna).
               </p>
 
-              <div className="flex items-center gap-3 flex-wrap">
-                <Button onClick={tiraBonus} variant="outline" className="font-heading">
-                  <Dices className="h-4 w-4 mr-2" />
-                  {bonusPool === null ? "Tira 5d4 + 1d6" : "Ritira"}
-                </Button>
-                {bonusPool !== null && (
-                  <div className="text-sm">
-                    <div className="font-heading">
-                      Punti bonus: <span className="text-primary">+{bonusPool}</span>
-                    </div>
-                    <div className="font-script italic text-xs text-ink-faded">{bonusRollDetail}</div>
-                  </div>
-                )}
+              <div className="flex items-baseline justify-between flex-wrap gap-2">
+                <span className="font-heading text-sm">
+                  Distribuiti: <strong>{totalBaseSum}</strong> / {TOTAL_POOL}
+                </span>
+                <span
+                  className={`font-heading text-sm ${
+                    remainingPoints === 0
+                      ? "text-primary"
+                      : remainingPoints < 0
+                      ? "text-destructive"
+                      : "text-ink-faded"
+                  }`}
+                >
+                  Rimanenti: {remainingPoints}
+                </span>
               </div>
 
-              {bonusPool !== null && (
-                <>
-                  <div className="flex items-baseline justify-between flex-wrap gap-2">
-                    <span className="font-heading text-sm">
-                      Distribuiti: <strong>{totalAbilitySum}</strong> / {maxAbilitySum}
-                    </span>
-                    <span
-                      className={`font-heading text-sm ${
-                        remainingAbilityPoints === 0
-                          ? "text-primary"
-                          : remainingAbilityPoints! < 0
-                          ? "text-destructive"
-                          : "text-ink-faded"
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {ABILITIES.map((a) => {
+                  const base = baseAbilities[a.key] ?? 1;
+                  const bonus = bonusRolls ? (bonusRolls[a.key] || 0) : 0;
+                  const total = base + bonus;
+                  const isD6 = d6Choice === a.key;
+                  const mod = abilityModifier(total);
+                  return (
+                    <div
+                      key={a.key}
+                      className={`bg-parchment-deep/20 border rounded-lg p-3 text-center transition ${
+                        isD6 ? "border-primary ring-1 ring-primary/40" : "border-border/60"
                       }`}
                     >
-                      Rimanenti: {remainingAbilityPoints}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {ABILITIES.map((a) => {
-                      const v = abilities[a.key] ?? 8;
-                      const mod = abilityModifier(v);
-                      return (
-                        <div
-                          key={a.key}
-                          className="bg-parchment-deep/20 border border-border/60 rounded-lg p-3 text-center"
-                        >
-                          <div className="font-heading text-xs uppercase tracking-wider text-ink-faded">
-                            {a.label}
+                      <div className="font-heading text-xs uppercase tracking-wider text-ink-faded">
+                        {a.label}
+                      </div>
+                      <Input
+                        type="number"
+                        min={ABILITY_MIN}
+                        max={ABILITY_MAX}
+                        value={base}
+                        onChange={(e) => setBaseAbility(a.key, e.target.value)}
+                        className="bg-transparent border-0 text-center font-display h-10 px-0 focus-visible:ring-0"
+                        style={{ fontSize: "20px" }}
+                      />
+                      {bonusesAssigned ? (
+                        <>
+                          <div className="font-heading text-xs text-ink-faded">
+                            +{bonus} ({isD6 ? "d6" : "d4"})
                           </div>
-                          <Input
-                            type="number"
-                            min={8}
-                            max={20}
-                            value={v}
-                            onChange={(e) => setAbility(a.key, e.target.value)}
-                            className="bg-transparent border-0 text-center font-display h-10 px-0 focus-visible:ring-0"
-                            style={{ fontSize: "20px" }}
-                          />
-                          <div className="font-script text-primary text-lg">
+                          <div className="font-display text-lg">
+                            = <span className="text-primary">{total}</span>
+                          </div>
+                          <div className="font-script text-primary text-sm">
                             {formatModifier(mod)}
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
+                          {isD6 ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="mt-2 h-7 text-xs font-heading w-full"
+                              onClick={rerollD6}
+                              disabled={d6Rerolled}
+                            >
+                              <Dices className="h-3 w-3 mr-1" />
+                              {d6Rerolled ? "d6 ritirato" : "Ritira d6"}
+                            </Button>
+                          ) : (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="mt-2 h-7 text-xs font-heading w-full"
+                              onClick={() => rerollD4(a.key)}
+                              disabled={!!d4Rerolled && d4Rerolled !== a.key}
+                            >
+                              <Dices className="h-3 w-3 mr-1" />
+                              {d4Rerolled === a.key ? "d4 ritirato" : "Ritira d4"}
+                            </Button>
+                          )}
+                        </>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={isD6 ? "default" : "outline"}
+                          className="mt-2 h-7 text-xs font-heading w-full"
+                          onClick={() => setD6Choice(a.key)}
+                        >
+                          {isD6 ? "★ Riceve 1d6" : "Scegli 1d6"}
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {!bonusesAssigned && (
+                <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-border/40">
+                  <Button
+                    onClick={tiraBonus}
+                    variant="outline"
+                    className="font-heading"
+                    disabled={!distributionDone || !d6Choice}
+                  >
+                    <Dices className="h-4 w-4 mr-2" />
+                    Tira bonus (1d6 + 5d4)
+                  </Button>
+                  <span className="font-script italic text-xs text-ink-faded">
+                    {!distributionDone
+                      ? "Completa la distribuzione dei 48 punti."
+                      : !d6Choice
+                      ? "Scegli quale caratteristica riceverà 1d6."
+                      : "La caratteristica scelta riceve 1d6, le altre 1d4."}
+                  </span>
+                </div>
+              )}
+
+              {bonusesAssigned && (
+                <p className="font-script italic text-xs text-ink-faded">
+                  Puoi ritirare il <strong>d6</strong> una sola volta e <strong>uno solo</strong>{" "}
+                  dei d4 a tua scelta.
+                </p>
               )}
             </div>
           )}
@@ -434,7 +545,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
                 <p className="font-heading text-primary mb-1">Riepilogo</p>
                 <ul className="font-script text-ink-faded space-y-0.5">
                   <li>Nome: <strong className="text-ink">{name || "—"}</strong></li>
-                  <li>Caratteristiche: totale {totalAbilitySum} pt</li>
+                  <li>Caratteristiche: base {totalBaseSum} pt + bonus dadi (totale {ABILITIES.reduce((acc, a) => acc + (finalAbilities[a.key] || 0), 0)})</li>
                   <li>Scuole di magia attive: {MAGIC_SCHOOLS.filter((s) => (magic[s] ?? 0) > 0).length}</li>
                   <li>Abilità apprese: {skills.length}</li>
                   <li>Soldi: {coins.oro} oro · {coins.argento} arg · {coins.rame} rame</li>
