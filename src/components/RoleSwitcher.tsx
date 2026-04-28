@@ -1,56 +1,59 @@
-import { ChevronDown, Crown, ScrollText, Shield, Users } from "lucide-react";
+import { Shield, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useAuth, type AppRole } from "@/hooks/useAuth";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/useAuth";
 
-const ROLE_META: Record<AppRole, { label: string; icon: any }> = {
-  admin: { label: "Admin", icon: Shield },
-  narratore: { label: "Narratore", icon: Crown },
-  giocatore: { label: "Giocatore", icon: Users },
+const NATURAL_LABEL: Record<string, string> = {
+  narratore: "Narratore",
+  giocatore: "Giocatore",
+  admin: "Admin",
 };
 
 /**
- * Mostra il ruolo correntemente impersonato e permette il cambio esplicito.
- * Visibile solo se l'utente possiede più di un ruolo (tipicamente admin che
- * vuole agire come narratore o giocatore).
+ * Toggle "Impersona Admin".
+ *
+ * - Visibile solo agli utenti che possiedono il ruolo admin E hanno un ruolo
+ *   naturale diverso (narratore o giocatore).
+ * - Permette di alternare esplicitamente tra il proprio ruolo naturale e
+ *   l'impersonazione admin. Non consente switch giocatore ⇄ narratore.
  */
 export const RoleSwitcher = () => {
-  const { roles, activeRole, setActiveRole } = useAuth();
+  const { hasAdminRole, naturalRole, isImpersonatingAdmin, setActiveRole } = useAuth();
 
-  if (!activeRole || roles.length <= 1) return null;
+  // Admin-puro o utenti senza admin: nessun toggle.
+  if (!hasAdminRole) return null;
+  if (!naturalRole || naturalRole === "admin") return null;
 
-  const Current = ROLE_META[activeRole].icon;
+  if (isImpersonatingAdmin) {
+    return (
+      <div className="flex items-center gap-2">
+        <Badge variant="destructive" className="font-heading gap-1">
+          <Shield className="h-3 w-3" />
+          Impersonando Admin
+        </Badge>
+        <Button
+          variant="outline"
+          size="sm"
+          className="font-heading"
+          onClick={() => setActiveRole(naturalRole)}
+        >
+          <ShieldOff className="h-4 w-4 mr-2" />
+          Torna a {NATURAL_LABEL[naturalRole] ?? naturalRole}
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="font-heading">
-          <Current className="h-4 w-4 mr-2" />
-          {ROLE_META[activeRole].label}
-          <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-60" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuLabel className="font-heading text-xs uppercase tracking-wider">
-          Agisci come
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {roles.map((r) => {
-          const Icon = ROLE_META[r].icon;
-          return (
-            <DropdownMenuItem
-              key={r}
-              onClick={() => setActiveRole(r)}
-              className={r === activeRole ? "bg-primary/10 text-primary" : ""}
-            >
-              <Icon className="h-4 w-4 mr-2" />
-              {ROLE_META[r].label}
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      variant="outline"
+      size="sm"
+      className="font-heading"
+      onClick={() => setActiveRole("admin")}
+      title={`Stai agendo come ${NATURAL_LABEL[naturalRole] ?? naturalRole}`}
+    >
+      <Shield className="h-4 w-4 mr-2" />
+      Impersona Admin
+    </Button>
   );
 };
