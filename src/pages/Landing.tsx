@@ -51,7 +51,7 @@ const Landing = () => {
       <section id="features" className="container py-20">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { icon: ScrollText, title: "Schede personalizzabili", desc: "Crea, modifica e interagisci in tempo reale le tue schede." },
+            { icon: ScrollText, title: "Schede personalizzabili", desc: "Crea, modifica e interagisci in tempo reale con le tue schede." },
             { icon: Users, title: "Gruppi condivisi", desc: "Invita master e giocatori con un codice. Le schede sono visibili a tutta la compagnia." },
             { icon: Dices, title: "Tiri di dado", desc: "Lancia d4, d6, d8, d10, d12, d20 e d100 con un clic, dalla tua scheda." },
             { icon: BookMarked, title: "Diario di campagna", desc: "Annota le imprese e i ricordi sessione dopo sessione, accanto al tuo eroe." },
