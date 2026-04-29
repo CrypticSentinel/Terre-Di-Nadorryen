@@ -85,6 +85,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
   const [currentD4Roll, setCurrentD4Roll] = useState<number | null>(null);
   const [d6Rerolled, setD6Rerolled] = useState(false);
   const [d4RerollUsed, setD4RerollUsed] = useState(false);
+  const [selectedD4RerollTarget, setSelectedD4RerollTarget] = useState<string | null>(null);
 
   const [magic, setMagic] = useState<Record<string, number>>(
     Object.fromEntries(MAGIC_SCHOOLS.map((s) => [s, 0])),
@@ -131,11 +132,18 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
       return;
     }
     setBaseAbilities(next);
+    setD6Choice(null);
     setD6Roll(null);
     setD4Assignments({});
     setCurrentD4Roll(null);
     setD6Rerolled(false);
     setD4RerollUsed(false);
+    setSelectedD4RerollTarget(null);
+  };
+
+  const selectD6Choice = (key: string) => {
+    if (d6Roll !== null) return;
+    setD6Choice(key);
   };
 
   const rollD6Bonus = () => {
@@ -152,6 +160,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
     setCurrentD4Roll(null);
     setD6Rerolled(false);
     setD4RerollUsed(false);
+    setSelectedD4RerollTarget(null);
   };
 
   const rerollD6 = () => {
@@ -180,13 +189,23 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
     setCurrentD4Roll(1 + Math.floor(Math.random() * 4));
   };
 
-  const rerollCurrentD4 = () => {
-    if (currentD4Roll === null) return;
+  const rerollAssignedD4 = () => {
+    if (!selectedD4RerollTarget) {
+      toast.error("Scegli prima quale d4 assegnato vuoi ritirare.");
+      return;
+    }
+    if (!(selectedD4RerollTarget in d4Assignments)) {
+      toast.error("La caratteristica selezionata non ha un d4 assegnato.");
+      return;
+    }
     if (d4RerollUsed) {
       toast.error("Puoi ritirare un solo d4.");
       return;
     }
-    setCurrentD4Roll(1 + Math.floor(Math.random() * 4));
+    setD4Assignments((prev) => ({
+      ...prev,
+      [selectedD4RerollTarget]: 1 + Math.floor(Math.random() * 4),
+    }));
     setD4RerollUsed(true);
   };
 
@@ -205,6 +224,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
     }
     setD4Assignments((prev) => ({ ...prev, [key]: currentD4Roll }));
     setCurrentD4Roll(null);
+    setSelectedD4RerollTarget(null);
   };
 
   const setMagicScore = (school: string, raw: string) => {
@@ -391,7 +411,8 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
                         size="sm"
                         variant={isD6 ? "default" : "outline"}
                         className="mt-2 h-7 text-xs font-heading w-full"
-                        onClick={() => setD6Choice(a.key)}
+                        onClick={() => selectD6Choice(a.key)}
+                        disabled={d6Roll !== null && !isD6}
                       >
                         {isD6 ? "★ Riceve 1d6" : "Scegli 1d6"}
                       </Button>
@@ -406,7 +427,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
                     onClick={rollD6Bonus}
                     variant="outline"
                     className="font-heading"
-                    disabled={!distributionDone || !d6Choice}
+                    disabled={!distributionDone || !d6Choice || d6Roll !== null}
                     type="button"
                   >
                     <Dices className="h-4 w-4 mr-2" />
@@ -431,7 +452,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
                       : !d6Choice
                       ? "Scegli quale caratteristica riceverà 1d6."
                       : d6Roll === null
-                      ? "Tira il d6 della caratteristica scelta."
+                      ? "Tira il d6 della caratteristica scelta. Dopo il tiro la scelta sarà bloccata."
                       : "Procedi con i d4 sulle caratteristiche residue."}
                   </span>
                 </div>
@@ -461,12 +482,12 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={rerollCurrentD4}
-                          disabled={currentD4Roll === null || d4RerollUsed}
+                          onClick={rerollAssignedD4}
+                          disabled={Object.keys(d4Assignments).length === 0 || d4RerollUsed || currentD4Roll !== null}
                           className="font-heading"
                         >
                           <Dices className="h-4 w-4 mr-2" />
-                          {d4RerollUsed ? "d4 ritirato" : "Ritira d4"}
+                          {d4RerollUsed ? "d4 ritirato" : "Ritira un d4 assegnato"}
                         </Button>
                       </div>
                     </div>
@@ -507,17 +528,35 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
                           d4 già assegnati
                         </p>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-                          {ABILITIES.filter((a) => a.key in d4Assignments).map((a) => (
-                            <div
-                              key={a.key}
-                              className="rounded-md border border-border/50 bg-background/40 px-3 py-2"
-                            >
-                              <span className="font-heading">{a.label}</span>: {" "}
-                              <span className="text-primary font-display">
-                                +{d4Assignments[a.key]}
-                              </span>
-                            </div>
-                          ))}
+                          {ABILITIES.filter((a) => a.key in d4Assignments).map((a) => {
+                            const isSelected = selectedD4RerollTarget === a.key;
+                            return (
+                              <button
+                                key={a.key}
+                                type="button"
+                                onClick={() => {
+                                  if (d4RerollUsed || currentD4Roll !== null) return;
+                                  setSelectedD4RerollTarget(a.key);
+                                }}
+                                className={`rounded-md border px-3 py-2 text-left transition ${
+                                  isSelected
+                                    ? "border-primary ring-1 ring-primary/40 bg-primary/5"
+                                    : "border-border/50 bg-background/40"
+                                }`}
+                                disabled={d4RerollUsed || currentD4Roll !== null}
+                              >
+                                <span className="font-heading">{a.label}</span>: {" "}
+                                <span className="text-primary font-display">
+                                  +{d4Assignments[a.key]}
+                                </span>
+                                {isSelected && (
+                                  <span className="block text-[11px] font-script italic text-ink-faded">
+                                    Selezionato per il reroll
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -527,7 +566,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
                 {bonusesAssigned && (
                   <p className="font-script italic text-xs text-ink-faded">
                     Puoi ritirare il <strong>d6</strong> una sola volta e <strong>un solo d4</strong>{" "}
-                    prima della sua assegnazione.
+                    già assegnato, scegliendo quale sostituire.
                   </p>
                 )}
               </div>
