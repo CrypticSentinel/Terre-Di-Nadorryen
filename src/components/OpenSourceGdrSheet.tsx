@@ -295,7 +295,7 @@ export const OpenSourceGdrSheet = ({
               Assegna scheda a
             </Label>
             <select
-              value={assignedUserId ?? user?.id ?? ""}
+              value={assignedUserId ?? ""}
               onChange={(e) => onAssignedUserIdChange?.(e.target.value || undefined)}
               className="mt-2 w-full rounded-md border border-border/60 bg-background px-3 py-2 font-script text-foreground"
             >
