@@ -1,12 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-  useCallback,
-  useMemo,
-} from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,14 +11,23 @@ interface AuthContextValue {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  /** Tutti i ruoli effettivi assegnati all'utente */
   roles: AppRole[];
+  /** Ruolo "naturale" non-admin dell'utente (narratore o giocatore); admin se admin-puro */
   naturalRole: AppRole | null;
+  /** Ruolo attualmente impersonato (uno tra `roles`) */
   activeRole: AppRole | null;
+  /** Cambia ruolo attivo. Sono ammesse solo transizioni naturale ⇄ admin. */
   setActiveRole: (role: AppRole) => void;
+  /** Vero se l'utente HA il ruolo admin, indipendentemente dall'impersonazione */
   hasAdminRole: boolean;
+  /** Vero se l'utente sta impersonando admin pur avendo un ruolo naturale diverso */
   isImpersonatingAdmin: boolean;
+  /** Vero solo se l'utente sta agendo come admin (impersonazione attiva) */
   isAdmin: boolean;
+  /** Vero se sta agendo come narratore (anche se è admin che impersona narratore) */
   isActingAsNarrator: boolean;
+  /** Vero se sta agendo come giocatore */
   isActingAsPlayer: boolean;
   approvalStatus: ApprovalStatus | null;
   isApproved: boolean;
@@ -37,15 +38,22 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+/**
+ * Ruolo "naturale" dell'utente: il primo ruolo non-admin disponibile.
+ * Per un admin-puro (senza altri ruoli) il naturale resta "admin".
+ */
 function pickNaturalRole(rs: AppRole[]): AppRole | null {
-  if (rs.includes("giocatore")) return "giocatore";
   if (rs.includes("narratore")) return "narratore";
+  if (rs.includes("giocatore")) return "giocatore";
   if (rs.includes("admin")) return "admin";
   return null;
 }
 
+/**
+ * Default iniziale: SEMPRE il ruolo naturale. L'impersonazione admin
+ * deve essere un'azione esplicita dell'utente.
+ */
 function pickDefaultActive(rs: AppRole[]): AppRole | null {
-  if (rs.includes("admin")) return "admin";
   return pickNaturalRole(rs);
 }
 
@@ -63,26 +71,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setActiveRoleState(null);
       return;
     }
-
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", uid);
-
-    if (error) {
-      setRoles([]);
-      setActiveRoleState(null);
-      return;
-    }
-
     const rs = ((data ?? []) as { role: AppRole }[]).map((r) => r.role);
     setRoles(rs);
 
-    const stored =
-      typeof window !== "undefined"
-        ? (localStorage.getItem(ACTIVE_ROLE_STORAGE_KEY) as AppRole | null)
-        : null;
-
+    // Determina il ruolo attivo: usa quello salvato se ancora valido, altrimenti
+    // prendi il "più alto" disponibile. Per gli admin il default rimane "admin"
+    // (nessuna regressione di permessi a meno di scelta esplicita).
+    const stored = (typeof window !== "undefined"
+      ? (localStorage.getItem(ACTIVE_ROLE_STORAGE_KEY) as AppRole | null)
+      : null);
     const next = stored && rs.includes(stored) ? stored : pickDefaultActive(rs);
     setActiveRoleState(next);
   }, []);
@@ -92,38 +93,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setApprovalStatus(null);
       return;
     }
-
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("profiles")
       .select("approval_status")
       .eq("id", uid)
       .maybeSingle();
-
-    if (error) {
-      setApprovalStatus(null);
-      return;
-    }
-
     setApprovalStatus((data?.approval_status as ApprovalStatus) ?? null);
   }, []);
 
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
-
       setTimeout(() => {
-        void loadRoles(newSession?.user?.id);
-        void loadApprovalStatus(newSession?.user?.id);
+        loadRoles(newSession?.user?.id);
+        loadApprovalStatus(newSession?.user?.id);
       }, 0);
     });
 
     supabase.auth.getSession().then(({ data: { session: existing } }) => {
       setSession(existing);
       setUser(existing?.user ?? null);
-
       Promise.all([
         loadRoles(existing?.user?.id),
         loadApprovalStatus(existing?.user?.id),
@@ -133,86 +123,59 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, [loadRoles, loadApprovalStatus]);
 
-  const hasAdminRole = useMemo(() => roles.includes("admin"), [roles]);
-  const naturalRole = useMemo(() => pickNaturalRole(roles), [roles]);
+  const naturalRole = pickNaturalRole(roles);
 
-  const setActiveRole = useCallback(
-    (role: AppRole) => {
-      if (!roles.includes(role)) return;
-
-      if (hasAdminRole) {
-        const allowedForAdmin = role === "admin" || role === "giocatore";
-        if (!allowedForAdmin) return;
-      } else {
-        if (role !== naturalRole) return;
-      }
-
-      setActiveRoleState(role);
-
-      try {
-        localStorage.setItem(ACTIVE_ROLE_STORAGE_KEY, role);
-      } catch {
-        // noop
-      }
-    },
-    [roles, hasAdminRole, naturalRole]
-  );
+  const setActiveRole = useCallback((role: AppRole) => {
+    if (!roles.includes(role)) return;
+    // Sono ammesse solo le transizioni naturale ⇄ admin.
+    // Vietato lo switch diretto giocatore ⇄ narratore.
+    const allowed = role === "admin" || role === naturalRole;
+    if (!allowed) return;
+    setActiveRoleState(role);
+    try { localStorage.setItem(ACTIVE_ROLE_STORAGE_KEY, role); } catch { /* noop */ }
+  }, [roles, naturalRole]);
 
   const signOut = async () => {
-    try {
-      localStorage.removeItem(ACTIVE_ROLE_STORAGE_KEY);
-    } catch {
-      // noop
-    }
-
+    try { localStorage.removeItem(ACTIVE_ROLE_STORAGE_KEY); } catch { /* noop */ }
     await supabase.auth.signOut();
   };
 
-  const refreshRoles = async () => {
-    await loadRoles(user?.id);
-  };
+  const refreshRoles = async () => loadRoles(user?.id);
+  const refreshApprovalStatus = async () => loadApprovalStatus(user?.id);
 
-  const refreshApprovalStatus = async () => {
-    await loadApprovalStatus(user?.id);
-  };
-
-  const isAdmin = activeRole === "admin";
-  const isActingAsPlayer = activeRole === "giocatore";
-  const isActingAsNarrator = activeRole === "narratore";
-
+  const hasAdminRole = roles.includes("admin");
   const isImpersonatingAdmin =
-    hasAdminRole &&
-    activeRole === "admin" &&
-    naturalRole !== null &&
-    naturalRole !== "admin";
+    activeRole === "admin" && naturalRole !== null && naturalRole !== "admin";
 
-  const value: AuthContextValue = {
-    user,
-    session,
-    loading,
-    roles,
-    naturalRole,
-    activeRole,
-    setActiveRole,
-    hasAdminRole,
-    isImpersonatingAdmin,
-    isAdmin,
-    isActingAsNarrator,
-    isActingAsPlayer,
-    approvalStatus,
-    isApproved: approvalStatus === "approved",
-    refreshRoles,
-    refreshApprovalStatus,
-    signOut,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        loading,
+        roles,
+        naturalRole,
+        activeRole,
+        setActiveRole,
+        hasAdminRole,
+        isImpersonatingAdmin,
+        isAdmin: activeRole === "admin",
+        isActingAsNarrator: activeRole === "narratore",
+        isActingAsPlayer: activeRole === "giocatore",
+        approvalStatus,
+        isApproved: approvalStatus === "approved",
+        refreshRoles,
+        refreshApprovalStatus,
+        signOut,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth must be used within AuthProvider");
-  }
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 };
