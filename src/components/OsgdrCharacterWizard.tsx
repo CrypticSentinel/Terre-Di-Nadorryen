@@ -56,17 +56,6 @@ type WizardStep =
   | "soldi"
   | "punti-fortuna";
 
-function rollDice(count: number, sides: number) {
-  let total = 0;
-  const rolls: number[] = [];
-  for (let i = 0; i < count; i++) {
-    const r = 1 + Math.floor(Math.random() * sides);
-    rolls.push(r);
-    total += r;
-  }
-  return { total, rolls };
-}
-
 export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }: Props) => {
   const [stepIndex, setStepIndex] = useState(0);
 
@@ -76,6 +65,10 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
   const TOTAL_POOL = 48;
   const ABILITY_MIN = 1;
   const ABILITY_MAX = 20;
+  const MAGIC_POINT_TOTAL = 15;
+  const MAGIC_POINT_MIN = 0;
+  const MAGIC_POINT_MAX = 3;
+
   const [baseAbilities, setBaseAbilities] = useState<Record<string, number>>({
     for: 8, des: 8, cos: 8, vol: 8, pro: 8, emp: 8,
   });
@@ -130,6 +123,12 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
 
   const allD4Assigned = d6Choice !== null && remainingD4Targets.length === 0;
   const bonusesAssigned = d6Choice !== null && d6Roll !== null && allD4Assigned && currentD4Roll === null;
+
+  const magicPointsAssigned = useMemo(
+    () => MAGIC_SCHOOLS.reduce((acc, school) => acc + (Number(magic[school]) || 0), 0),
+    [magic],
+  );
+  const remainingMagicPoints = MAGIC_POINT_TOTAL - magicPointsAssigned;
 
   const skillPointTotal = isMagicUser === false ? 45 : 30;
 
@@ -255,8 +254,14 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
   };
 
   const setMagicScore = (school: string, raw: string) => {
-    const n = Math.max(0, Math.min(99, Number(raw) || 0));
-    setMagic({ ...magic, [school]: n });
+    const n = Math.max(MAGIC_POINT_MIN, Math.min(MAGIC_POINT_MAX, Number(raw) || 0));
+    const next = { ...magic, [school]: n };
+    const total = MAGIC_SCHOOLS.reduce((acc, s) => acc + (Number(next[s]) || 0), 0);
+    if (total > MAGIC_POINT_TOTAL) {
+      toast.error(`Non puoi superare ${MAGIC_POINT_TOTAL} punti magia totali.`);
+      return;
+    }
+    setMagic(next);
   };
 
   const setCoin = (key: string, raw: string) => {
@@ -305,7 +310,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
       case "usa-magia":
         return isMagicUser !== null;
       case "magia":
-        return true;
+        return remainingMagicPoints === 0;
       case "abilita":
         return remainingSkillPoints === 0;
       default:
@@ -328,6 +333,8 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
         toast.error("Assegna un d4 a tutte le caratteristiche residue prima di proseguire.");
       else if (currentStep === "usa-magia")
         toast.error("Indica se il personaggio è un utilizzatore di magia.");
+      else if (currentStep === "magia")
+        toast.error(`Distribuisci tutti i ${MAGIC_POINT_TOTAL} punti magia disponibili.`);
       else if (currentStep === "abilita")
         toast.error(`Distribuisci tutti i ${skillPointTotal} punti abilità disponibili.`);
       return;
@@ -662,9 +669,27 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
           {currentStep === "magia" && (
             <div className="space-y-4">
               <p className="font-script italic text-sm text-ink-faded">
-                Imposta il punteggio iniziale per ciascuna delle dieci scuole di magia (0 se il
-                personaggio non la pratica).
+                Distribuisci <strong>{MAGIC_POINT_TOTAL} punti</strong> tra le dieci scuole di magia,
+                con <strong>minimo {MAGIC_POINT_MIN}</strong> e <strong>massimo {MAGIC_POINT_MAX}</strong> per scuola.
               </p>
+
+              <div className="flex items-baseline justify-between flex-wrap gap-2">
+                <span className="font-heading text-sm">
+                  Distribuiti: <strong>{magicPointsAssigned}</strong> / {MAGIC_POINT_TOTAL}
+                </span>
+                <span
+                  className={`font-heading text-sm ${
+                    remainingMagicPoints === 0
+                      ? "text-primary"
+                      : remainingMagicPoints < 0
+                      ? "text-destructive"
+                      : "text-ink-faded"
+                  }`}
+                >
+                  Rimanenti: {remainingMagicPoints}
+                </span>
+              </div>
+
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {MAGIC_SCHOOLS.map((school) => (
                   <div
@@ -676,8 +701,8 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
                     </div>
                     <Input
                       type="number"
-                      min={0}
-                      max={99}
+                      min={MAGIC_POINT_MIN}
+                      max={MAGIC_POINT_MAX}
                       value={magic[school] ?? 0}
                       onChange={(e) => setMagicScore(school, e.target.value)}
                       className="bg-transparent border-0 text-center font-display text-xl h-9 px-0 focus-visible:ring-0"
@@ -808,7 +833,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
                   <li>Nome: <strong className="text-ink">{name || "—"}</strong></li>
                   <li>Utilizzatore di magia: {isMagicUser === null ? "—" : isMagicUser ? "Sì" : "No"}</li>
                   <li>Caratteristiche: base {totalBaseSum} pt + bonus dadi (totale {ABILITIES.reduce((acc, a) => acc + (finalAbilities[a.key] || 0), 0)})</li>
-                  <li>Scuole di magia attive: {MAGIC_SCHOOLS.filter((s) => (magic[s] ?? 0) > 0).length}</li>
+                  <li>Scuole di magia attive: {MAGIC_SCHOOLS.filter((s) => (magic[s] ?? 0) > 0).length} · punti distribuiti {magicPointsAssigned}/{MAGIC_POINT_TOTAL}</li>
                   <li>Abilità apprese: {skills.length} · punti distribuiti {totalSkillPointsAssigned}/{skillPointTotal}</li>
                   <li>Soldi: {coins.oro} oro · {coins.argento} arg · {coins.rame} rame</li>
                 </ul>
