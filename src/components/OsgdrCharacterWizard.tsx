@@ -48,7 +48,7 @@ type WizardStep =
   | "magia"
   | "abilita"
   | "soldi"
-  | "punti-fortuna";
+  | "riepilogo";
 
 const TOTAL_POOL = 48;
 const ABILITY_MIN = 1;
@@ -58,6 +58,7 @@ const MAGIC_POINT_MIN = 0;
 const MAGIC_POINT_MAX = 3;
 const SKILL_POINT_MIN = 1;
 const SKILL_POINT_MAX = 3;
+const DEFAULT_FORTUNA = "1";
 
 const getInitialBaseAbilities = () => ({
   for: 8,
@@ -92,12 +93,11 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
 
   const [skills, setSkills] = useState<OsgdrSkill[]>([]);
   const [coins, setCoins] = useState<Record<string, number>>(getInitialCoins());
-  const [fortuna, setFortuna] = useState<string>("");
 
   const visibleSteps = useMemo(() => {
     const steps: WizardStep[] = ["anagrafica", "caratteristiche", "usa-magia"];
     if (isMagicUser !== false) steps.push("magia");
-    steps.push("abilita", "soldi", "punti-fortuna");
+    steps.push("abilita", "soldi", "riepilogo");
     return steps;
   }, [isMagicUser]);
 
@@ -110,7 +110,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
     magia: "Scuole di magia",
     abilita: "Abilità",
     soldi: "Soldi",
-    "punti-fortuna": "Punti Fortuna",
+    riepilogo: "Riepilogo",
   };
 
   const totalBaseSum = useMemo(
@@ -169,7 +169,6 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
     setMagic(getInitialMagic());
     setSkills([]);
     setCoins(getInitialCoins());
-    setFortuna("");
   };
 
   const handleCancel = () => {
@@ -389,7 +388,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
       } as any,
       magic: { ...magic } as any,
       coins: { ...coins } as any,
-      fortuna: fortuna.trim(),
+      fortuna: DEFAULT_FORTUNA,
       skills,
     };
     await onComplete({ name: name.trim(), concept: concept.trim(), sheet });
@@ -856,32 +855,22 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
             </div>
           )}
 
-          {currentStep === "punti-fortuna" && (
+          {currentStep === "riepilogo" && (
             <div className="space-y-4">
               <p className="font-script italic text-sm text-ink-faded">
-                Indica i Punti Fortuna iniziali del personaggio.
+                Controlla il riepilogo finale del personaggio prima di completare la creazione.
               </p>
-              <div className="max-w-xs mx-auto bg-parchment-deep/20 border border-border/60 rounded-lg p-4 text-center">
-                <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">
-                  Punti Fortuna
-                </Label>
-                <Input
-                  value={fortuna}
-                  onChange={(e) => setFortuna(e.target.value)}
-                  className="bg-transparent border-0 text-center font-display h-10 px-0 focus-visible:ring-0"
-                  style={{ fontSize: "22px" }}
-                  placeholder="0"
-                />
-              </div>
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm">
-                <p className="font-heading text-primary mb-1">Riepilogo</p>
-                <ul className="font-script text-ink-faded space-y-0.5">
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-sm">
+                <p className="font-heading text-primary mb-2">Riepilogo completo</p>
+                <ul className="font-script text-ink-faded space-y-1">
                   <li>Nome: <strong className="text-ink">{name || "—"}</strong></li>
+                  <li>Descrizione: <strong className="text-ink">{concept || "—"}</strong></li>
                   <li>Utilizzatore di magia: {isMagicUser === null ? "—" : isMagicUser ? "Sì" : "No"}</li>
                   <li>Caratteristiche: base {totalBaseSum} pt + bonus dadi (totale {ABILITIES.reduce((acc, a) => acc + (finalAbilities[a.key] || 0), 0)})</li>
                   <li>Scuole di magia attive: {MAGIC_SCHOOLS.filter((s) => (magic[s] ?? 0) > 0).length} · punti distribuiti {magicPointsAssigned}/{MAGIC_POINT_TOTAL}</li>
                   <li>Abilità apprese: {skills.length} · punti distribuiti {totalSkillPointsAssigned}/{skillPointTotal}</li>
                   <li>Soldi: {coins.argento} monete d'argento</li>
+                  <li>Punti Fortuna: {DEFAULT_FORTUNA}</li>
                 </ul>
               </div>
             </div>
