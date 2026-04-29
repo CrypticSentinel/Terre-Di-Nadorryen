@@ -1,4 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -158,6 +160,11 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
   };
 }
 
+interface SelectableProfile {
+  id: string;
+  display_name: string;
+}
+
 interface Props {
   value: OsgdrSheet;
   onChange: (next: OsgdrSheet) => void;
@@ -168,6 +175,8 @@ interface Props {
   canCustomizeLabels?: boolean;
   /** Persist a label override change (called immediately on save) */
   onLabelOverrideChange?: (key: string, override: LabelOverride | undefined) => void;
+  assignedUserId?: string;
+  onAssignedUserIdChange?: (next: string | undefined) => void;
 }
 
 export const OpenSourceGdrSheet = ({
@@ -177,7 +186,39 @@ export const OpenSourceGdrSheet = ({
   labelOverrides = {},
   canCustomizeLabels = false,
   onLabelOverrideChange,
+  assignedUserId,
+  onAssignedUserIdChange,
 }: Props) => {
+  const { user, isAdmin, isNarratore } = useAuth();
+  const [profiles, setProfiles] = useState<SelectableProfile[]>([]);
+
+  const canAssignCharacter = canEdit && !!onAssignedUserIdChange && (isAdmin || isNarratore);
+
+  useEffect(() => {
+    if (!canAssignCharacter) return;
+
+    const loadProfiles = async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .eq("approval_status", "approved")
+        .order("display_name", { ascending: true });
+
+      if (!error) {
+        setProfiles((data ?? []) as SelectableProfile[]);
+      }
+    };
+
+    void loadProfiles();
+  }, [canAssignCharacter]);
+
+  useEffect(() => {
+    if (!canAssignCharacter) return;
+    if (assignedUserId) return;
+    if (!user?.id) return;
+
+    onAssignedUserIdChange?.(user.id);
+  }, [canAssignCharacter, assignedUserId, onAssignedUserIdChange, user?.id]);
   const totalPoints = useMemo(
     () => ABILITIES.reduce((acc, a) => acc + (Number(value.abilities[a.key]) || 0), 0),
     [value.abilities],
@@ -247,6 +288,27 @@ export const OpenSourceGdrSheet = ({
       {/* === Anagrafica === */}
       <section className="space-y-3">
         {lbl("section.anagrafica", "Anagrafica", "font-display text-xl gold-text", "h3")}
+
+        {canAssignCharacter && (
+          <div className="bg-parchment-deep/20 border border-border/60 rounded p-3">
+            <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">
+              Assegna scheda a
+            </Label>
+            <select
+              value={assignedUserId ?? user?.id ?? ""}
+              onChange={(e) => onAssignedUserIdChange?.(e.target.value || undefined)}
+              className="mt-2 w-full rounded-md border border-border/60 bg-background px-3 py-2 font-script text-foreground"
+            >
+              <option value="">Seleziona un utente</option>
+              {profiles.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {profile.display_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="grid sm:grid-cols-3 gap-3">
           {([
             ["razza", "Razza"], ["provenienza", "Provenienza"], ["eta", "Età"],
