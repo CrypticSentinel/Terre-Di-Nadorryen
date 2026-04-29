@@ -56,22 +56,34 @@ type WizardStep =
   | "soldi"
   | "punti-fortuna";
 
+const TOTAL_POOL = 48;
+const ABILITY_MIN = 1;
+const ABILITY_MAX = 20;
+const MAGIC_POINT_TOTAL = 15;
+const MAGIC_POINT_MIN = 0;
+const MAGIC_POINT_MAX = 3;
+const SKILL_POINT_MIN = 1;
+const SKILL_POINT_MAX = 3;
+
+const getInitialBaseAbilities = () => ({
+  for: 8,
+  des: 8,
+  cos: 8,
+  vol: 8,
+  pro: 8,
+  emp: 8,
+});
+
+const getInitialMagic = () => Object.fromEntries(MAGIC_SCHOOLS.map((s) => [s, 0]));
+const getInitialCoins = () => ({ oro: 0, argento: 0, rame: 0 });
+
 export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }: Props) => {
   const [stepIndex, setStepIndex] = useState(0);
 
   const [name, setName] = useState("");
   const [concept, setConcept] = useState("");
 
-  const TOTAL_POOL = 48;
-  const ABILITY_MIN = 1;
-  const ABILITY_MAX = 20;
-  const MAGIC_POINT_TOTAL = 15;
-  const MAGIC_POINT_MIN = 0;
-  const MAGIC_POINT_MAX = 3;
-
-  const [baseAbilities, setBaseAbilities] = useState<Record<string, number>>({
-    for: 8, des: 8, cos: 8, vol: 8, pro: 8, emp: 8,
-  });
+  const [baseAbilities, setBaseAbilities] = useState<Record<string, number>>(getInitialBaseAbilities());
   const [d6Choice, setD6Choice] = useState<string | null>(null);
   const [d6Roll, setD6Roll] = useState<number | null>(null);
   const [d4Assignments, setD4Assignments] = useState<Record<string, number>>({});
@@ -82,12 +94,10 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
 
   const [isMagicUser, setIsMagicUser] = useState<boolean | null>(null);
 
-  const [magic, setMagic] = useState<Record<string, number>>(
-    Object.fromEntries(MAGIC_SCHOOLS.map((s) => [s, 0])),
-  );
+  const [magic, setMagic] = useState<Record<string, number>>(getInitialMagic());
 
   const [skills, setSkills] = useState<OsgdrSkill[]>([]);
-  const [coins, setCoins] = useState<Record<string, number>>({ oro: 0, argento: 0, rame: 0 });
+  const [coins, setCoins] = useState<Record<string, number>>(getInitialCoins());
   const [fortuna, setFortuna] = useState<string>("");
 
   const visibleSteps = useMemo(() => {
@@ -148,6 +158,30 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
     [skills],
   );
   const remainingSkillPoints = skillPointTotal - totalSkillPointsAssigned;
+
+  const resetWizardState = () => {
+    setStepIndex(0);
+    setName("");
+    setConcept("");
+    setBaseAbilities(getInitialBaseAbilities());
+    setD6Choice(null);
+    setD6Roll(null);
+    setD4Assignments({});
+    setCurrentD4Roll(null);
+    setD6Rerolled(false);
+    setD4RerollUsed(false);
+    setSelectedD4RerollTarget(null);
+    setIsMagicUser(null);
+    setMagic(getInitialMagic());
+    setSkills([]);
+    setCoins(getInitialCoins());
+    setFortuna("");
+  };
+
+  const handleCancel = () => {
+    resetWizardState();
+    onCancel();
+  };
 
   const setBaseAbility = (key: string, raw: string) => {
     const n = Math.max(ABILITY_MIN, Math.min(ABILITY_MAX, Number(raw) || 0));
@@ -270,18 +304,20 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
   };
 
   const addSkill = () => {
-    if (remainingSkillPoints <= 0) {
-      toast.error(`Hai già distribuito tutti i ${skillPointTotal} punti abilità.`);
+    if (remainingSkillPoints < SKILL_POINT_MIN) {
+      toast.error(`Ti serve almeno ${SKILL_POINT_MIN} punto disponibile per aggiungere una nuova abilità.`);
       return;
     }
-    const defaultGrade = Math.min(1, remainingSkillPoints);
-    setSkills([...skills, { id: crypto.randomUUID(), name: "Nuova abilità", grade: defaultGrade }]);
+    setSkills([...skills, { id: crypto.randomUUID(), name: "Nuova abilità", grade: SKILL_POINT_MIN }]);
   };
 
   const updateSkill = (id: string, patch: Partial<OsgdrSkill>) => {
     const nextSkills = skills.map((s) => {
       if (s.id !== id) return s;
-      return { ...s, ...patch };
+      const nextGrade = patch.grade !== undefined
+        ? Math.max(SKILL_POINT_MIN, Math.min(SKILL_POINT_MAX, Number(patch.grade) || SKILL_POINT_MIN))
+        : s.grade;
+      return { ...s, ...patch, grade: nextGrade };
     });
 
     const total = nextSkills.reduce((acc, s) => acc + (Number(s.grade) || 0), 0);
@@ -359,6 +395,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
       skills,
     };
     await onComplete({ name: name.trim(), concept: concept.trim(), sheet });
+    resetWizardState();
   };
 
   if (!open) return null;
@@ -403,8 +440,8 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
           {currentStep === "caratteristiche" && (
             <div className="space-y-4">
               <p className="font-script italic text-sm text-ink-faded">
-                Distribuisci liberamente <strong>48 punti</strong> tra le sei caratteristiche
-                (minimo <strong>1</strong>, massimo <strong>20</strong> ciascuna).
+                Distribuisci liberamente <strong>{TOTAL_POOL} punti</strong> tra le sei caratteristiche
+                (minimo <strong>{ABILITY_MIN}</strong>, massimo <strong>{ABILITY_MAX}</strong> ciascuna).
               </p>
 
               <div className="flex items-baseline justify-between flex-wrap gap-2">
@@ -717,7 +754,8 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <p className="font-script italic text-sm text-ink-faded">
-                  Aggiungi le abilità apprese all'inizio e distribuisci <strong>{skillPointTotal} punti abilità</strong> totali.
+                  Aggiungi le abilità apprese all'inizio e distribuisci <strong>{skillPointTotal} punti abilità</strong> totali,
+                  con <strong>minimo {SKILL_POINT_MIN}</strong> e <strong>massimo {SKILL_POINT_MAX}</strong> per ogni abilità.
                 </p>
                 <Button variant="outline" size="sm" onClick={addSkill} className="font-heading">
                   <Plus className="h-4 w-4 mr-1" /> Aggiungi
@@ -759,12 +797,12 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
                       />
                       <Input
                         type="number"
-                        min={0}
-                        max={skillPointTotal}
+                        min={SKILL_POINT_MIN}
+                        max={SKILL_POINT_MAX}
                         value={s.grade}
                         onChange={(e) =>
                           updateSkill(s.id, {
-                            grade: Math.max(0, Math.min(skillPointTotal, Number(e.target.value) || 0)),
+                            grade: Math.max(SKILL_POINT_MIN, Math.min(SKILL_POINT_MAX, Number(e.target.value) || SKILL_POINT_MIN)),
                           })
                         }
                         className="bg-transparent border border-border/60 text-center w-16 h-8 px-0 focus-visible:ring-0 font-display"
@@ -843,7 +881,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
         </div>
 
         <div className="px-6 py-4 border-t border-border/60 bg-muted/30 flex items-center justify-between gap-3">
-          <Button variant="ghost" onClick={onCancel} disabled={submitting}>
+          <Button variant="ghost" onClick={handleCancel} disabled={submitting}>
             Annulla
           </Button>
           <div className="flex items-center gap-2">
