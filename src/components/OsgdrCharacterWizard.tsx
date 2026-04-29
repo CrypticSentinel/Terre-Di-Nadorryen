@@ -56,7 +56,6 @@ const STEP_LABELS = [
   "Punti Fortuna",
 ];
 
-// Tira NdM
 function rollDice(count: number, sides: number) {
   let total = 0;
   const rolls: number[] = [];
@@ -71,14 +70,9 @@ function rollDice(count: number, sides: number) {
 export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }: Props) => {
   const [step, setStep] = useState(0);
 
-  // Step 0 — Anagrafica base
   const [name, setName] = useState("");
   const [concept, setConcept] = useState("");
 
-  // Step 1 — Caratteristiche
-  // Distribuzione libera di 48 punti tra le 6 caratteristiche (min 1, max 20).
-  // Poi: 1 caratteristica riceve 1d6, le altre 1d4 ciascuna.
-  // Si può ritirare il d6 e un singolo d4 a scelta.
   const TOTAL_POOL = 48;
   const ABILITY_MIN = 1;
   const ABILITY_MAX = 20;
@@ -86,23 +80,20 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
     for: 8, des: 8, cos: 8, vol: 8, pro: 8, emp: 8,
   });
   const [d6Choice, setD6Choice] = useState<string | null>(null);
-  const [bonusRolls, setBonusRolls] = useState<Record<string, number> | null>(null);
-  // Caratteristiche già "ritirate" dopo il primo lancio (d6 + un solo d4)
+  const [d6Roll, setD6Roll] = useState<number | null>(null);
+  const [d4Assignments, setD4Assignments] = useState<Record<string, number>>({});
+  const [currentD4Roll, setCurrentD4Roll] = useState<number | null>(null);
   const [d6Rerolled, setD6Rerolled] = useState(false);
-  const [d4Rerolled, setD4Rerolled] = useState<string | null>(null);
+  const [d4RerollUsed, setD4RerollUsed] = useState(false);
 
-  // Step 2 — Magia
   const [magic, setMagic] = useState<Record<string, number>>(
     Object.fromEntries(MAGIC_SCHOOLS.map((s) => [s, 0])),
   );
 
-  // Step 3 — Abilità apprese
   const [skills, setSkills] = useState<OsgdrSkill[]>([]);
 
-  // Step 4 — Soldi
   const [coins, setCoins] = useState<Record<string, number>>({ oro: 0, argento: 0, rame: 0 });
 
-  // Step 5 — Punti Fortuna
   const [fortuna, setFortuna] = useState<string>("");
 
   const totalBaseSum = useMemo(
@@ -111,18 +102,25 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
   );
   const remainingPoints = TOTAL_POOL - totalBaseSum;
   const distributionDone = remainingPoints === 0;
-  const bonusesAssigned = bonusRolls !== null;
 
-  // Punteggio finale = base + bonus (d6 sulla scelta, d4 sulle altre)
+  const remainingD4Targets = useMemo(
+    () => ABILITIES.map((a) => a.key).filter((key) => key !== d6Choice && !(key in d4Assignments)),
+    [d6Choice, d4Assignments],
+  );
+
+  const allD4Assigned = d6Choice !== null && remainingD4Targets.length === 0;
+  const bonusesAssigned = d6Choice !== null && d6Roll !== null && allD4Assigned && currentD4Roll === null;
+
   const finalAbilities = useMemo(() => {
     const out: Record<string, number> = {};
     for (const a of ABILITIES) {
       const base = Number(baseAbilities[a.key]) || 0;
-      const bonus = bonusRolls ? (bonusRolls[a.key] || 0) : 0;
-      out[a.key] = base + bonus;
+      const d6Bonus = a.key === d6Choice ? d6Roll ?? 0 : 0;
+      const d4Bonus = d4Assignments[a.key] ?? 0;
+      out[a.key] = base + d6Bonus + d4Bonus;
     }
     return out;
-  }, [baseAbilities, bonusRolls]);
+  }, [baseAbilities, d6Choice, d6Roll, d4Assignments]);
 
   const setBaseAbility = (key: string, raw: string) => {
     const n = Math.max(ABILITY_MIN, Math.min(ABILITY_MAX, Number(raw) || 0));
@@ -132,52 +130,81 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
       toast.error(`Il totale non può superare ${TOTAL_POOL} punti.`);
       return;
     }
-    if (bonusRolls) {
-      setBonusRolls(null);
-      setD6Rerolled(false);
-      setD4Rerolled(null);
-    }
     setBaseAbilities(next);
+    setD6Roll(null);
+    setD4Assignments({});
+    setCurrentD4Roll(null);
+    setD6Rerolled(false);
+    setD4RerollUsed(false);
   };
 
-  const tiraBonus = () => {
+  const rollD6Bonus = () => {
     if (!d6Choice) {
       toast.error("Scegli prima la caratteristica che riceverà 1d6.");
       return;
     }
     if (!distributionDone) {
-      toast.error("Distribuisci tutti i 48 punti prima di tirare i dadi.");
+      toast.error("Distribuisci tutti i 48 punti prima di tirare il d6.");
       return;
     }
-    const rolls: Record<string, number> = {};
-    for (const a of ABILITIES) {
-      rolls[a.key] = a.key === d6Choice
-        ? 1 + Math.floor(Math.random() * 6)
-        : 1 + Math.floor(Math.random() * 4);
-    }
-    setBonusRolls(rolls);
+    setD6Roll(1 + Math.floor(Math.random() * 6));
+    setD4Assignments({});
+    setCurrentD4Roll(null);
     setD6Rerolled(false);
-    setD4Rerolled(null);
+    setD4RerollUsed(false);
   };
 
   const rerollD6 = () => {
-    if (!bonusRolls || !d6Choice) return;
+    if (!d6Choice || d6Roll === null) return;
     if (d6Rerolled) {
       toast.error("Hai già ritirato il d6.");
       return;
     }
-    setBonusRolls({ ...bonusRolls, [d6Choice]: 1 + Math.floor(Math.random() * 6) });
+    setD6Roll(1 + Math.floor(Math.random() * 6));
     setD6Rerolled(true);
   };
 
-  const rerollD4 = (key: string) => {
-    if (!bonusRolls || key === d6Choice) return;
-    if (d4Rerolled) {
+  const rollNextD4 = () => {
+    if (!d6Choice || d6Roll === null) {
+      toast.error("Completa prima la scelta e il tiro del d6.");
+      return;
+    }
+    if (currentD4Roll !== null) {
+      toast.error("Assegna prima il d4 corrente a una caratteristica residua.");
+      return;
+    }
+    if (remainingD4Targets.length === 0) {
+      toast.error("Tutte le caratteristiche residue hanno già ricevuto il loro d4.");
+      return;
+    }
+    setCurrentD4Roll(1 + Math.floor(Math.random() * 4));
+  };
+
+  const rerollCurrentD4 = () => {
+    if (currentD4Roll === null) return;
+    if (d4RerollUsed) {
       toast.error("Puoi ritirare un solo d4.");
       return;
     }
-    setBonusRolls({ ...bonusRolls, [key]: 1 + Math.floor(Math.random() * 4) });
-    setD4Rerolled(key);
+    setCurrentD4Roll(1 + Math.floor(Math.random() * 4));
+    setD4RerollUsed(true);
+  };
+
+  const assignCurrentD4ToAbility = (key: string) => {
+    if (currentD4Roll === null) {
+      toast.error("Tira prima un d4.");
+      return;
+    }
+    if (key === d6Choice) {
+      toast.error("La caratteristica scelta per il d6 non può ricevere un d4.");
+      return;
+    }
+    if (key in d4Assignments) {
+      toast.error("Questa caratteristica ha già ricevuto un d4.");
+      return;
+    }
+    setD4Assignments((prev) => ({ ...prev, [key]: currentD4Roll }));
+    setCurrentD4Roll(null);
   };
 
   const setMagicScore = (school: string, raw: string) => {
@@ -202,8 +229,13 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
       case 0:
         return name.trim().length > 0;
       case 1:
-        // Devono essere distribuiti tutti i 48 punti, scelta d6 fatta e bonus tirati
-        return distributionDone && d6Choice !== null && bonusesAssigned;
+        return (
+          distributionDone &&
+          d6Choice !== null &&
+          d6Roll !== null &&
+          allD4Assigned &&
+          currentD4Roll === null
+        );
       default:
         return true;
     }
@@ -216,8 +248,12 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
         toast.error(`Distribuisci tutti i 48 punti (rimanenti: ${remainingPoints}).`);
       else if (step === 1 && !d6Choice)
         toast.error("Scegli la caratteristica che riceverà 1d6.");
-      else if (step === 1 && !bonusesAssigned)
-        toast.error("Tira i dadi bonus prima di proseguire.");
+      else if (step === 1 && d6Roll === null)
+        toast.error("Tira il d6 prima di proseguire.");
+      else if (step === 1 && currentD4Roll !== null)
+        toast.error("Assegna il d4 corrente prima di proseguire.");
+      else if (step === 1 && !allD4Assigned)
+        toast.error("Assegna un d4 a tutte le caratteristiche residue prima di proseguire.");
       return;
     }
     setStep((s) => Math.min(STEP_LABELS.length - 1, s + 1));
@@ -249,7 +285,6 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-card border border-border rounded-2xl shadow-elegant max-w-3xl w-full my-8 overflow-hidden">
-        {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-border/60">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display text-2xl gold-text">Forgia un nuovo eroe</h2>
@@ -260,7 +295,6 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
           <Progress value={progress} className="h-1.5" />
         </div>
 
-        {/* Body */}
         <div className="px-6 py-5 max-h-[60vh] overflow-y-auto space-y-4">
           {step === 0 && (
             <div className="space-y-4">
@@ -310,10 +344,13 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {ABILITIES.map((a) => {
                   const base = baseAbilities[a.key] ?? 1;
-                  const bonus = bonusRolls ? (bonusRolls[a.key] || 0) : 0;
+                  const d6Bonus = d6Choice === a.key ? d6Roll ?? 0 : 0;
+                  const d4Bonus = d4Assignments[a.key] ?? 0;
+                  const bonus = d6Bonus + d4Bonus;
                   const total = base + bonus;
                   const isD6 = d6Choice === a.key;
                   const mod = abilityModifier(total);
+
                   return (
                     <div
                       key={a.key}
@@ -333,86 +370,167 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
                         className="bg-transparent border-0 text-center font-display h-10 px-0 focus-visible:ring-0"
                         style={{ fontSize: "20px" }}
                       />
-                      {bonusesAssigned ? (
-                        <>
-                          <div className="font-heading text-xs text-ink-faded">
-                            +{bonus} ({isD6 ? "d6" : "d4"})
-                          </div>
-                          <div className="font-display text-lg">
-                            = <span className="text-primary">{total}</span>
-                          </div>
-                          <div className="font-script text-primary text-sm">
-                            {formatModifier(mod)}
-                          </div>
-                          {isD6 ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="mt-2 h-7 text-xs font-heading w-full"
-                              onClick={rerollD6}
-                              disabled={d6Rerolled}
-                            >
-                              <Dices className="h-3 w-3 mr-1" />
-                              {d6Rerolled ? "d6 ritirato" : "Ritira d6"}
-                            </Button>
-                          ) : (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="mt-2 h-7 text-xs font-heading w-full"
-                              onClick={() => rerollD4(a.key)}
-                              disabled={!!d4Rerolled && d4Rerolled !== a.key}
-                            >
-                              <Dices className="h-3 w-3 mr-1" />
-                              {d4Rerolled === a.key ? "d4 ritirato" : "Ritira d4"}
-                            </Button>
-                          )}
-                        </>
-                      ) : (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={isD6 ? "default" : "outline"}
-                          className="mt-2 h-7 text-xs font-heading w-full"
-                          onClick={() => setD6Choice(a.key)}
-                        >
-                          {isD6 ? "★ Riceve 1d6" : "Scegli 1d6"}
-                        </Button>
-                      )}
+
+                      <div className="font-heading text-xs text-ink-faded">
+                        {isD6
+                          ? `Bonus +${d6Bonus} d6`
+                          : d4Bonus > 0
+                          ? `Bonus +${d4Bonus} d4`
+                          : "Bonus +0"}
+                      </div>
+
+                      <div className="font-display text-lg">
+                        = <span className="text-primary">{total}</span>
+                      </div>
+                      <div className="font-script text-primary text-sm">
+                        {formatModifier(mod)}
+                      </div>
+
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={isD6 ? "default" : "outline"}
+                        className="mt-2 h-7 text-xs font-heading w-full"
+                        onClick={() => setD6Choice(a.key)}
+                      >
+                        {isD6 ? "★ Riceve 1d6" : "Scegli 1d6"}
+                      </Button>
                     </div>
                   );
                 })}
               </div>
 
-              {!bonusesAssigned && (
-                <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-border/40">
+              <div className="space-y-4 pt-2 border-t border-border/40">
+                <div className="flex items-center gap-3 flex-wrap">
                   <Button
-                    onClick={tiraBonus}
+                    onClick={rollD6Bonus}
                     variant="outline"
                     className="font-heading"
                     disabled={!distributionDone || !d6Choice}
+                    type="button"
                   >
                     <Dices className="h-4 w-4 mr-2" />
-                    Tira bonus (1d6 + 5d4)
+                    {d6Roll === null ? "Tira 1d6" : `d6: ${d6Roll}`}
                   </Button>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="font-heading"
+                    onClick={rerollD6}
+                    disabled={d6Roll === null || d6Rerolled}
+                  >
+                    <Dices className="h-4 w-4 mr-2" />
+                    {d6Rerolled ? "d6 ritirato" : "Ritira d6"}
+                  </Button>
+
                   <span className="font-script italic text-xs text-ink-faded">
                     {!distributionDone
                       ? "Completa la distribuzione dei 48 punti."
                       : !d6Choice
                       ? "Scegli quale caratteristica riceverà 1d6."
-                      : "La caratteristica scelta riceve 1d6, le altre 1d4."}
+                      : d6Roll === null
+                      ? "Tira il d6 della caratteristica scelta."
+                      : "Procedi con i d4 sulle caratteristiche residue."}
                   </span>
                 </div>
-              )}
 
-              {bonusesAssigned && (
-                <p className="font-script italic text-xs text-ink-faded">
-                  Puoi ritirare il <strong>d6</strong> una sola volta e <strong>uno solo</strong>{" "}
-                  dei d4 a tua scelta.
-                </p>
-              )}
+                {d6Roll !== null && (
+                  <div className="space-y-3 rounded-lg border border-border/60 bg-parchment-deep/20 p-4">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div>
+                        <p className="font-heading text-sm">Bonus 1d4 residui</p>
+                        <p className="font-script italic text-xs text-ink-faded">
+                          Tira un d4 e assegnalo manualmente a una caratteristica residua non ancora selezionata.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={rollNextD4}
+                          disabled={currentD4Roll !== null || remainingD4Targets.length === 0}
+                          className="font-heading"
+                        >
+                          <Dices className="h-4 w-4 mr-2" />
+                          Tira 1d4
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={rerollCurrentD4}
+                          disabled={currentD4Roll === null || d4RerollUsed}
+                          className="font-heading"
+                        >
+                          <Dices className="h-4 w-4 mr-2" />
+                          {d4RerollUsed ? "d4 ritirato" : "Ritira d4"}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 flex-wrap text-sm">
+                      <div>
+                        <span className="font-heading">d4 corrente:</span>{" "}
+                        <strong className="text-primary">
+                          {currentD4Roll !== null ? currentD4Roll : "nessuno"}
+                        </strong>
+                      </div>
+
+                      <div className="font-script italic text-xs text-ink-faded">
+                        Residue da assegnare: {remainingD4Targets.length}
+                      </div>
+                    </div>
+
+                    {remainingD4Targets.length > 0 && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {ABILITIES.filter((a) => a.key !== d6Choice && !(a.key in d4Assignments)).map((a) => (
+                          <Button
+                            key={a.key}
+                            type="button"
+                            variant="outline"
+                            disabled={currentD4Roll === null}
+                            onClick={() => assignCurrentD4ToAbility(a.key)}
+                            className="font-heading"
+                          >
+                            Assegna a {a.label}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+
+                    {Object.keys(d4Assignments).length > 0 && (
+                      <div className="space-y-1">
+                        <p className="font-heading text-xs uppercase tracking-wider text-ink-faded">
+                          d4 già assegnati
+                        </p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                          {ABILITIES.filter((a) => a.key in d4Assignments).map((a) => (
+                            <div
+                              key={a.key}
+                              className="rounded-md border border-border/50 bg-background/40 px-3 py-2"
+                            >
+                              <span className="font-heading">{a.label}</span>: {" "}
+                              <span className="text-primary font-display">
+                                +{d4Assignments[a.key]}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {bonusesAssigned && (
+                  <p className="font-script italic text-xs text-ink-faded">
+                    Puoi ritirare il <strong>d6</strong> una sola volta e <strong>un solo d4</strong>{" "}
+                    prima della sua assegnazione.
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
@@ -555,7 +673,6 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
           )}
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 border-t border-border/60 bg-muted/30 flex items-center justify-between gap-3">
           <Button variant="ghost" onClick={onCancel} disabled={submitting}>
             Annulla
