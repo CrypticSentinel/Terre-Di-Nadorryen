@@ -109,7 +109,6 @@ const CharacterDetail = () => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // local form state
   const [name, setName] = useState("");
   const [concept, setConcept] = useState("");
   const [fields, setFields] = useState<CustomField[]>([]);
@@ -117,8 +116,8 @@ const CharacterDetail = () => {
   const [labelOverrides, setLabelOverrides] = useState<LabelOverridesMap>({});
   const [background, setBackground] = useState<string>("");
   const [bgSaving, setBgSaving] = useState(false);
+  const [assignedUserId, setAssignedUserId] = useState<string | undefined>(undefined);
 
-  // Audit log
   interface AuditEntry {
     id: string;
     user_id: string;
@@ -128,16 +127,15 @@ const CharacterDetail = () => {
     created_at: string;
   }
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
-  // Snapshot del valore corrente in DB per generare il diff al salvataggio
   const dbSnapshotRef = useRef<{
     name: string;
     concept: string;
     fields: CustomField[];
     osgdrSheet: OsgdrSheet;
     background: string;
+    owner_id: string;
   } | null>(null);
 
-  // notes dialog
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
@@ -145,11 +143,10 @@ const CharacterDetail = () => {
   const [noteSubmitting, setNoteSubmitting] = useState(false);
 
   const isOwner = !!character && !!user && character.owner_id === user.id;
-  const canEdit = isOwner;
-  // Owner, Narratore (impersonante) e Admin (impersonante) possono modificare il background
+  const canEdit = isOwner || isAdmin || isActingAsNarrator;
+  const canAssignCharacter = canEdit && (isAdmin || isActingAsNarrator);
   const canEditBackground = isOwner || isActingAsNarrator || isAdmin;
   const useOsgdrForm = isOpenSourceGdr(rulesetName);
-  // Campi liberi visibili = tutti tranne i record riservati
   const visibleFields = fields.filter(
     (f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID && f.id !== BACKGROUND_FIELD_ID,
   );
@@ -170,6 +167,7 @@ const CharacterDetail = () => {
     const ch = raw as Character;
     if (!Array.isArray(ch.custom_fields)) ch.custom_fields = [];
     setCharacter(ch);
+    setAssignedUserId(ch.owner_id);
     setRulesetName(raw?.campaigns?.rulesets?.name ?? null);
     setName(ch.name);
     setConcept(ch.concept ?? "");
@@ -179,16 +177,15 @@ const CharacterDetail = () => {
     setBackground(extractBackground(ch.custom_fields));
     setNotes((n.data ?? []) as Note[]);
 
-    // Snapshot per il diff successivo
     dbSnapshotRef.current = {
       name: ch.name,
       concept: ch.concept ?? "",
       fields: ch.custom_fields,
       osgdrSheet: extractOsgdrSheet(ch.custom_fields),
       background: extractBackground(ch.custom_fields),
+      owner_id: ch.owner_id,
     };
 
-    // Carica profilo del proprietario per mostrare l'etichetta
     const { data: prof } = await supabase
       .from("profiles")
       .select("display_name")
@@ -196,7 +193,6 @@ const CharacterDetail = () => {
       .maybeSingle();
     setOwnerProfile(prof ?? null);
 
-    // Carica audit log (max 100 entries)
     const { data: auditRows } = await supabase
       .from("character_audit_log")
       .select("id, user_id, user_display_name, summary, details, created_at")
@@ -208,7 +204,7 @@ const CharacterDetail = () => {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [characterId]);
+  useEffect(() => { void load(); }, [characterId]);
 
   const addField = () => {
     setFields((prev) => [...prev, { id: crypto.randomUUID(), label: "Nuovo campo", value: "" }]);
@@ -220,10 +216,6 @@ const CharacterDetail = () => {
     setFields((prev) => prev.filter((f) => f.id !== id));
   };
 
-  /**
-   * Persist label overrides immediately so the admin can fine-tune labels
-   * without having to remember to save the whole sheet afterwards.
-   */
   const persistLabelOverride = async (key: string, override: LabelOverride | undefined) => {
     if (!character) return;
     const next = { ...labelOverrides };
@@ -250,7 +242,7 @@ const CharacterDetail = () => {
       const { data: prof } = await supabase
         .from("profiles").select("display_name").eq("id", user.id).maybeSingle();
       userName = prof?.display_name ?? null;
-    } catch { /* noop */ }
+    } catch {}
     await supabase.from("character_audit_log").insert({
       character_id: character.id,
       user_id: user.id,
@@ -264,6 +256,7 @@ const CharacterDetail = () => {
     const changes: string[] = [];
     if (snap.name !== name) changes.push(`Nome: "${snap.name}" → "${name}"`);
     if ((snap.concept ?? "") !== (concept ?? "")) changes.push("Descrizione aggiornata");
+    if (snap.owner_id !== (assignedUserId ?? character?.owner_id ?? snap.owner_id)) changes.push("Proprietario scheda aggiornato");
     if (useOsgdrForm) {
       const a1 = snap.osgdrSheet, a2 = osgdrSheet;
       const abilityKeys = Object.keys(a2.abilities ?? {}) as (keyof typeof a2.abilities)[];
@@ -296,9 +289,12 @@ const CharacterDetail = () => {
     let finalFields = useOsgdrForm ? packOsgdrSheet(fields, osgdrSheet) : fields;
     finalFields = packLabelOverrides(finalFields, labelOverrides);
     finalFields = packBackground(finalFields, background);
+
+    const nextOwnerId = canAssignCharacter ? (assignedUserId ?? character.owner_id) : character.owner_id;
+
     const { error } = await supabase
       .from("characters")
-      .update({ name, concept: concept || null, custom_fields: finalFields as any })
+      .update({ name, concept: concept || null, custom_fields: finalFields as any, owner_id: nextOwnerId })
       .eq("id", character.id);
     setSaving(false);
     if (error) toast.error(error.message);
@@ -313,7 +309,7 @@ const CharacterDetail = () => {
           );
         }
       }
-      load();
+      await load();
     }
   };
 
@@ -334,7 +330,7 @@ const CharacterDetail = () => {
       if (prev !== background) {
         await logAudit("Background aggiornato", { length_before: prev.length, length_after: background.length });
       }
-      load();
+      await load();
     }
   };
 
@@ -357,7 +353,7 @@ const CharacterDetail = () => {
     if (updErr) toast.error(updErr.message);
     else {
       toast.success("Immagine aggiornata");
-      load();
+      await load();
     }
   };
 
@@ -388,7 +384,7 @@ const CharacterDetail = () => {
       toast.success("Annotazione aggiunta al diario");
       setNoteOpen(false);
       setNoteTitle(""); setNoteContent(""); setNoteDate("");
-      load();
+      await load();
     }
   };
 
@@ -396,7 +392,7 @@ const CharacterDetail = () => {
     if (!confirm("Eliminare questa annotazione?")) return;
     const { error } = await supabase.from("session_notes").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else { toast.success("Annotazione rimossa"); load(); }
+    else { toast.success("Annotazione rimossa"); await load(); }
   };
 
   if (loading || !character) {
@@ -419,7 +415,6 @@ const CharacterDetail = () => {
         </Link>
 
         <div className="grid lg:grid-cols-[300px_1fr] gap-4 lg:gap-6">
-          {/* Sidebar: foto + (dadi solo desktop, mobile usa il FAB) */}
           <aside className="space-y-5">
             <div className="parchment-panel p-3">
               <div className="w-full max-w-[240px] aspect-[3/4] mx-auto bg-gradient-to-br from-parchment-deep to-parchment-shadow rounded overflow-hidden relative group">
@@ -453,7 +448,6 @@ const CharacterDetail = () => {
             />
           </aside>
 
-          {/* Main */}
           <div className="space-y-5">
             <div className="parchment-panel p-6">
               <div className="flex items-start justify-between gap-3 mb-4">
@@ -469,7 +463,6 @@ const CharacterDetail = () => {
                       {character.concept && <p className="font-script italic text-ink-faded">{character.concept}</p>}
                     </>
                   )}
-                  {/* Etichetta proprietario: "Tuo" se sono io, altrimenti il nome del giocatore proprietario */}
                   <div className="mt-2">
                     {isOwner ? (
                       <Badge variant="outline" className="text-xs">Tuo</Badge>
@@ -515,6 +508,8 @@ const CharacterDetail = () => {
                         labelOverrides={labelOverrides}
                         canCustomizeLabels={isAdmin}
                         onLabelOverrideChange={persistLabelOverride}
+                        assignedUserId={assignedUserId}
+                        onAssignedUserIdChange={setAssignedUserId}
                       />
                       {canEdit && (
                         <div className="flex pt-3 border-t border-border/40">
