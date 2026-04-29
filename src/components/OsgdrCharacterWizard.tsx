@@ -28,12 +28,6 @@ const MAGIC_SCHOOLS = [
   "Mente", "Corpo",
 ] as const;
 
-const COIN_TYPES = [
-  { key: "oro", label: "Oro" },
-  { key: "argento", label: "Argento" },
-  { key: "rame", label: "Rame" },
-] as const;
-
 export interface WizardResult {
   name: string;
   concept: string;
@@ -298,9 +292,9 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
     setMagic(next);
   };
 
-  const setCoin = (key: string, raw: string) => {
-    const n = Math.max(0, Number(raw) || 0);
-    setCoins({ ...coins, [key]: n });
+  const rollSilverCoins = () => {
+    const silver = 1 + Math.floor(Math.random() * 100);
+    setCoins({ oro: 0, argento: silver, rame: 0 });
   };
 
   const addSkill = () => {
@@ -349,6 +343,8 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
         return remainingMagicPoints === 0;
       case "abilita":
         return remainingSkillPoints === 0;
+      case "soldi":
+        return (coins.argento ?? 0) > 0;
       default:
         return true;
     }
@@ -373,6 +369,8 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
         toast.error(`Distribuisci tutti i ${MAGIC_POINT_TOTAL} punti magia disponibili.`);
       else if (currentStep === "abilita")
         toast.error(`Distribuisci tutti i ${skillPointTotal} punti abilità disponibili.`);
+      else if (currentStep === "soldi")
+        toast.error("Tira 1d100 per determinare le monete d'argento del personaggio.");
       return;
     }
     setStepIndex((s) => Math.min(visibleSteps.length - 1, s + 1));
@@ -824,26 +822,36 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
           {currentStep === "soldi" && (
             <div className="space-y-4">
               <p className="font-script italic text-sm text-ink-faded">
-                Imposta il denaro iniziale del personaggio.
+                Tira <strong>1d100</strong>: il risultato corrisponde al totale di <strong>monete d'argento</strong> possedute dal personaggio.
               </p>
-              <div className="grid grid-cols-3 gap-3">
-                {COIN_TYPES.map((c) => (
-                  <div
-                    key={c.key}
-                    className="bg-parchment-deep/20 border border-border/60 rounded-lg p-3 text-center"
-                  >
-                    <div className="font-heading text-xs uppercase tracking-wider text-ink-faded">
-                      {c.label}
-                    </div>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={coins[c.key] ?? 0}
-                      onChange={(e) => setCoin(c.key, e.target.value)}
-                      className="bg-transparent border-0 text-center font-display text-xl h-9 px-0 focus-visible:ring-0"
-                    />
-                  </div>
-                ))}
+
+              <div className="flex items-center gap-3 flex-wrap">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={rollSilverCoins}
+                  className="font-heading"
+                >
+                  <Dices className="h-4 w-4 mr-2" />
+                  Tira 1d100
+                </Button>
+
+                <span className="font-script italic text-xs text-ink-faded">
+                  Il valore viene assegnato automaticamente e non può essere modificato manualmente.
+                </span>
+              </div>
+
+              <div className="max-w-xs mx-auto bg-parchment-deep/20 border border-border/60 rounded-lg p-4 text-center">
+                <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">
+                  Monete d'argento
+                </Label>
+                <Input
+                  type="number"
+                  value={coins.argento ?? 0}
+                  readOnly
+                  className="bg-transparent border-0 text-center font-display h-10 px-0 focus-visible:ring-0"
+                  style={{ fontSize: "22px" }}
+                />
               </div>
             </div>
           )}
@@ -873,7 +881,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
                   <li>Caratteristiche: base {totalBaseSum} pt + bonus dadi (totale {ABILITIES.reduce((acc, a) => acc + (finalAbilities[a.key] || 0), 0)})</li>
                   <li>Scuole di magia attive: {MAGIC_SCHOOLS.filter((s) => (magic[s] ?? 0) > 0).length} · punti distribuiti {magicPointsAssigned}/{MAGIC_POINT_TOTAL}</li>
                   <li>Abilità apprese: {skills.length} · punti distribuiti {totalSkillPointsAssigned}/{skillPointTotal}</li>
-                  <li>Soldi: {coins.oro} oro · {coins.argento} arg · {coins.rame} rame</li>
+                  <li>Soldi: {coins.argento} monete d'argento</li>
                 </ul>
               </div>
             </div>
