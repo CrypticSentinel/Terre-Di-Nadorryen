@@ -47,14 +47,14 @@ interface Props {
   submitting?: boolean;
 }
 
-const STEP_LABELS = [
-  "Anagrafica",
-  "Caratteristiche",
-  "Magia",
-  "Abilità",
-  "Soldi",
-  "Punti Fortuna",
-];
+type WizardStep =
+  | "anagrafica"
+  | "caratteristiche"
+  | "usa-magia"
+  | "magia"
+  | "abilita"
+  | "soldi"
+  | "punti-fortuna";
 
 function rollDice(count: number, sides: number) {
   let total = 0;
@@ -68,7 +68,7 @@ function rollDice(count: number, sides: number) {
 }
 
 export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }: Props) => {
-  const [step, setStep] = useState(0);
+  const [stepIndex, setStepIndex] = useState(0);
 
   const [name, setName] = useState("");
   const [concept, setConcept] = useState("");
@@ -87,15 +87,34 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
   const [d4RerollUsed, setD4RerollUsed] = useState(false);
   const [selectedD4RerollTarget, setSelectedD4RerollTarget] = useState<string | null>(null);
 
+  const [isMagicUser, setIsMagicUser] = useState<boolean | null>(null);
+
   const [magic, setMagic] = useState<Record<string, number>>(
     Object.fromEntries(MAGIC_SCHOOLS.map((s) => [s, 0])),
   );
 
   const [skills, setSkills] = useState<OsgdrSkill[]>([]);
-
   const [coins, setCoins] = useState<Record<string, number>>({ oro: 0, argento: 0, rame: 0 });
-
   const [fortuna, setFortuna] = useState<string>("");
+
+  const visibleSteps = useMemo(() => {
+    const steps: WizardStep[] = ["anagrafica", "caratteristiche", "usa-magia"];
+    if (isMagicUser !== false) steps.push("magia");
+    steps.push("abilita", "soldi", "punti-fortuna");
+    return steps;
+  }, [isMagicUser]);
+
+  const currentStep = visibleSteps[stepIndex] ?? visibleSteps[0];
+
+  const stepLabelMap: Record<WizardStep, string> = {
+    anagrafica: "Anagrafica",
+    caratteristiche: "Caratteristiche",
+    "usa-magia": "Magia",
+    magia: "Scuole di magia",
+    abilita: "Abilità",
+    soldi: "Soldi",
+    "punti-fortuna": "Punti Fortuna",
+  };
 
   const totalBaseSum = useMemo(
     () => ABILITIES.reduce((acc, a) => acc + (Number(baseAbilities[a.key]) || 0), 0),
@@ -112,6 +131,8 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
   const allD4Assigned = d6Choice !== null && remainingD4Targets.length === 0;
   const bonusesAssigned = d6Choice !== null && d6Roll !== null && allD4Assigned && currentD4Roll === null;
 
+  const skillPointTotal = isMagicUser === false ? 45 : 30;
+
   const finalAbilities = useMemo(() => {
     const out: Record<string, number> = {};
     for (const a of ABILITIES) {
@@ -122,6 +143,12 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
     }
     return out;
   }, [baseAbilities, d6Choice, d6Roll, d4Assignments]);
+
+  const totalSkillPointsAssigned = useMemo(
+    () => skills.reduce((acc, s) => acc + (Number(s.grade) || 0), 0),
+    [skills],
+  );
+  const remainingSkillPoints = skillPointTotal - totalSkillPointsAssigned;
 
   const setBaseAbility = (key: string, raw: string) => {
     const n = Math.max(ABILITY_MIN, Math.min(ABILITY_MAX, Number(raw) || 0));
@@ -237,18 +264,37 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
     setCoins({ ...coins, [key]: n });
   };
 
-  const addSkill = () =>
-    setSkills([...skills, { id: crypto.randomUUID(), name: "Nuova abilità", grade: 1 }]);
-  const updateSkill = (id: string, patch: Partial<OsgdrSkill>) =>
-    setSkills(skills.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-  const removeSkill = (id: string) =>
-    setSkills(skills.filter((s) => s.id !== id));
+  const addSkill = () => {
+    if (remainingSkillPoints <= 0) {
+      toast.error(`Hai già distribuito tutti i ${skillPointTotal} punti abilità.`);
+      return;
+    }
+    const defaultGrade = Math.min(1, remainingSkillPoints);
+    setSkills([...skills, { id: crypto.randomUUID(), name: "Nuova abilità", grade: defaultGrade }]);
+  };
+
+  const updateSkill = (id: string, patch: Partial<OsgdrSkill>) => {
+    const nextSkills = skills.map((s) => {
+      if (s.id !== id) return s;
+      return { ...s, ...patch };
+    });
+
+    const total = nextSkills.reduce((acc, s) => acc + (Number(s.grade) || 0), 0);
+    if (total > skillPointTotal) {
+      toast.error(`Non puoi superare ${skillPointTotal} punti abilità totali.`);
+      return;
+    }
+
+    setSkills(nextSkills);
+  };
+
+  const removeSkill = (id: string) => setSkills(skills.filter((s) => s.id !== id));
 
   const canGoNext = (() => {
-    switch (step) {
-      case 0:
+    switch (currentStep) {
+      case "anagrafica":
         return name.trim().length > 0;
-      case 1:
+      case "caratteristiche":
         return (
           distributionDone &&
           d6Choice !== null &&
@@ -256,6 +302,12 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
           allD4Assigned &&
           currentD4Roll === null
         );
+      case "usa-magia":
+        return isMagicUser !== null;
+      case "magia":
+        return true;
+      case "abilita":
+        return remainingSkillPoints === 0;
       default:
         return true;
     }
@@ -263,23 +315,27 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
 
   const handleNext = () => {
     if (!canGoNext) {
-      if (step === 0) toast.error("Inserisci un nome per il personaggio.");
-      else if (step === 1 && !distributionDone)
+      if (currentStep === "anagrafica") toast.error("Inserisci un nome per il personaggio.");
+      else if (currentStep === "caratteristiche" && !distributionDone)
         toast.error(`Distribuisci tutti i 48 punti (rimanenti: ${remainingPoints}).`);
-      else if (step === 1 && !d6Choice)
+      else if (currentStep === "caratteristiche" && !d6Choice)
         toast.error("Scegli la caratteristica che riceverà 1d6.");
-      else if (step === 1 && d6Roll === null)
+      else if (currentStep === "caratteristiche" && d6Roll === null)
         toast.error("Tira il d6 prima di proseguire.");
-      else if (step === 1 && currentD4Roll !== null)
+      else if (currentStep === "caratteristiche" && currentD4Roll !== null)
         toast.error("Assegna il d4 corrente prima di proseguire.");
-      else if (step === 1 && !allD4Assigned)
+      else if (currentStep === "caratteristiche" && !allD4Assigned)
         toast.error("Assegna un d4 a tutte le caratteristiche residue prima di proseguire.");
+      else if (currentStep === "usa-magia")
+        toast.error("Indica se il personaggio è un utilizzatore di magia.");
+      else if (currentStep === "abilita")
+        toast.error(`Distribuisci tutti i ${skillPointTotal} punti abilità disponibili.`);
       return;
     }
-    setStep((s) => Math.min(STEP_LABELS.length - 1, s + 1));
+    setStepIndex((s) => Math.min(visibleSteps.length - 1, s + 1));
   };
 
-  const handleBack = () => setStep((s) => Math.max(0, s - 1));
+  const handleBack = () => setStepIndex((s) => Math.max(0, s - 1));
 
   const handleFinish = async () => {
     const sheet: OsgdrSheet = {
@@ -300,7 +356,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
 
   if (!open) return null;
 
-  const progress = ((step + 1) / STEP_LABELS.length) * 100;
+  const progress = ((stepIndex + 1) / visibleSteps.length) * 100;
 
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
@@ -309,14 +365,14 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display text-2xl gold-text">Forgia un nuovo eroe</h2>
             <span className="text-xs font-heading uppercase tracking-wider text-ink-faded">
-              Step {step + 1} / {STEP_LABELS.length} · {STEP_LABELS[step]}
+              Step {stepIndex + 1} / {visibleSteps.length} · {stepLabelMap[currentStep]}
             </span>
           </div>
           <Progress value={progress} className="h-1.5" />
         </div>
 
         <div className="px-6 py-5 max-h-[60vh] overflow-y-auto space-y-4">
-          {step === 0 && (
+          {currentStep === "anagrafica" && (
             <div className="space-y-4">
               <p className="font-script italic text-sm text-ink-faded">
                 Comincia con il nome del tuo personaggio e una breve descrizione.
@@ -337,7 +393,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
             </div>
           )}
 
-          {step === 1 && (
+          {currentStep === "caratteristiche" && (
             <div className="space-y-4">
               <p className="font-script italic text-sm text-ink-faded">
                 Distribuisci liberamente <strong>48 punti</strong> tra le sei caratteristiche
@@ -573,7 +629,37 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
             </div>
           )}
 
-          {step === 2 && (
+          {currentStep === "usa-magia" && (
+            <div className="space-y-4">
+              <p className="font-script italic text-sm text-ink-faded">
+                Il personaggio è un utilizzatore di magia?
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Button
+                  type="button"
+                  variant={isMagicUser === true ? "default" : "outline"}
+                  className="font-heading h-12"
+                  onClick={() => setIsMagicUser(true)}
+                >
+                  Sì, utilizza la magia
+                </Button>
+                <Button
+                  type="button"
+                  variant={isMagicUser === false ? "default" : "outline"}
+                  className="font-heading h-12"
+                  onClick={() => setIsMagicUser(false)}
+                >
+                  No, non utilizza la magia
+                </Button>
+              </div>
+              <p className="font-script italic text-xs text-ink-faded">
+                Se scegli “Sì”, il flusso continua alle scuole di magia. Se scegli “No”, lo step
+                magia verrà saltato e nello step abilità avrai <strong>45 punti</strong> invece di <strong>30</strong>.
+              </p>
+            </div>
+          )}
+
+          {currentStep === "magia" && (
             <div className="space-y-4">
               <p className="font-script italic text-sm text-ink-faded">
                 Imposta il punteggio iniziale per ciascuna delle dieci scuole di magia (0 se il
@@ -602,19 +688,37 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
             </div>
           )}
 
-          {step === 3 && (
+          {currentStep === "abilita" && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
                 <p className="font-script italic text-sm text-ink-faded">
-                  Aggiungi le abilità apprese all'inizio (puoi sempre aggiornarle dalla scheda).
+                  Aggiungi le abilità apprese all'inizio e distribuisci <strong>{skillPointTotal} punti abilità</strong> totali.
                 </p>
                 <Button variant="outline" size="sm" onClick={addSkill} className="font-heading">
                   <Plus className="h-4 w-4 mr-1" /> Aggiungi
                 </Button>
               </div>
+
+              <div className="flex items-baseline justify-between flex-wrap gap-2">
+                <span className="font-heading text-sm">
+                  Distribuiti: <strong>{totalSkillPointsAssigned}</strong> / {skillPointTotal}
+                </span>
+                <span
+                  className={`font-heading text-sm ${
+                    remainingSkillPoints === 0
+                      ? "text-primary"
+                      : remainingSkillPoints < 0
+                      ? "text-destructive"
+                      : "text-ink-faded"
+                  }`}
+                >
+                  Rimanenti: {remainingSkillPoints}
+                </span>
+              </div>
+
               {skills.length === 0 ? (
                 <p className="font-script italic text-ink-faded text-sm text-center py-6">
-                  Nessuna abilità ancora. Puoi saltare e aggiungerle in seguito.
+                  Nessuna abilità ancora. Aggiungile e distribuisci tutti i punti disponibili.
                 </p>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-2">
@@ -631,11 +735,11 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
                       <Input
                         type="number"
                         min={0}
-                        max={20}
+                        max={skillPointTotal}
                         value={s.grade}
                         onChange={(e) =>
                           updateSkill(s.id, {
-                            grade: Math.max(0, Math.min(20, Number(e.target.value) || 0)),
+                            grade: Math.max(0, Math.min(skillPointTotal, Number(e.target.value) || 0)),
                           })
                         }
                         className="bg-transparent border border-border/60 text-center w-16 h-8 px-0 focus-visible:ring-0 font-display"
@@ -654,7 +758,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
             </div>
           )}
 
-          {step === 4 && (
+          {currentStep === "soldi" && (
             <div className="space-y-4">
               <p className="font-script italic text-sm text-ink-faded">
                 Imposta il denaro iniziale del personaggio.
@@ -681,7 +785,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
             </div>
           )}
 
-          {step === 5 && (
+          {currentStep === "punti-fortuna" && (
             <div className="space-y-4">
               <p className="font-script italic text-sm text-ink-faded">
                 Indica i Punti Fortuna iniziali del personaggio.
@@ -702,9 +806,10 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
                 <p className="font-heading text-primary mb-1">Riepilogo</p>
                 <ul className="font-script text-ink-faded space-y-0.5">
                   <li>Nome: <strong className="text-ink">{name || "—"}</strong></li>
+                  <li>Utilizzatore di magia: {isMagicUser === null ? "—" : isMagicUser ? "Sì" : "No"}</li>
                   <li>Caratteristiche: base {totalBaseSum} pt + bonus dadi (totale {ABILITIES.reduce((acc, a) => acc + (finalAbilities[a.key] || 0), 0)})</li>
                   <li>Scuole di magia attive: {MAGIC_SCHOOLS.filter((s) => (magic[s] ?? 0) > 0).length}</li>
-                  <li>Abilità apprese: {skills.length}</li>
+                  <li>Abilità apprese: {skills.length} · punti distribuiti {totalSkillPointsAssigned}/{skillPointTotal}</li>
                   <li>Soldi: {coins.oro} oro · {coins.argento} arg · {coins.rame} rame</li>
                 </ul>
               </div>
@@ -717,12 +822,12 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
             Annulla
           </Button>
           <div className="flex items-center gap-2">
-            {step > 0 && (
+            {stepIndex > 0 && (
               <Button variant="outline" onClick={handleBack} disabled={submitting}>
                 <ArrowLeft className="h-4 w-4 mr-1" /> Indietro
               </Button>
             )}
-            {step < STEP_LABELS.length - 1 ? (
+            {stepIndex < visibleSteps.length - 1 ? (
               <Button onClick={handleNext} disabled={submitting}>
                 Avanti <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
