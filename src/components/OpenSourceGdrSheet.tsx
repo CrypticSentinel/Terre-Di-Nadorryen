@@ -189,10 +189,10 @@ export const OpenSourceGdrSheet = ({
   assignedUserId,
   onAssignedUserIdChange,
 }: Props) => {
-  const { user, isAdmin, isNarratore } = useAuth();
+  const { user, isAdmin, isActingAsNarrator } = useAuth();
   const [profiles, setProfiles] = useState<SelectableProfile[]>([]);
 
-  const canAssignCharacter = canEdit && !!onAssignedUserIdChange && (isAdmin || isNarratore);
+  const canAssignCharacter = canEdit && !!onAssignedUserIdChange && (isAdmin || isActingAsNarrator);
 
   useEffect(() => {
     if (!canAssignCharacter) return;
