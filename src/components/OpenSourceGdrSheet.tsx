@@ -189,10 +189,10 @@ export const OpenSourceGdrSheet = ({
   assignedUserId,
   onAssignedUserIdChange,
 }: Props) => {
-  const { user, isAdmin, isActingAsNarrator } = useAuth();
+  const { user, isAdmin, isNarratore } = useAuth();
   const [profiles, setProfiles] = useState<SelectableProfile[]>([]);
 
-  const canAssignCharacter = canEdit && !!onAssignedUserIdChange && (isAdmin || isActingAsNarrator);
+  const canAssignCharacter = canEdit && !!onAssignedUserIdChange && (isAdmin || isNarratore);
 
   useEffect(() => {
     if (!canAssignCharacter) return;
@@ -295,7 +295,7 @@ export const OpenSourceGdrSheet = ({
               Assegna scheda a
             </Label>
             <select
-              value={assignedUserId ?? ""}
+              value={assignedUserId ?? user?.id ?? ""}
               onChange={(e) => onAssignedUserIdChange?.(e.target.value || undefined)}
               className="mt-2 w-full rounded-md border border-border/60 bg-background px-3 py-2 font-script text-foreground"
             >
