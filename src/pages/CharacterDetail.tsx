@@ -10,9 +10,25 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Loader2, Camera, BookMarked, ScrollText, Save, BookOpen, History } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Loader2,
+  Camera,
+  BookMarked,
+  ScrollText,
+  Save,
+  BookOpen,
+  History,
+} from "lucide-react";
 import { toast } from "sonner";
 import { isOpenSourceGdr } from "@/lib/rulesets";
 import {
@@ -47,14 +63,27 @@ type LabelOverridesMap = Record<string, LabelOverride>;
 
 function extractOsgdrSheet(fields: CustomField[]): OsgdrSheet {
   const f = fields.find((x) => x.id === OSGDR_FIELD_ID);
-  if (!f) return { ...EMPTY_OSGDR_SHEET, ferite: { ...EMPTY_OSGDR_SHEET.ferite }, equipment: { ...EMPTY_OSGDR_SHEET.equipment }, abilities: { ...EMPTY_OSGDR_SHEET.abilities }, skills: [] };
-  try { return normalizeOsgdrSheet(JSON.parse(f.value)); }
-  catch { return normalizeOsgdrSheet({}); }
+  if (!f)
+    return {
+      ...EMPTY_OSGDR_SHEET,
+      ferite: { ...EMPTY_OSGDR_SHEET.ferite },
+      equipment: { ...EMPTY_OSGDR_SHEET.equipment },
+      abilities: { ...EMPTY_OSGDR_SHEET.abilities },
+      skills: [],
+    };
+  try {
+    return normalizeOsgdrSheet(JSON.parse(f.value));
+  } catch {
+    return normalizeOsgdrSheet({});
+  }
 }
 
 function packOsgdrSheet(fields: CustomField[], sheet: OsgdrSheet): CustomField[] {
   const others = fields.filter((x) => x.id !== OSGDR_FIELD_ID);
-  return [...others, { id: OSGDR_FIELD_ID, label: "Open Source GDR", value: JSON.stringify(sheet) }];
+  return [
+    ...others,
+    { id: OSGDR_FIELD_ID, label: "Open Source GDR", value: JSON.stringify(sheet) },
+  ];
 }
 
 function extractBackground(fields: CustomField[]): string {
@@ -83,9 +112,14 @@ function packLabelOverrides(fields: CustomField[], overrides: LabelOverridesMap)
   if (Object.keys(overrides).length === 0) return others;
   return [
     ...others,
-    { id: LABEL_OVERRIDES_FIELD_ID, label: "Label overrides", value: JSON.stringify(overrides) },
+    {
+      id: LABEL_OVERRIDES_FIELD_ID,
+      label: "Label overrides",
+      value: JSON.stringify(overrides),
+    },
   ];
 }
+
 interface Note {
   id: string;
   title: string;
@@ -148,15 +182,26 @@ const CharacterDetail = () => {
   const canEditBackground = isOwner || isActingAsNarrator || isAdmin;
   const useOsgdrForm = isOpenSourceGdr(rulesetName);
   const visibleFields = fields.filter(
-    (f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID && f.id !== BACKGROUND_FIELD_ID,
+    (f) =>
+      f.id !== OSGDR_FIELD_ID &&
+      f.id !== LABEL_OVERRIDES_FIELD_ID &&
+      f.id !== BACKGROUND_FIELD_ID
   );
 
   const load = async () => {
     if (!characterId) return;
     setLoading(true);
     const [c, n] = await Promise.all([
-      supabase.from("characters").select("*, campaigns(ruleset_id, rulesets(name))").eq("id", characterId).maybeSingle(),
-      supabase.from("session_notes").select("*").eq("character_id", characterId).order("created_at", { ascending: false }),
+      supabase
+        .from("characters")
+        .select("*, campaigns(ruleset_id, rulesets(name))")
+        .eq("id", characterId)
+        .maybeSingle(),
+      supabase
+        .from("session_notes")
+        .select("*")
+        .eq("character_id", characterId)
+        .order("created_at", { ascending: false }),
     ]);
     if (c.error || !c.data) {
       toast.error("Personaggio non trovato");
@@ -204,10 +249,15 @@ const CharacterDetail = () => {
     setLoading(false);
   };
 
-  useEffect(() => { void load(); }, [characterId]);
+  useEffect(() => {
+    void load();
+  }, [characterId]);
 
   const addField = () => {
-    setFields((prev) => [...prev, { id: crypto.randomUUID(), label: "Nuovo campo", value: "" }]);
+    setFields((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), label: "Nuovo campo", value: "" },
+    ]);
   };
   const updateField = (id: string, key: "label" | "value", val: string) => {
     setFields((prev) => prev.map((f) => (f.id === id ? { ...f, [key]: val } : f)));
@@ -240,7 +290,10 @@ const CharacterDetail = () => {
     let userName: string | null = null;
     try {
       const { data: prof } = await supabase
-        .from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .maybeSingle();
       userName = prof?.display_name ?? null;
     } catch {}
     await supabase.from("character_audit_log").insert({
@@ -256,18 +309,27 @@ const CharacterDetail = () => {
     const changes: string[] = [];
     if (snap.name !== name) changes.push(`Nome: "${snap.name}" → "${name}"`);
     if ((snap.concept ?? "") !== (concept ?? "")) changes.push("Descrizione aggiornata");
-    if (snap.owner_id !== (assignedUserId ?? character?.owner_id ?? snap.owner_id)) changes.push("Proprietario scheda aggiornato");
+    if (
+      snap.owner_id !==
+      (assignedUserId ?? character?.owner_id ?? snap.owner_id)
+    )
+      changes.push("Proprietario scheda aggiornato");
     if (useOsgdrForm) {
-      const a1 = snap.osgdrSheet, a2 = osgdrSheet;
+      const a1 = snap.osgdrSheet,
+        a2 = osgdrSheet;
       const abilityKeys = Object.keys(a2.abilities ?? {}) as (keyof typeof a2.abilities)[];
       for (const k of abilityKeys) {
         if ((a1.abilities?.[k] ?? 0) !== (a2.abilities?.[k] ?? 0)) {
-          changes.push(`${String(k).toUpperCase()}: ${a1.abilities?.[k] ?? 0} → ${a2.abilities?.[k] ?? 0}`);
+          changes.push(
+            `${String(k).toUpperCase()}: ${a1.abilities?.[k] ?? 0} → ${a2.abilities?.[k] ?? 0}`
+          );
         }
       }
       for (const sk of Object.keys(a2.magic ?? {})) {
         if ((a1.magic as any)?.[sk] !== (a2.magic as any)?.[sk]) {
-          changes.push(`Magia ${sk}: ${(a1.magic as any)?.[sk] ?? 0} → ${(a2.magic as any)?.[sk] ?? 0}`);
+          changes.push(
+            `Magia ${sk}: ${(a1.magic as any)?.[sk] ?? 0} → ${(a2.magic as any)?.[sk] ?? 0}`
+          );
         }
       }
       if ((a1.note ?? "") !== (a2.note ?? "")) changes.push("Note aggiornate");
@@ -275,9 +337,20 @@ const CharacterDetail = () => {
         changes.push(`Abilità: ${a1.skills?.length ?? 0} → ${a2.skills?.length ?? 0}`);
       }
     } else {
-      const v1 = snap.fields.filter((f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID && f.id !== BACKGROUND_FIELD_ID);
-      const v2 = fields.filter((f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID && f.id !== BACKGROUND_FIELD_ID);
-      if (JSON.stringify(v1) !== JSON.stringify(v2)) changes.push("Campi liberi modificati");
+      const v1 = snap.fields.filter(
+        (f) =>
+          f.id !== OSGDR_FIELD_ID &&
+          f.id !== LABEL_OVERRIDES_FIELD_ID &&
+          f.id !== BACKGROUND_FIELD_ID
+      );
+      const v2 = fields.filter(
+        (f) =>
+          f.id !== OSGDR_FIELD_ID &&
+          f.id !== LABEL_OVERRIDES_FIELD_ID &&
+          f.id !== BACKGROUND_FIELD_ID
+      );
+      if (JSON.stringify(v1) !== JSON.stringify(v2))
+        changes.push("Campi liberi modificati");
     }
     return changes;
   };
@@ -290,11 +363,18 @@ const CharacterDetail = () => {
     finalFields = packLabelOverrides(finalFields, labelOverrides);
     finalFields = packBackground(finalFields, background);
 
-    const nextOwnerId = canAssignCharacter ? (assignedUserId ?? character.owner_id) : character.owner_id;
+    const nextOwnerId = canAssignCharacter
+      ? assignedUserId ?? character.owner_id
+      : character.owner_id;
 
     const { error } = await supabase
       .from("characters")
-      .update({ name, concept: concept || null, custom_fields: finalFields as any, owner_id: nextOwnerId })
+      .update({
+        name,
+        concept: concept || null,
+        custom_fields: finalFields as any,
+        owner_id: nextOwnerId,
+      })
       .eq("id", character.id);
     setSaving(false);
     if (error) toast.error(error.message);
@@ -305,7 +385,7 @@ const CharacterDetail = () => {
         if (changes.length > 0) {
           await logAudit(
             changes.length === 1 ? changes[0] : `${changes.length} modifiche alla scheda`,
-            { changes },
+            { changes }
           );
         }
       }
@@ -328,7 +408,10 @@ const CharacterDetail = () => {
       setFields(finalFields);
       toast.success("Background salvato");
       if (prev !== background) {
-        await logAudit("Background aggiornato", { length_before: prev.length, length_after: background.length });
+        await logAudit("Background aggiornato", {
+          length_before: prev.length,
+          length_after: background.length,
+        });
       }
       await load();
     }
@@ -340,15 +423,22 @@ const CharacterDetail = () => {
     setUploading(true);
     const ext = file.name.split(".").pop();
     const path = `${user.id}/${character.id}-${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    const { error: upErr } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true });
     if (upErr) {
       toast.error(upErr.message);
       setUploading(false);
       return;
     }
-    const { data: signed } = await supabase.storage.from("avatars").createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
+    const { data: signed } = await supabase.storage
+      .from("avatars")
+      .createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
     const url = signed?.signedUrl ?? null;
-    const { error: updErr } = await supabase.from("characters").update({ image_url: url }).eq("id", character.id);
+    const { error: updErr } = await supabase
+      .from("characters")
+      .update({ image_url: url })
+      .eq("id", character.id);
     setUploading(false);
     if (updErr) toast.error(updErr.message);
     else {
@@ -383,7 +473,9 @@ const CharacterDetail = () => {
     else {
       toast.success("Annotazione aggiunta al diario");
       setNoteOpen(false);
-      setNoteTitle(""); setNoteContent(""); setNoteDate("");
+      setNoteTitle("");
+      setNoteContent("");
+      setNoteDate("");
       await load();
     }
   };
@@ -392,7 +484,10 @@ const CharacterDetail = () => {
     if (!confirm("Eliminare questa annotazione?")) return;
     const { error } = await supabase.from("session_notes").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else { toast.success("Annotazione rimossa"); await load(); }
+    else {
+      toast.success("Annotazione rimossa");
+      await load();
+    }
   };
 
   if (loading || !character) {
@@ -409,35 +504,54 @@ const CharacterDetail = () => {
   return (
     <div className="min-h-screen">
       <SiteHeader />
-      <main className="container py-8">
-        <Link to={`/campaigns/${character.campaign_id}`} className="inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary mb-4">
+      <main className="container py-4 sm:py-6 lg:py-8">
+        <Link
+          to={`/campaigns/${character.campaign_id}`}
+          className="mb-4 inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary"
+        >
           <ArrowLeft className="h-4 w-4" /> Torna alla campagna
         </Link>
 
-        <div className="grid lg:grid-cols-[300px_1fr] gap-4 lg:gap-6">
-          <aside className="space-y-5">
-            <div className="parchment-panel p-3">
-              <div className="w-full max-w-[240px] aspect-[3/4] mx-auto bg-gradient-to-br from-parchment-deep to-parchment-shadow rounded overflow-hidden relative group">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-6">
+          <aside className="order-1 space-y-4 lg:order-none lg:space-y-5 lg:self-start">
+            <div className="parchment-panel p-3 sm:p-4">
+              <div className="relative mx-auto aspect-[3/4] w-full max-w-[240px] overflow-hidden rounded bg-gradient-to-br from-parchment-deep to-parchment-shadow group">
                 {character.image_url ? (
-                  <img src={character.image_url} alt={character.name} className="w-full h-full object-cover" />
+                  <img
+                    src={character.image_url}
+                    alt={character.name}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
+                  <div className="flex h-full w-full items-center justify-center">
                     <ScrollText className="h-20 w-20 text-primary/40" />
                   </div>
                 )}
+
                 {canEdit && (
                   <button
                     onClick={() => fileRef.current?.click()}
                     disabled={uploading}
-                    className="absolute inset-0 bg-ink/0 hover:bg-ink/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                    className="absolute inset-0 flex items-center justify-center bg-ink/0 opacity-0 transition-opacity hover:bg-ink/40 hover:opacity-100"
                   >
-                    <div className="text-primary-foreground flex flex-col items-center gap-1">
-                      {uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Camera className="h-6 w-6" />}
+                    <div className="flex flex-col items-center gap-1 text-primary-foreground">
+                      {uploading ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : (
+                        <Camera className="h-6 w-6" />
+                      )}
                       <span className="text-xs font-heading">Cambia immagine</span>
                     </div>
                   </button>
                 )}
-                <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
+
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImage}
+                  className="hidden"
+                />
               </div>
             </div>
 
@@ -448,24 +562,42 @@ const CharacterDetail = () => {
             />
           </aside>
 
-          <div className="space-y-5">
-            <div className="parchment-panel p-6">
-              <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="space-y-4 lg:space-y-5">
+            <div className="parchment-panel p-4 sm:p-5 lg:p-6">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex-1">
                   {canEdit ? (
                     <>
-                      <Input value={name} onChange={(e) => setName(e.target.value)} className="font-display text-3xl gold-text bg-transparent border-0 border-b border-border rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary h-auto py-1" />
-                      <Input value={concept} onChange={(e) => setConcept(e.target.value)} placeholder="Breve descrizione del personaggio..." className="font-script italic text-ink-faded bg-transparent border-0 px-0 focus-visible:ring-0 mt-1 h-auto" />
+                      <Input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="h-auto border-0 border-b border-border rounded-none bg-transparent px-0 py-1 font-display text-2xl gold-text focus-visible:border-primary focus-visible:ring-0 sm:text-3xl"
+                      />
+                      <Input
+                        value={concept}
+                        onChange={(e) => setConcept(e.target.value)}
+                        placeholder="Breve descrizione del personaggio..."
+                        className="mt-1 h-auto border-0 bg-transparent px-0 font-script italic text-ink-faded focus-visible:ring-0"
+                      />
                     </>
                   ) : (
                     <>
-                      <h1 className="font-display text-3xl gold-text">{character.name}</h1>
-                      {character.concept && <p className="font-script italic text-ink-faded">{character.concept}</p>}
+                      <h1 className="font-display text-2xl gold-text sm:text-3xl">
+                        {character.name}
+                      </h1>
+                      {character.concept && (
+                        <p className="font-script italic text-ink-faded">
+                          {character.concept}
+                        </p>
+                      )}
                     </>
                   )}
+
                   <div className="mt-2">
                     {isOwner ? (
-                      <Badge variant="outline" className="text-xs">Tuo</Badge>
+                      <Badge variant="outline" className="text-xs">
+                        Tuo
+                      </Badge>
                     ) : ownerProfile ? (
                       <Badge variant="outline" className="text-xs">
                         Di {ownerProfile.display_name}
@@ -473,34 +605,52 @@ const CharacterDetail = () => {
                     ) : null}
                   </div>
                 </div>
+
                 {canEdit && (
-                  <Button variant="ghost" size="sm" onClick={handleDelete} className="text-destructive shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDelete}
+                    className="self-start shrink-0 text-destructive sm:self-auto"
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
               </div>
 
               <Tabs defaultValue="sheet">
-                <TabsList className="bg-parchment-deep/40 flex-wrap h-auto">
-                  <TabsTrigger value="sheet" className="font-heading"><ScrollText className="h-4 w-4 mr-1" /> Scheda</TabsTrigger>
-                  <TabsTrigger value="diary" className="font-heading"><BookMarked className="h-4 w-4 mr-1" /> Diario ({notes.length})</TabsTrigger>
-                  <TabsTrigger value="background" className="font-heading"><BookOpen className="h-4 w-4 mr-1" /> Background</TabsTrigger>
-                  <TabsTrigger value="audit" className="font-heading"><History className="h-4 w-4 mr-1" /> Modifiche</TabsTrigger>
+                <TabsList className="flex h-auto w-full flex-nowrap overflow-x-auto bg-parchment-deep/40 p-1">
+                  <TabsTrigger value="sheet" className="shrink-0 font-heading text-xs sm:text-sm">
+                    <ScrollText className="mr-1 h-4 w-4" /> Scheda
+                  </TabsTrigger>
+                  <TabsTrigger value="diary" className="shrink-0 font-heading text-xs sm:text-sm">
+                    <BookMarked className="mr-1 h-4 w-4" /> Diario ({notes.length})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="background"
+                    className="shrink-0 font-heading text-xs sm:text-sm"
+                  >
+                    <BookOpen className="mr-1 h-4 w-4" /> Background
+                  </TabsTrigger>
+                  <TabsTrigger value="audit" className="shrink-0 font-heading text-xs sm:text-sm">
+                    <History className="mr-1 h-4 w-4" /> Modifiche
+                  </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="sheet" className="space-y-4 mt-4">
+                <TabsContent value="sheet" className="mt-4 space-y-4">
                   {useOsgdrForm ? (
                     <>
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <p className="font-script italic text-xs text-ink-faded">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="font-script text-xs italic text-ink-faded">
                           Scheda <strong>Open Source GDR</strong>
                           {isAdmin && (
-                            <span className="ml-2 text-primary not-italic">
+                            <span className="ml-2 not-italic text-primary">
                               · Admin: passa il mouse sulle etichette per modificarne testo e dimensione.
                             </span>
                           )}
                         </p>
                       </div>
+
                       <OpenSourceGdrSheet
                         value={osgdrSheet}
                         onChange={setOsgdrSheet}
@@ -511,10 +661,22 @@ const CharacterDetail = () => {
                         assignedUserId={assignedUserId}
                         onAssignedUserIdChange={setAssignedUserId}
                       />
+
                       {canEdit && (
-                        <div className="flex pt-3 border-t border-border/40">
-                          <Button size="sm" onClick={handleSave} disabled={saving} className="font-heading ml-auto">
-                            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salva scheda</>}
+                        <div className="flex justify-end border-t border-border/40 pt-3">
+                          <Button
+                            size="sm"
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="font-heading"
+                          >
+                            {saving ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Save className="mr-1 h-4 w-4" /> Salva scheda
+                              </>
+                            )}
                           </Button>
                         </div>
                       )}
@@ -522,30 +684,38 @@ const CharacterDetail = () => {
                   ) : (
                     <>
                       {visibleFields.length === 0 && (
-                        <p className="text-center font-script italic text-ink-faded py-6">
-                          {canEdit ? "Nessun campo. Aggiungi caratteristiche, abilità, equipaggiamento, incantesimi..." : "Scheda vuota."}
+                        <p className="py-6 text-center font-script italic text-ink-faded">
+                          {canEdit
+                            ? "Nessun campo. Aggiungi caratteristiche, abilità, equipaggiamento, incantesimi..."
+                            : "Scheda vuota."}
                         </p>
                       )}
 
-                      <div className="grid sm:grid-cols-2 gap-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
                         {visibleFields.map((f) => (
-                          <div key={f.id} className="bg-parchment-deep/20 border border-border/60 rounded p-3 group">
+                          <div
+                            key={f.id}
+                            className="group rounded border border-border/60 bg-parchment-deep/20 p-3"
+                          >
                             {canEdit ? (
                               <>
-                                <div className="flex items-center gap-1 mb-1">
+                                <div className="mb-1 flex items-center gap-1">
                                   <Input
                                     value={f.label}
                                     onChange={(e) => updateField(f.id, "label", e.target.value)}
-                                    className="font-heading text-xs uppercase tracking-wider bg-transparent border-0 px-0 h-6 focus-visible:ring-0"
+                                    className="h-6 border-0 bg-transparent px-0 font-heading text-xs uppercase tracking-wider focus-visible:ring-0"
                                   />
-                                  <button onClick={() => removeField(f.id)} className="opacity-0 group-hover:opacity-100 text-destructive">
+                                  <button
+                                    onClick={() => removeField(f.id)}
+                                    className="text-destructive opacity-0 transition-opacity group-hover:opacity-100"
+                                  >
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </button>
                                 </div>
                                 <Textarea
                                   value={f.value}
                                   onChange={(e) => updateField(f.id, "value", e.target.value)}
-                                  className="bg-transparent border-0 px-0 min-h-[40px] font-script focus-visible:ring-0 resize-none"
+                                  className="min-h-[40px] resize-none border-0 bg-transparent px-0 font-script focus-visible:ring-0"
                                   rows={1}
                                 />
                               </>
@@ -563,7 +733,9 @@ const CharacterDetail = () => {
                                   className="font-script whitespace-pre-wrap"
                                   style={
                                     labelOverrides[`free.${f.id}.value`]?.size
-                                      ? { fontSize: `${labelOverrides[`free.${f.id}.value`]!.size}px` }
+                                      ? {
+                                          fontSize: `${labelOverrides[`free.${f.id}.value`]!.size}px`,
+                                        }
                                       : undefined
                                   }
                                 >
@@ -574,9 +746,11 @@ const CharacterDetail = () => {
                                     <EditableLabel
                                       defaultText="Dimensione testo"
                                       override={labelOverrides[`free.${f.id}.value`]}
-                                      onChange={(o) => persistLabelOverride(`free.${f.id}.value`, o)}
+                                      onChange={(o) =>
+                                        persistLabelOverride(`free.${f.id}.value`, o)
+                                      }
                                       canCustomize={isAdmin}
-                                      className="font-script italic text-[10px] text-ink-faded/70"
+                                      className="font-script text-[10px] italic text-ink-faded/70"
                                       as="span"
                                     />
                                   </div>
@@ -588,12 +762,28 @@ const CharacterDetail = () => {
                       </div>
 
                       {canEdit && (
-                        <div className="flex gap-2 pt-3 border-t border-border/40">
-                          <Button variant="outline" size="sm" onClick={addField} className="font-heading">
-                            <Plus className="h-4 w-4 mr-1" /> Aggiungi campo
+                        <div className="flex flex-col gap-2 border-t border-border/40 pt-3 sm:flex-row sm:items-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={addField}
+                            className="font-heading"
+                          >
+                            <Plus className="mr-1 h-4 w-4" /> Aggiungi campo
                           </Button>
-                          <Button size="sm" onClick={handleSave} disabled={saving} className="font-heading ml-auto">
-                            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salva scheda</>}
+                          <Button
+                            size="sm"
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="font-heading sm:ml-auto"
+                          >
+                            {saving ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Save className="mr-1 h-4 w-4" /> Salva scheda
+                              </>
+                            )}
                           </Button>
                         </div>
                       )}
@@ -601,32 +791,57 @@ const CharacterDetail = () => {
                   )}
                 </TabsContent>
 
-                <TabsContent value="diary" className="space-y-4 mt-4">
+                <TabsContent value="diary" className="mt-4 space-y-4">
                   <div className="flex justify-end">
                     <Dialog open={noteOpen} onOpenChange={setNoteOpen}>
                       <DialogTrigger asChild>
-                        <Button size="sm" className="font-heading"><Plus className="h-4 w-4 mr-1" /> Nuova annotazione</Button>
+                        <Button size="sm" className="font-heading">
+                          <Plus className="mr-1 h-4 w-4" /> Nuova annotazione
+                        </Button>
                       </DialogTrigger>
-                      <DialogContent>
+                      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
                         <DialogHeader>
-                          <DialogTitle className="font-display gold-text">Annotazione di sessione</DialogTitle>
+                          <DialogTitle className="font-display gold-text">
+                            Annotazione di sessione
+                          </DialogTitle>
                         </DialogHeader>
                         <form onSubmit={submitNote} className="space-y-3">
                           <div>
                             <Label className="font-heading">Titolo</Label>
-                            <Input value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} required />
+                            <Input
+                              value={noteTitle}
+                              onChange={(e) => setNoteTitle(e.target.value)}
+                              required
+                            />
                           </div>
                           <div>
                             <Label className="font-heading">Data sessione</Label>
-                            <Input type="date" value={noteDate} onChange={(e) => setNoteDate(e.target.value)} />
+                            <Input
+                              type="date"
+                              value={noteDate}
+                              onChange={(e) => setNoteDate(e.target.value)}
+                            />
                           </div>
                           <div>
                             <Label className="font-heading">Cronaca</Label>
-                            <Textarea value={noteContent} onChange={(e) => setNoteContent(e.target.value)} rows={6} required />
+                            <Textarea
+                              value={noteContent}
+                              onChange={(e) => setNoteContent(e.target.value)}
+                              rows={6}
+                              required
+                            />
                           </div>
-                          <DialogFooter>
-                            <Button type="submit" disabled={noteSubmitting} className="font-heading">
-                              {noteSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Annota"}
+                          <DialogFooter className="flex-col gap-2 sm:flex-row">
+                            <Button
+                              type="submit"
+                              disabled={noteSubmitting}
+                              className="w-full font-heading sm:w-auto"
+                            >
+                              {noteSubmitting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                "Annota"
+                              )}
                             </Button>
                           </DialogFooter>
                         </form>
@@ -635,32 +850,48 @@ const CharacterDetail = () => {
                   </div>
 
                   {notes.length === 0 ? (
-                    <p className="text-center font-script italic text-ink-faded py-6">Nessuna pagina ancora scritta nel diario.</p>
+                    <p className="py-6 text-center font-script italic text-ink-faded">
+                      Nessuna pagina ancora scritta nel diario.
+                    </p>
                   ) : (
                     <div className="space-y-4">
                       {notes.map((n) => (
-                        <article key={n.id} className="bg-parchment-deep/20 border border-border/60 rounded p-4">
-                          <div className="flex items-start justify-between gap-2 mb-2">
+                        <article
+                          key={n.id}
+                          className="rounded border border-border/60 bg-parchment-deep/20 p-4"
+                        >
+                          <div className="mb-2 flex items-start justify-between gap-2">
                             <div>
                               <h4 className="font-heading text-lg">{n.title}</h4>
                               <p className="text-xs font-script italic text-ink-faded">
-                                {n.session_date ? new Date(n.session_date).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" }) : new Date(n.created_at).toLocaleDateString("it-IT")}
+                                {n.session_date
+                                  ? new Date(n.session_date).toLocaleDateString("it-IT", {
+                                      day: "numeric",
+                                      month: "long",
+                                      year: "numeric",
+                                    })
+                                  : new Date(n.created_at).toLocaleDateString("it-IT")}
                               </p>
                             </div>
                             {n.author_id === user?.id && (
-                              <button onClick={() => deleteNote(n.id)} className="text-destructive">
+                              <button
+                                onClick={() => deleteNote(n.id)}
+                                className="text-destructive"
+                              >
                                 <Trash2 className="h-4 w-4" />
                               </button>
                             )}
                           </div>
-                          <p className="font-script whitespace-pre-wrap text-ink leading-relaxed drop-cap">{n.content}</p>
+                          <p className="drop-cap font-script whitespace-pre-wrap leading-relaxed text-ink">
+                            {n.content}
+                          </p>
                         </article>
                       ))}
                     </div>
                   )}
                 </TabsContent>
 
-                <TabsContent value="background" className="space-y-3 mt-4">
+                <TabsContent value="background" className="mt-4 space-y-3">
                   {canEditBackground ? (
                     <>
                       <Textarea
@@ -668,26 +899,39 @@ const CharacterDetail = () => {
                         onChange={(e) => setBackground(e.target.value)}
                         rows={14}
                         placeholder="Scrivi qui il background del personaggio: origini, motivazioni, legami, segreti..."
-                        className="bg-parchment-deep/20 border-border/60 font-script focus-visible:ring-0"
+                        className="border-border/60 bg-parchment-deep/20 font-script focus-visible:ring-0"
                       />
-                      <div className="flex justify-end pt-2 border-t border-border/40">
-                        <Button size="sm" onClick={saveBackground} disabled={bgSaving} className="font-heading">
-                          {bgSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salva background</>}
+                      <div className="flex justify-end border-t border-border/40 pt-2">
+                        <Button
+                          size="sm"
+                          onClick={saveBackground}
+                          disabled={bgSaving}
+                          className="font-heading"
+                        >
+                          {bgSaving ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Save className="mr-1 h-4 w-4" /> Salva background
+                            </>
+                          )}
                         </Button>
                       </div>
                     </>
                   ) : background.trim() ? (
-                    <p className="font-script whitespace-pre-wrap text-ink leading-relaxed drop-cap">{background}</p>
+                    <p className="drop-cap font-script whitespace-pre-wrap leading-relaxed text-ink">
+                      {background}
+                    </p>
                   ) : (
-                    <p className="text-center font-script italic text-ink-faded py-6">
+                    <p className="py-6 text-center font-script italic text-ink-faded">
                       Nessun background scritto.
                     </p>
                   )}
                 </TabsContent>
 
-                <TabsContent value="audit" className="space-y-3 mt-4">
+                <TabsContent value="audit" className="mt-4 space-y-3">
                   {auditLog.length === 0 ? (
-                    <p className="text-center font-script italic text-ink-faded py-6">
+                    <p className="py-6 text-center font-script italic text-ink-faded">
                       Nessuna modifica registrata.
                     </p>
                   ) : (
@@ -699,12 +943,10 @@ const CharacterDetail = () => {
                         return (
                           <li
                             key={entry.id}
-                            className="bg-parchment-deep/20 border border-border/60 rounded p-3"
+                            className="rounded border border-border/60 bg-parchment-deep/20 p-3"
                           >
-                            <div className="flex items-start justify-between gap-2 flex-wrap">
-                              <div className="font-heading text-sm">
-                                {entry.summary}
-                              </div>
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <div className="font-heading text-sm">{entry.summary}</div>
                               <div className="text-xs font-script italic text-ink-faded">
                                 {new Date(entry.created_at).toLocaleString("it-IT", {
                                   day: "numeric",
@@ -715,11 +957,11 @@ const CharacterDetail = () => {
                                 })}
                               </div>
                             </div>
-                            <div className="text-xs font-script italic text-ink-faded mt-1">
+                            <div className="mt-1 text-xs font-script italic text-ink-faded">
                               di {entry.user_display_name ?? "Utente sconosciuto"}
                             </div>
                             {changes.length > 1 && (
-                              <ul className="mt-2 list-disc list-inside text-sm font-script space-y-0.5">
+                              <ul className="mt-2 list-inside list-disc space-y-0.5 font-script text-sm">
                                 {changes.map((c, i) => (
                                   <li key={i}>{c}</li>
                                 ))}
