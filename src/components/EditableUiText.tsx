@@ -1,111 +1,146 @@
-import { useEffect, useId, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, type CSSProperties, type ReactNode } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Settings2, Check, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Pencil, RotateCcw, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useUiText } from "@/hooks/useUiText";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 interface EditableUiTextProps {
+  /** Chiave globale univoca (es. "header.title") */
   textKey: string;
+  /** Testo predefinito mostrato se non c'è override */
   defaultText: string;
   className?: string;
-  as?: keyof JSX.IntrinsicElements;
+  as?: "span" | "div" | "label" | "h1" | "h2" | "h3" | "h4" | "p";
+  children?: ReactNode;
 }
 
+/**
+ * Etichetta UI globale modificabile dall'admin (impersonante admin).
+ * Tutti gli altri utenti la vedono come testo statico.
+ */
 export const EditableUiText = ({
   textKey,
   defaultText,
-  className = "",
+  className,
   as = "span",
+  children,
 }: EditableUiTextProps) => {
+  const { overrides, setOverride } = useUiText();
   const { isAdmin } = useAuth();
+  const override = overrides[textKey];
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(defaultText);
-  const [savedText, setSavedText] = useState(defaultText);
-  const labelId = useId();
-  const inputId = `${labelId}-input`;
+  const [draftText, setDraftText] = useState<string>(override?.text ?? defaultText);
+  const [draftSize, setDraftSize] = useState<string>(override?.size ? String(override.size) : "");
+  const [saving, setSaving] = useState(false);
+
   const Tag = as as any;
+  const text = override?.text && override.text.trim() ? override.text : defaultText;
+  const style: CSSProperties = override?.size ? { fontSize: `${override.size}px`, lineHeight: 1.15 } : {};
 
-  useEffect(() => {
-    setValue(savedText);
-  }, [savedText]);
-
-  const handleSave = () => {
-    const next = value.trim() || defaultText;
-    setSavedText(next);
-    setOpen(false);
+  const openEditor = () => {
+    setDraftText(override?.text ?? defaultText);
+    setDraftSize(override?.size ? String(override.size) : "");
+    setOpen(true);
   };
 
-  const handleReset = () => {
-    setValue(defaultText);
-    setSavedText(defaultText);
-    setOpen(false);
+  const save = async () => {
+    setSaving(true);
+    try {
+      const sizeNum = Number(draftSize);
+      const payload = {
+        text: draftText.trim() && draftText.trim() !== defaultText ? draftText.trim() : null,
+        size: Number.isFinite(sizeNum) && sizeNum > 0 ? Math.round(sizeNum) : null,
+      };
+      if (payload.text == null && payload.size == null) {
+        await setOverride(textKey, null);
+      } else {
+        await setOverride(textKey, payload);
+      }
+      toast.success("Testo aggiornato");
+      setOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Errore aggiornamento testo");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const reset = async () => {
+    setSaving(true);
+    try {
+      await setOverride(textKey, null);
+      toast.success("Testo ripristinato");
+      setOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Errore ripristino testo");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!isAdmin) {
+    return (
+      <Tag className={className} style={style}>
+        {text}
+        {children}
+      </Tag>
+    );
+  }
 
   return (
-    <span className="group inline-flex max-w-full items-center gap-2 align-middle">
-      <Tag id={labelId} className={className}>
-        {savedText}
+    <span className="inline-flex items-center gap-1 group/edit-ui max-w-full align-baseline">
+      <Tag className={cn(className, "min-w-0")} style={style}>
+        {text}
+        {children}
       </Tag>
-
-      {isAdmin && (
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 shrink-0 opacity-100 transition-opacity sm:h-8 sm:w-8 sm:opacity-0 sm:group-hover:opacity-100"
-              aria-label={`Modifica testo interfaccia ${savedText}`}
-              aria-labelledby={labelId}
-            >
-              <Settings2 className="h-4 w-4" />
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            onClick={openEditor}
+            className="opacity-0 group-hover/edit-ui:opacity-100 focus:opacity-100 transition-opacity text-primary hover:text-primary/80 shrink-0"
+            title="Modifica testo (admin)"
+            aria-label="Modifica testo UI"
+          >
+            <Pencil className="h-3 w-3" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72 space-y-3" align="start">
+          <div className="space-y-1">
+            <Label className="font-heading text-xs uppercase tracking-wider">Testo</Label>
+            <Input
+              value={draftText}
+              onChange={(e) => setDraftText(e.target.value)}
+              placeholder={defaultText}
+              autoFocus
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="font-heading text-xs uppercase tracking-wider">Dimensione (px)</Label>
+            <Input
+              type="number"
+              min={8}
+              max={96}
+              value={draftSize}
+              onChange={(e) => setDraftSize(e.target.value)}
+              placeholder="auto"
+            />
+          </div>
+          <div className="flex justify-between gap-2 pt-1">
+            <Button variant="ghost" size="sm" onClick={reset} disabled={saving} className="font-heading">
+              <RotateCcw className="h-3.5 w-3.5 mr-1" /> Ripristina
             </Button>
-          </DialogTrigger>
-
-          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="font-display gold-text">Modifica testo UI</DialogTitle>
-            </DialogHeader>
-
-            <div className="space-y-3">
-              <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
-                Chiave: <strong>{textKey}</strong>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor={inputId} className="font-heading">
-                  Testo visualizzato
-                </Label>
-                <Input
-                  id={inputId}
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  className="min-h-11"
-                  placeholder={defaultText}
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="flex-col gap-2 sm:flex-row">
-              <Button type="button" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={handleReset}>
-                <X className="mr-2 h-4 w-4" /> Ripristina
-              </Button>
-              <Button type="button" className="min-h-11 w-full sm:w-auto" onClick={handleSave}>
-                <Check className="mr-2 h-4 w-4" /> Salva
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+            <Button size="sm" onClick={save} disabled={saving} className="font-heading">
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Salva"}
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
     </span>
   );
 };
