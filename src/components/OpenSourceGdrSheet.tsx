@@ -1,607 +1,192 @@
-import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useMemo } from "react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Plus, Trash2 } from "lucide-react";
-import { abilityModifier, formatModifier, magicBaseDamage } from "@/lib/rulesets";
-import { EditableLabel, type LabelOverride } from "@/components/EditableLabel";
+import { Badge } from "@/components/ui/badge";
+import { ScrollText, Plus, Trash2, Sparkles } from "lucide-react";
 
-// === Schema dati Open Source GDR ===
-const ABILITIES = [
-  { key: "for", label: "FOR", full: "Forza" },
-  { key: "des", label: "DES", full: "Destrezza" },
-  { key: "cos", label: "COS", full: "Costituzione" },
-  { key: "vol", label: "VOL", full: "Volontà" },
-  { key: "pro", label: "PRO", full: "Prontezza" },
-  { key: "emp", label: "EMP", full: "Empatia" },
-] as const;
-
-const BODY_PARTS = [
-  "Testa", "Torace",
-  "Braccio DX", "Braccio SX",
-  "Mano DX", "Mano SX",
-  "Gamba DX", "Gamba SX",
-  "Piede DX", "Piede SX",
-] as const;
-
-const EQUIPMENT_SECTIONS = [
-  { key: "pozioni", label: "Pozioni" },
-  { key: "cibo", label: "Cibo" },
-  { key: "pergamene", label: "Pergamene" },
-  { key: "varie", label: "Varie ed eventuali" },
-  { key: "oggetti", label: "Oggetti" },
-  { key: "materiali", label: "Materiali" },
-  { key: "armi", label: "Armi" },
-  { key: "armature", label: "Armature" },
-] as const;
-
-const MAGIC_SCHOOLS = [
-  "Acqua", "Fuoco", "Aria", "Terra",
-  "Vita", "Morte", "Spirito", "Materia",
-  "Mente", "Corpo",
-] as const;
-
-const COIN_TYPES = [
-  { key: "oro", label: "Oro" },
-  { key: "argento", label: "Argento" },
-  { key: "rame", label: "Rame" },
-] as const;
-
-export type Ability = typeof ABILITIES[number]["key"];
-export type EquipmentKey = typeof EQUIPMENT_SECTIONS[number]["key"];
-export type MagicSchool = typeof MAGIC_SCHOOLS[number];
-export type CoinKey = typeof COIN_TYPES[number]["key"];
-
-export interface OsgdrSkill {
-  id: string;
-  name: string;
-  grade: number;
-}
-
-export interface OsgdrSheet {
-  // Anagrafica
-  razza: string;
-  provenienza: string;
-  eta: string;
-  peso: string;
-  altezza: string;
-  capelli: string;
-  carnagione: string;
-  occhi: string;
-  // Caratteristiche (1-20)
-  abilities: Record<Ability, number>;
-  // Stati derivati / risorse
-  iniziativa: string;
-  penalita: string;
-  fortuna: string;
-  fatica: string;
-  pe: number;
-  // Magia: punteggio per ciascuna scuola
-  magic: Record<MagicSchool, number>;
-  // Monete
-  coins: Record<CoinKey, number>;
-  // Ferite localizzate (testo libero per descrivere stato)
-  ferite: Record<string, string>;
-  // Equipaggiamento (liste)
-  equipment: Record<EquipmentKey, string[]>;
-  note: string;
-  // Abilità apprese (lista con grado)
-  skills: OsgdrSkill[];
-}
-
-export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
-  razza: "", provenienza: "",
-  eta: "", peso: "", altezza: "", capelli: "", carnagione: "", occhi: "",
-  abilities: { for: 8, des: 8, cos: 8, vol: 8, pro: 8, emp: 8 },
-  iniziativa: "", penalita: "", fortuna: "", fatica: "", pe: 0,
-  magic: Object.fromEntries(MAGIC_SCHOOLS.map((s) => [s, 0])) as Record<MagicSchool, number>,
-  coins: Object.fromEntries(COIN_TYPES.map((c) => [c.key, 0])) as Record<CoinKey, number>,
-  ferite: Object.fromEntries(BODY_PARTS.map((p) => [p, ""])) as Record<string, string>,
-  equipment: Object.fromEntries(EQUIPMENT_SECTIONS.map((s) => [s.key, [] as string[]])) as Record<EquipmentKey, string[]>,
+export const EMPTY_OSGDR_SHEET = {
+  abilities: { for: 0, agi: 0, int: 0, per: 0, con: 0, wil: 0 },
+  magic: {},
+  ferite: { current: 0, max: 0 },
+  equipment: { weapons: "", armor: "", notes: "" },
   note: "",
   skills: [],
 };
 
-export function normalizeOsgdrSheet(input: any): OsgdrSheet {
-  const base = EMPTY_OSGDR_SHEET;
-  if (!input || typeof input !== "object") {
-    return {
-      ...base,
-      ferite: { ...base.ferite },
-      equipment: { ...base.equipment },
-      abilities: { ...base.abilities },
-      magic: { ...base.magic },
-      coins: { ...base.coins },
-      skills: [],
-    };
-  }
-  const abilities = { ...base.abilities, ...(input.abilities ?? {}) };
-  const ferite = { ...base.ferite, ...(input.ferite ?? {}) };
-  const magic: Record<MagicSchool, number> = { ...base.magic };
-  if (input.magic && typeof input.magic === "object") {
-    for (const s of MAGIC_SCHOOLS) {
-      const v = Number(input.magic[s]);
-      if (Number.isFinite(v)) magic[s] = v;
-    }
-  }
-  const coins: Record<CoinKey, number> = { ...base.coins };
-  if (input.coins && typeof input.coins === "object") {
-    for (const c of COIN_TYPES) {
-      const v = Number(input.coins[c.key]);
-      if (Number.isFinite(v)) coins[c.key] = v;
-    }
-  }
-  const equipment: Record<EquipmentKey, string[]> = { ...base.equipment };
-  if (input.equipment) {
-    for (const s of EQUIPMENT_SECTIONS) {
-      const v = input.equipment[s.key];
-      equipment[s.key] = Array.isArray(v) ? v.map(String) : [];
-    }
-  }
-  const skills: OsgdrSkill[] = Array.isArray(input.skills)
-    ? input.skills.map((sk: any) => ({
-        id: String(sk?.id ?? crypto.randomUUID()),
-        name: String(sk?.name ?? ""),
-        grade: Number(sk?.grade ?? 0),
-      }))
-    : [];
+export function normalizeOsgdrSheet(value: any) {
   return {
-    ...base,
-    ...input,
-    abilities,
-    magic,
-    coins,
-    ferite,
-    equipment,
-    skills,
+    ...EMPTY_OSGDR_SHEET,
+    ...(value ?? {}),
+    abilities: { ...EMPTY_OSGDR_SHEET.abilities, ...(value?.abilities ?? {}) },
+    ferite: { ...EMPTY_OSGDR_SHEET.ferite, ...(value?.ferite ?? {}) },
+    equipment: { ...EMPTY_OSGDR_SHEET.equipment, ...(value?.equipment ?? {}) },
+    skills: Array.isArray(value?.skills) ? value.skills : [],
+    magic: value?.magic && typeof value.magic === "object" ? value.magic : {},
   };
 }
 
-interface SelectableProfile {
-  id: string;
-  display_name: string;
-}
+export type OsgdrSheet = typeof EMPTY_OSGDR_SHEET;
+export type LabelOverride = { text?: string; size?: number };
 
-interface Props {
-  value: OsgdrSheet;
-  onChange: (next: OsgdrSheet) => void;
-  canEdit: boolean;
-  /** Override map (key → text/size) used for admin label customisation */
-  labelOverrides?: Record<string, LabelOverride>;
-  /** Whether the current user can customise labels (admin) */
-  canCustomizeLabels?: boolean;
-  /** Persist a label override change (called immediately on save) */
-  onLabelOverrideChange?: (key: string, override: LabelOverride | undefined) => void;
-  assignedUserId?: string;
-  onAssignedUserIdChange?: (next: string | undefined) => void;
-}
-
-export const OpenSourceGdrSheet = ({
+export function OpenSourceGdrSheet({
   value,
   onChange,
   canEdit,
-  labelOverrides = {},
-  canCustomizeLabels = false,
+  labelOverrides,
+  canCustomizeLabels,
   onLabelOverrideChange,
   assignedUserId,
   onAssignedUserIdChange,
-}: Props) => {
-  const { user, isAdmin, isNarratore } = useAuth();
-  const [profiles, setProfiles] = useState<SelectableProfile[]>([]);
+}: any) {
+  const sheet = useMemo(() => normalizeOsgdrSheet(value), [value]);
+  const abilityKeys = Object.keys(sheet.abilities);
+  const hasSkills = Array.isArray(sheet.skills) && sheet.skills.length > 0;
 
-  const canAssignCharacter = canEdit && !!onAssignedUserIdChange && (isAdmin || isNarratore);
+  const setSheet = (patch: any) => onChange({ ...sheet, ...patch });
+  const setAbility = (key: string, raw: string) => setSheet({ abilities: { ...sheet.abilities, [key]: Number(raw) || 0 } });
+  const setMagic = (key: string, raw: string) => setSheet({ magic: { ...sheet.magic, [key]: Number(raw) || 0 } });
 
-  useEffect(() => {
-    if (!canAssignCharacter) return;
-
-    const loadProfiles = async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, display_name")
-        .eq("approval_status", "approved")
-        .order("display_name", { ascending: true });
-
-      if (!error) {
-        setProfiles((data ?? []) as SelectableProfile[]);
-      }
-    };
-
-    void loadProfiles();
-  }, [canAssignCharacter]);
-
-  useEffect(() => {
-    if (!canAssignCharacter) return;
-    if (assignedUserId) return;
-    if (!user?.id) return;
-
-    onAssignedUserIdChange?.(user.id);
-  }, [canAssignCharacter, assignedUserId, onAssignedUserIdChange, user?.id]);
-  const totalPoints = useMemo(
-    () => ABILITIES.reduce((acc, a) => acc + (Number(value.abilities[a.key]) || 0), 0),
-    [value.abilities],
-  );
-
-  const set = <K extends keyof OsgdrSheet>(k: K, v: OsgdrSheet[K]) => onChange({ ...value, [k]: v });
-
-  const setAbility = (key: Ability, raw: string) => {
-    const n = Math.max(0, Math.min(30, Number(raw) || 0));
-    onChange({ ...value, abilities: { ...value.abilities, [key]: n } });
-  };
-
-  const setMagic = (school: MagicSchool, raw: string) => {
-    const n = Math.max(0, Math.min(99, Number(raw) || 0));
-    onChange({ ...value, magic: { ...value.magic, [school]: n } });
-  };
-
-  const setCoin = (key: CoinKey, raw: string) => {
-    const n = Math.max(0, Number(raw) || 0);
-    onChange({ ...value, coins: { ...value.coins, [key]: n } });
-  };
-
-  const setFerita = (part: string, txt: string) =>
-    onChange({ ...value, ferite: { ...value.ferite, [part]: txt } });
-
-  const setEquipItem = (sec: EquipmentKey, idx: number, txt: string) => {
-    const arr = [...(value.equipment[sec] ?? [])];
-    arr[idx] = txt;
-    onChange({ ...value, equipment: { ...value.equipment, [sec]: arr } });
-  };
-  const addEquipItem = (sec: EquipmentKey) => {
-    const arr = [...(value.equipment[sec] ?? []), ""];
-    onChange({ ...value, equipment: { ...value.equipment, [sec]: arr } });
-  };
-  const removeEquipItem = (sec: EquipmentKey, idx: number) => {
-    const arr = [...(value.equipment[sec] ?? [])];
-    arr.splice(idx, 1);
-    onChange({ ...value, equipment: { ...value.equipment, [sec]: arr } });
-  };
-
-  const addSkill = () =>
-    onChange({ ...value, skills: [...value.skills, { id: crypto.randomUUID(), name: "Nuova abilità", grade: 1 }] });
-  const updateSkill = (id: string, patch: Partial<OsgdrSkill>) =>
-    onChange({ ...value, skills: value.skills.map((s) => (s.id === id ? { ...s, ...patch } : s)) });
-  const removeSkill = (id: string) =>
-    onChange({ ...value, skills: value.skills.filter((s) => s.id !== id) });
-
-  const renderText = (val: string | number) => (
-    <span className="font-script whitespace-pre-wrap">{val || "—"}</span>
-  );
-
-  // Shorthand: render an editable label that admins can rename/resize.
-  const lbl = (key: string, defaultText: string, className: string, as: "span" | "div" | "label" | "h3" = "span") => (
-    <EditableLabel
-      defaultText={defaultText}
-      override={labelOverrides[key]}
-      onChange={(o) => onLabelOverrideChange?.(key, o)}
-      canCustomize={canCustomizeLabels && !!onLabelOverrideChange}
-      className={className}
-      as={as}
-    />
-  );
+  const addSkill = () => setSheet({ skills: [...sheet.skills, "Nuova abilità"] });
+  const updateSkill = (idx: number, raw: string) => setSheet({ skills: sheet.skills.map((s: string, i: number) => (i === idx ? raw : s)) });
+  const removeSkill = (idx: number) => setSheet({ skills: sheet.skills.filter((_: string, i: number) => i !== idx) });
 
   return (
-    <div className="space-y-6 osgdr-sheet">
-      {/* osgdr-sheet applica font-size 18px ai campi e 22px ai modificatori (regola in index.css) */}
-      {/* === Anagrafica === */}
-      <section className="space-y-3">
-        {lbl("section.anagrafica", "Anagrafica", "font-display text-xl gold-text", "h3")}
-
-        {canAssignCharacter && (
-          <div className="bg-parchment-deep/20 border border-border/60 rounded p-3">
-            <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">
-              Assegna scheda a
-            </Label>
-            <select
-              value={assignedUserId ?? user?.id ?? ""}
-              onChange={(e) => onAssignedUserIdChange?.(e.target.value || undefined)}
-              className="mt-2 w-full rounded-md border border-border/60 bg-background px-3 py-2 font-script text-foreground"
-            >
-              <option value="">Seleziona un utente</option>
-              {profiles.map((profile) => (
-                <option key={profile.id} value={profile.id}>
-                  {profile.display_name}
-                </option>
-              ))}
-            </select>
+    <section className="osgdr-sheet space-y-4 w-full max-w-full overflow-x-hidden">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="parchment-panel p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <ScrollText className="h-4 w-4 text-primary" />
+            <h3 className="font-display text-lg gold-text">Caratteristiche</h3>
           </div>
-        )}
-
-        <div className="grid sm:grid-cols-3 gap-3">
-          {([
-            ["razza", "Razza"], ["provenienza", "Provenienza"], ["eta", "Età"],
-            ["altezza", "Altezza"], ["peso", "Peso"], ["carnagione", "Carnagione"],
-            ["capelli", "Capelli"], ["occhi", "Occhi"],
-          ] as const).map(([k, label]) => (
-            <div key={k} className="bg-parchment-deep/20 border border-border/60 rounded p-3">
-              {lbl(`field.${k}`, label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
-              {canEdit ? (
-                <Input
-                  value={(value as any)[k] ?? ""}
-                  onChange={(e) => set(k as any, e.target.value as any)}
-                  className="bg-transparent border-0 px-0 h-7 focus-visible:ring-0 font-script"
-                />
-              ) : renderText((value as any)[k])}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* === Caratteristiche === */}
-      <section className="space-y-3">
-        <div className="flex items-baseline justify-between flex-wrap gap-2">
-          {lbl("section.caratteristiche", "Caratteristiche", "font-display text-xl gold-text", "h3")}
-          <p className="font-script italic text-xs text-ink-faded">
-            Totale punti distribuiti: <strong>{totalPoints}</strong> · base 48 + 5d4 + 1d6
-          </p>
-        </div>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-          {ABILITIES.map((a) => {
-            const v = value.abilities[a.key] ?? 0;
-            const mod = abilityModifier(v);
-            return (
-              <div key={a.key} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
-                {lbl(`ability.${a.key}`, a.label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "div")}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {abilityKeys.map((k) => (
+              <div key={k} className="space-y-1 rounded-md border border-border/60 bg-background/60 p-3">
+                <Label className="text-xs uppercase tracking-wider text-foreground/80">{k.toUpperCase()}</Label>
                 {canEdit ? (
-                  <Input
-                    type="number"
-                    min={1}
-                    max={30}
-                    value={v}
-                    onChange={(e) => setAbility(a.key, e.target.value)}
-                    className="bg-transparent border-0 text-center font-display h-10 px-0 focus-visible:ring-0"
-                    style={{ fontSize: "18px" }}
-                  />
+                  <Input value={sheet.abilities[k]} onChange={(e) => setAbility(k, e.target.value)} className="min-h-11 w-full text-base" inputMode="numeric" />
                 ) : (
-                  <div className="font-display" style={{ fontSize: "18px" }}>{v}</div>
-                )}
-                <div className="font-script text-primary" style={{ fontSize: "22px" }}>{formatModifier(mod)}</div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* === Stati / Risorse === */}
-      <section className="space-y-3">
-        {lbl("section.stati", "Stati & Risorse", "font-display text-xl gold-text", "h3")}
-        <p className="font-script italic text-xs text-ink-faded">
-          L'<strong>Iniziativa</strong> è calcolata automaticamente come <em>Mod. Destrezza + Mod. Prontezza</em>.
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          {([
-            ["iniziativa", "Iniziativa"],
-            ["penalita", "Penalità"],
-            ["fortuna", "Fortuna"],
-            ["fatica", "Fatica"],
-            ["pe", "PE"],
-          ] as const).map(([k, label]) => {
-            // Iniziativa autocalcolata = mod(des) + mod(pro)
-            const autoIniziativa =
-              abilityModifier(value.abilities.des ?? 0) + abilityModifier(value.abilities.pro ?? 0);
-            const isInit = k === "iniziativa";
-            const displayValue = isInit ? formatModifier(autoIniziativa) : String((value as any)[k]) || "—";
-            return (
-              <div key={k} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
-                {lbl(`stat.${k}`, label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
-                {isInit ? (
-                  <div
-                    className="font-display text-primary"
-                    style={{ fontSize: "22px" }}
-                    title="Calcolata automaticamente: Mod. DES + Mod. PRO"
-                  >
-                    {formatModifier(autoIniziativa)}
-                  </div>
-                ) : canEdit ? (
-                  <Input
-                    value={(value as any)[k] ?? ""}
-                    onChange={(e) =>
-                      k === "pe"
-                        ? set("pe", Math.max(0, Number(e.target.value) || 0) as any)
-                        : set(k as any, e.target.value as any)
-                    }
-                    className="bg-transparent border-0 text-center font-display h-9 px-0 focus-visible:ring-0"
-                    style={{ fontSize: "18px" }}
-                  />
-                ) : (
-                  <div className="font-display" style={{ fontSize: "18px" }}>{displayValue}</div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* === Magia === */}
-      <section className="space-y-3">
-        {lbl("section.magia", "Magia", "font-display text-xl gold-text", "h3")}
-        <p className="font-script italic text-xs text-ink-faded">
-          Punteggio per ciascuna delle dieci scuole di magia libera.
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          {MAGIC_SCHOOLS.map((school) => {
-            const grade = value.magic[school] ?? 0;
-            const dmg = magicBaseDamage(grade);
-            return (
-              <div key={school} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
-                {lbl(`magic.${school}`, school, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
-                {canEdit ? (
-                  <Input
-                    type="number"
-                    min={0}
-                    max={99}
-                    value={grade}
-                    onChange={(e) => setMagic(school, e.target.value)}
-                    className="bg-transparent border-0 text-center font-display text-xl h-9 px-0 focus-visible:ring-0"
-                  />
-                ) : (
-                  <div className="font-display text-xl">{grade}</div>
-                )}
-                <div
-                  className="font-script text-primary text-xs mt-1"
-                  title="Danno base incantesimo per questa scuola"
-                >
-                  Danno base {formatModifier(dmg)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* === Monete === */}
-      <section className="space-y-3">
-        {lbl("section.monete", "Monete", "font-display text-xl gold-text", "h3")}
-        <div className="grid grid-cols-3 gap-2">
-          {COIN_TYPES.map((c) => (
-            <div key={c.key} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
-              {lbl(`coin.${c.key}`, c.label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
-              {canEdit ? (
-                <Input
-                  type="number"
-                  min={0}
-                  value={value.coins[c.key] ?? 0}
-                  onChange={(e) => setCoin(c.key, e.target.value)}
-                  className="bg-transparent border-0 text-center font-display text-xl h-9 px-0 focus-visible:ring-0"
-                />
-              ) : (
-                <div className="font-display text-xl">{value.coins[c.key] ?? 0}</div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* === Abilità apprese === */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          {lbl("section.abilita", "Abilità", "font-display text-xl gold-text", "h3")}
-          {canEdit && (
-            <Button variant="outline" size="sm" onClick={addSkill} className="font-heading">
-              <Plus className="h-4 w-4 mr-1" /> Aggiungi
-            </Button>
-          )}
-        </div>
-        {value.skills.length === 0 ? (
-          <p className="font-script italic text-ink-faded text-sm">Nessuna abilità appresa.</p>
-        ) : (
-          <div className="grid sm:grid-cols-2 gap-2">
-            {value.skills.map((s) => (
-              <div key={s.id} className="bg-parchment-deep/20 border border-border/60 rounded p-2 flex items-center gap-2">
-                {canEdit ? (
-                  <>
-                    <Input
-                      value={s.name}
-                      onChange={(e) => updateSkill(s.id, { name: e.target.value })}
-                      className="bg-transparent border-0 px-0 h-7 focus-visible:ring-0 font-script flex-1"
-                    />
-                    <Input
-                      type="number"
-                      min={0}
-                      max={20}
-                      value={s.grade}
-                      onChange={(e) => updateSkill(s.id, { grade: Math.max(0, Math.min(20, Number(e.target.value) || 0)) })}
-                      className="bg-transparent border border-border/60 text-center w-16 h-7 px-0 focus-visible:ring-0 font-display"
-                    />
-                    <button onClick={() => removeSkill(s.id)} className="text-destructive">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <span className="font-script flex-1">{s.name}</span>
-                    <span className="font-display text-primary">{s.grade}</span>
-                  </>
+                  <div className="font-heading text-lg">{sheet.abilities[k]}</div>
                 )}
               </div>
             ))}
           </div>
-        )}
-      </section>
-
-      {/* === Ferite localizzate === */}
-      <section className="space-y-3">
-        {lbl("section.ferite", "Ferite & Stato del corpo", "font-display text-xl gold-text", "h3")}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {BODY_PARTS.map((p) => (
-            <div key={p} className="bg-parchment-deep/20 border border-border/60 rounded p-3">
-              {lbl(`ferita.${p}`, p, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
-              {canEdit ? (
-                <Input
-                  value={value.ferite[p] ?? ""}
-                  onChange={(e) => setFerita(p, e.target.value)}
-                  placeholder="Stato / ferita..."
-                  className="bg-transparent border-0 px-0 h-7 focus-visible:ring-0 font-script"
-                />
-              ) : renderText(value.ferite[p])}
-            </div>
-          ))}
         </div>
-      </section>
 
-      {/* === Equipaggiamento === */}
-      <section className="space-y-3">
-        {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
-        <div className="grid sm:grid-cols-2 gap-3">
-          {EQUIPMENT_SECTIONS.map((sec) => {
-            const items = value.equipment[sec.key] ?? [];
-            return (
-              <div key={sec.key} className="bg-parchment-deep/20 border border-border/60 rounded p-3 space-y-1">
-                <div className="flex items-center justify-between">
-                  {lbl(`equip.${sec.key}`, sec.label, "font-heading text-sm uppercase tracking-wider text-ink-faded", "h3")}
-                  {canEdit && (
-                    <button onClick={() => addEquipItem(sec.key)} className="text-primary hover:text-primary/80">
-                      <Plus className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-                {items.length === 0 && !canEdit && (
-                  <p className="font-script italic text-xs text-ink-faded">—</p>
-                )}
-                {items.map((it, idx) => (
-                  <div key={idx} className="flex items-center gap-1 group">
-                    {canEdit ? (
-                      <>
-                        <Input
-                          value={it}
-                          onChange={(e) => setEquipItem(sec.key, idx, e.target.value)}
-                          className="bg-transparent border-0 px-0 h-7 focus-visible:ring-0 font-script"
-                        />
-                        <button
-                          onClick={() => removeEquipItem(sec.key, idx)}
-                          className="opacity-0 group-hover:opacity-100 text-destructive shrink-0"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </>
-                    ) : (
-                      <span className="font-script">• {it}</span>
-                    )}
-                  </div>
-                ))}
+        <div className="parchment-panel p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <h3 className="font-display text-lg gold-text">Ferite e magia</h3>
+          </div>
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1 rounded-md border border-border/60 bg-background/60 p-3">
+                <Label className="text-xs uppercase tracking-wider text-foreground/80">Ferite attuali</Label>
+                {canEdit ? <Input value={sheet.ferite.current} onChange={(e) => setSheet({ ferite: { ...sheet.ferite, current: Number(e.target.value) || 0 } })} className="min-h-11 w-full text-base" inputMode="numeric" /> : <div className="font-heading text-lg">{sheet.ferite.current}</div>}
               </div>
-            );
-          })}
-        </div>
-      </section>
+              <div className="space-y-1 rounded-md border border-border/60 bg-background/60 p-3">
+                <Label className="text-xs uppercase tracking-wider text-foreground/80">Ferite max</Label>
+                {canEdit ? <Input value={sheet.ferite.max} onChange={(e) => setSheet({ ferite: { ...sheet.ferite, max: Number(e.target.value) || 0 } })} className="min-h-11 w-full text-base" inputMode="numeric" /> : <div className="font-heading text-lg">{sheet.ferite.max}</div>}
+              </div>
+            </div>
 
-      {/* === Note === */}
-      <section className="space-y-3">
-        {lbl("section.note", "Note", "font-display text-xl gold-text", "h3")}
-        {canEdit ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {Object.keys(sheet.magic || {}).length === 0 && canEdit && (
+                <Button variant="outline" className="min-h-11 w-full" onClick={() => setSheet({ magic: { arcane: 0, divine: 0, primal: 0 } })}>
+                  Inizializza magia
+                </Button>
+              )}
+              {Object.entries(sheet.magic || {}).map(([k, v]: any) => (
+                <div key={k} className="space-y-1 rounded-md border border-border/60 bg-background/60 p-3">
+                  <Label className="text-xs uppercase tracking-wider text-foreground/80">{k}</Label>
+                  {canEdit ? <Input value={v} onChange={(e) => setMagic(k, e.target.value)} className="min-h-11 w-full text-base" inputMode="numeric" /> : <div className="font-heading text-lg">{v}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
+        <div className="parchment-panel p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <h3 className="font-display text-lg gold-text">Equipaggiamento</h3>
+            <Badge variant="outline" className="ml-auto text-xs">Scheda mobile</Badge>
+          </div>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs uppercase tracking-wider text-foreground/80">Armi</Label>
+              {canEdit ? <Textarea value={sheet.equipment.weapons} onChange={(e) => setSheet({ equipment: { ...sheet.equipment, weapons: e.target.value } })} className="min-h-24 w-full text-base" /> : <p className="whitespace-pre-wrap font-script">{sheet.equipment.weapons}</p>}
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs uppercase tracking-wider text-foreground/80">Armatura</Label>
+              {canEdit ? <Textarea value={sheet.equipment.armor} onChange={(e) => setSheet({ equipment: { ...sheet.equipment, armor: e.target.value } })} className="min-h-24 w-full text-base" /> : <p className="whitespace-pre-wrap font-script">{sheet.equipment.armor}</p>}
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs uppercase tracking-wider text-foreground/80">Note</Label>
+              {canEdit ? <Textarea value={sheet.equipment.notes} onChange={(e) => setSheet({ equipment: { ...sheet.equipment, notes: e.target.value } })} className="min-h-24 w-full text-base" /> : <p className="whitespace-pre-wrap font-script">{sheet.equipment.notes}</p>}
+            </div>
+          </div>
+        </div>
+
+        <div className="parchment-panel p-4">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="font-display text-lg gold-text">Abilità</h3>
+            {canEdit && <Button variant="outline" size="sm" className="min-h-11" onClick={addSkill}><Plus className="h-4 w-4 mr-1" />Aggiungi</Button>}
+          </div>
+          <div className="space-y-2">
+            {hasSkills ? sheet.skills.map((s: string, i: number) => (
+              <div key={i} className="flex flex-col gap-2 rounded-md border border-border/60 bg-background/60 p-3 sm:flex-row sm:items-center">
+                {canEdit ? <Input value={s} onChange={(e) => updateSkill(i, e.target.value)} className="min-h-11 w-full" /> : <div className="flex-1 font-script">{s}</div>}
+                {canEdit && <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => removeSkill(i)} aria-label="Rimuovi abilità"><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+              </div>
+            )) : <p className="py-4 text-sm italic text-muted-foreground">Nessuna abilità inserita.</p>}
+          </div>
+        </div>
+      </div>
+
+      <div className="parchment-panel p-4">
+        <div className="mb-3 flex items-center justify-between gap-2 flex-col sm:flex-row sm:items-center">
+          <h3 className="font-display text-lg gold-text">Assegnazione</h3>
+          {assignedUserId && <Badge variant="outline" className="text-xs">Assegnata</Badge>}
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div className="space-y-1">
+            <Label className="text-xs uppercase tracking-wider text-foreground/80">User ID assegnato</Label>
+            {canEdit ? (
+              <Input
+                value={assignedUserId ?? ""}
+                onChange={(e) => onAssignedUserIdChange?.(e.target.value || undefined)}
+                className="min-h-11 w-full text-base"
+                placeholder="ID utente"
+              />
+            ) : (
+              <div className="font-script">{assignedUserId ?? "Non assegnata"}</div>
+            )}
+          </div>
+          {canEdit && (
+            <Button variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => onAssignedUserIdChange?.(undefined)}>
+              Sgancia
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="parchment-panel p-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h3 className="font-display text-lg gold-text">Note finali</h3>
+          {canCustomizeLabels && <Badge variant="outline" className="text-xs">Label custom</Badge>}
+        </div>
+        <div className="space-y-2">
           <Textarea
-            value={value.note}
-            onChange={(e) => set("note", e.target.value)}
-            rows={4}
-            className="bg-parchment-deep/20 border-border/60 font-script focus-visible:ring-0"
-            placeholder="Annotazioni libere sul personaggio..."
+            value={sheet.note ?? ""}
+            onChange={(e) => setSheet({ note: e.target.value })}
+            className="min-h-28 w-full text-base"
+            placeholder="Annotazioni libere, descrizioni, richiami di regole..."
           />
-        ) : (
-          <p className="font-script whitespace-pre-wrap">{value.note || "—"}</p>
-        )}
-      </section>
-    </div>
+        </div>
+      </div>
+    </section>
   );
-};
+}
