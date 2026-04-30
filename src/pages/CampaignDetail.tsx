@@ -7,16 +7,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ArrowLeft, Plus, Crown, Loader2, Trash2, ScrollText, UserPlus, ShieldCheck, Pencil, Lock,
+  ArrowLeft,
+  Plus,
+  Crown,
+  Loader2,
+  Trash2,
+  ScrollText,
+  UserPlus,
+  ShieldCheck,
+  Pencil,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenSourceGdr } from "@/lib/rulesets";
@@ -24,17 +42,33 @@ import { OsgdrCharacterWizard, type WizardResult } from "@/components/OsgdrChara
 
 interface Character {
   id: string;
+  campaign_id: string;
+  owner_id: string;
   name: string;
   concept: string | null;
   image_url: string | null;
-  owner_id: string;
+  owner_display_name?: string | null;
+  label?: string | null;
 }
+
+interface CharacterCardRow {
+  id: string;
+  campaign_id: string;
+  owner_id: string;
+  name: string;
+  short_description: string | null;
+  image_url: string | null;
+  owner_display_name: string | null;
+  label: string | null;
+}
+
 interface Member {
   id: string;
   user_id: string;
   role: "narratore" | "giocatore";
   profile?: { display_name: string; avatar_url: string | null };
 }
+
 interface CampaignData {
   id: string;
   name: string;
@@ -42,6 +76,7 @@ interface CampaignData {
   ruleset_id: string;
   ruleset?: { name: string };
 }
+
 interface ProfileLite {
   id: string;
   display_name: string;
@@ -75,7 +110,6 @@ const CampaignDetail = () => {
 
   const myMembership = members.find((m) => m.user_id === user?.id);
   const isNarrator = myMembership?.role === "narratore";
-  const isMember = !!myMembership;
   const narrator = members.find((m) => m.role === "narratore");
 
   const load = async () => {
@@ -88,11 +122,15 @@ const CampaignDetail = () => {
         .select("id, name, description, ruleset_id, ruleset:rulesets(name)")
         .eq("id", campaignId)
         .maybeSingle(),
+
       supabase
-        .from("characters")
-        .select("id, name, concept, image_url, owner_id")
+        .from("character_cards")
+        .select(
+          "id, campaign_id, owner_id, name, short_description, image_url, owner_display_name, label"
+        )
         .eq("campaign_id", campaignId)
-        .order("created_at"),
+        .order("name"),
+
       supabase
         .from("campaign_members")
         .select("id, user_id, role")
@@ -104,37 +142,67 @@ const CampaignDetail = () => {
       navigate("/campaigns");
       return;
     }
-    setCampaign(camp.data as any);
+
+    setCampaign(camp.data as CampaignData);
 
     const memberRows = (mem.data ?? []) as Member[];
     const userIds = memberRows.map((r) => r.user_id);
+
     const profiles = userIds.length
-      ? await supabase.from("profiles").select("id, display_name, avatar_url").in("id", userIds)
+      ? await supabase
+          .from("profiles")
+          .select("id, display_name, avatar_url")
+          .in("id", userIds)
       : { data: [] as ProfileLite[] };
 
     setMembers(
       memberRows.map((r) => ({
         ...r,
-        profile: (profiles.data ?? []).find((p: any) => p.id === r.user_id) as any,
+        profile: (profiles.data ?? []).find((p) => p.id === r.user_id),
       }))
     );
 
-    setCharacters((chars.data ?? []) as Character[]);
+    if (chars.error) {
+      toast.error(chars.error.message);
+      setCharacters([]);
+    } else {
+      const mapped = ((chars.data ?? []) as CharacterCardRow[]).map((c) => ({
+        id: c.id,
+        campaign_id: c.campaign_id,
+        owner_id: c.owner_id,
+        name: c.name,
+        concept: c.short_description,
+        image_url: c.image_url,
+        owner_display_name: c.owner_display_name,
+        label: c.label,
+      }));
+
+      setCharacters(mapped);
+    }
 
     if (isAdmin) {
-      const all = await supabase.from("profiles").select("id, display_name, avatar_url");
+      const all = await supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url");
+
       setAllProfiles((all.data ?? []) as ProfileLite[]);
+    } else {
+      setAllProfiles([]);
     }
 
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [campaignId, isAdmin]);
+  useEffect(() => {
+    load();
+  }, [campaignId, isAdmin]);
 
   const handleCreateChar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !campaignId) return;
+
     setSubmitting(true);
+
     const { data, error } = await supabase
       .from("characters")
       .insert({
@@ -145,7 +213,9 @@ const CampaignDetail = () => {
       })
       .select()
       .single();
+
     setSubmitting(false);
+
     if (error) {
       toast.error(error.message);
     } else {
@@ -162,7 +232,9 @@ const CampaignDetail = () => {
 
   const handleWizardComplete = async (result: WizardResult) => {
     if (!user || !campaignId) return;
+
     setSubmitting(true);
+
     const customFields = [
       {
         id: OSGDR_FIELD_ID,
@@ -170,6 +242,7 @@ const CampaignDetail = () => {
         value: JSON.stringify(result.sheet),
       },
     ];
+
     const { data, error } = await supabase
       .from("characters")
       .insert({
@@ -181,7 +254,9 @@ const CampaignDetail = () => {
       })
       .select()
       .single();
+
     setSubmitting(false);
+
     if (error) {
       toast.error(error.message);
     } else {
@@ -194,16 +269,23 @@ const CampaignDetail = () => {
   const addMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!campaignId || !newMemberId) return;
+
     setSubmitting(true);
+
     const { error } = await supabase.from("campaign_members").insert({
       campaign_id: campaignId,
       user_id: newMemberId,
       role: newMemberRole,
     });
+
     setSubmitting(false);
+
     if (error) {
-      if (error.code === "23505") toast.error("Questa campagna ha già un narratore o l'utente è già membro");
-      else toast.error(error.message);
+      if (error.code === "23505") {
+        toast.error("Questa campagna ha già un narratore o l'utente è già membro");
+      } else {
+        toast.error(error.message);
+      }
     } else {
       toast.success("Membro aggiunto");
       setAddMemberOpen(false);
@@ -215,9 +297,15 @@ const CampaignDetail = () => {
 
   const removeMember = async (memberId: string) => {
     if (!confirm("Rimuovere questo membro dalla campagna?")) return;
-    const { error } = await supabase.from("campaign_members").delete().eq("id", memberId);
-    if (error) toast.error(error.message);
-    else {
+
+    const { error } = await supabase
+      .from("campaign_members")
+      .delete()
+      .eq("id", memberId);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success("Membro rimosso");
       load();
     }
@@ -233,14 +321,19 @@ const CampaignDetail = () => {
   const saveCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!campaign) return;
+
     setSubmitting(true);
+
     const { error } = await supabase
       .from("campaigns")
       .update({ name: editName, description: editDesc || null })
       .eq("id", campaign.id);
+
     setSubmitting(false);
-    if (error) toast.error(error.message);
-    else {
+
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success("Campagna aggiornata");
       setEditOpen(false);
       load();
@@ -252,12 +345,15 @@ const CampaignDetail = () => {
       toast.error("C'è già un Narratore in questa campagna. Rimuovi prima il ruolo all'attuale Narratore.");
       return;
     }
+
     const { error } = await supabase
       .from("campaign_members")
       .update({ role: "narratore" })
       .eq("id", memberId);
-    if (error) toast.error(error.message);
-    else {
+
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success("Narratore assegnato");
       load();
     }
@@ -268,8 +364,10 @@ const CampaignDetail = () => {
       .from("campaign_members")
       .update({ role: "giocatore" })
       .eq("id", memberId);
-    if (error) toast.error(error.message);
-    else {
+
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success("Ruolo di Narratore rimosso");
       load();
     }
@@ -277,9 +375,15 @@ const CampaignDetail = () => {
 
   const deleteCampaign = async () => {
     if (!campaign || !confirm("Eliminare definitivamente questa campagna e tutte le sue schede?")) return;
-    const { error } = await supabase.from("campaigns").delete().eq("id", campaign.id);
-    if (error) toast.error(error.message);
-    else {
+
+    const { error } = await supabase
+      .from("campaigns")
+      .delete()
+      .eq("id", campaign.id);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success("Campagna eliminata");
       navigate("/campaigns");
     }
@@ -287,9 +391,15 @@ const CampaignDetail = () => {
 
   const deleteCharacter = async (charId: string, charName: string) => {
     if (!confirm(`Eliminare la scheda di "${charName}"? L'azione è irreversibile.`)) return;
-    const { error } = await supabase.from("characters").delete().eq("id", charId);
-    if (error) toast.error(error.message);
-    else {
+
+    const { error } = await supabase
+      .from("characters")
+      .delete()
+      .eq("id", charId);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success("Scheda eliminata");
       load();
     }
@@ -306,7 +416,6 @@ const CampaignDetail = () => {
     );
   }
 
-  // Modifica non invasiva: tutti vedono tutte le schede caricate.
   const visibleCharacters = characters;
 
   const availableProfiles = allProfiles.filter(
@@ -317,7 +426,10 @@ const CampaignDetail = () => {
     <div className="min-h-screen">
       <SiteHeader />
       <main className="container py-8">
-        <Link to="/campaigns" className="inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary mb-4">
+        <Link
+          to="/campaigns"
+          className="inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary mb-4"
+        >
           <ArrowLeft className="h-4 w-4" /> Tutte le campagne
         </Link>
 
@@ -327,24 +439,36 @@ const CampaignDetail = () => {
               <p className="text-xs uppercase tracking-wider font-heading text-primary/80 mb-1">
                 {campaign.ruleset?.name}
               </p>
-              <h1 className="font-display text-3xl md:text-4xl gold-text mb-2">{campaign.name}</h1>
+              <h1 className="font-display text-3xl md:text-4xl gold-text mb-2">
+                {campaign.name}
+              </h1>
               {campaign.description && (
-                <p className="font-script italic text-ink-faded max-w-2xl">{campaign.description}</p>
+                <p className="font-script italic text-ink-faded max-w-2xl">
+                  {campaign.description}
+                </p>
               )}
             </div>
+
             {isAdmin && (
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="sm" onClick={openEditCampaign}>
                   <Pencil className="h-4 w-4 mr-1" /> Modifica
                 </Button>
-                <Button variant="ghost" size="sm" onClick={deleteCampaign} className="text-destructive">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={deleteCampaign}
+                  className="text-destructive"
+                >
                   <Trash2 className="h-4 w-4 mr-1" /> Elimina
                 </Button>
               </div>
             )}
           </div>
 
-          <div className="ornament-divider my-5"><span>✦</span></div>
+          <div className="ornament-divider my-5">
+            <span>✦</span>
+          </div>
 
           <div className="flex flex-wrap items-start gap-4">
             <div className="flex-1 min-w-[240px]">
@@ -352,6 +476,7 @@ const CampaignDetail = () => {
                 <Label className="text-xs font-heading uppercase tracking-wider text-ink-faded">
                   Membri
                 </Label>
+
                 {isAdmin && (
                   <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
                     <DialogTrigger asChild>
@@ -359,26 +484,40 @@ const CampaignDetail = () => {
                         <UserPlus className="h-3.5 w-3.5 mr-1" /> Aggiungi
                       </Button>
                     </DialogTrigger>
+
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle className="font-display gold-text">Aggiungi un membro</DialogTitle>
+                        <DialogTitle className="font-display gold-text">
+                          Aggiungi un membro
+                        </DialogTitle>
                       </DialogHeader>
+
                       <form onSubmit={addMember} className="space-y-4">
                         <div>
                           <Label className="font-heading">Utente</Label>
                           <Select value={newMemberId} onValueChange={setNewMemberId}>
-                            <SelectTrigger><SelectValue placeholder="Scegli un utente" /></SelectTrigger>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Scegli un utente" />
+                            </SelectTrigger>
                             <SelectContent>
                               {availableProfiles.map((p) => (
-                                <SelectItem key={p.id} value={p.id}>{p.display_name}</SelectItem>
+                                <SelectItem key={p.id} value={p.id}>
+                                  {p.display_name}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </div>
+
                         <div>
                           <Label className="font-heading">Ruolo</Label>
-                          <Select value={newMemberRole} onValueChange={(v) => setNewMemberRole(v as any)}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
+                          <Select
+                            value={newMemberRole}
+                            onValueChange={(v) => setNewMemberRole(v as "giocatore" | "narratore")}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="giocatore">Giocatore</SelectItem>
                               <SelectItem value="narratore" disabled={!!narrator}>
@@ -387,9 +526,18 @@ const CampaignDetail = () => {
                             </SelectContent>
                           </Select>
                         </div>
+
                         <DialogFooter>
-                          <Button type="submit" disabled={submitting || !newMemberId} className="font-heading">
-                            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aggiungi"}
+                          <Button
+                            type="submit"
+                            disabled={submitting || !newMemberId}
+                            className="font-heading"
+                          >
+                            {submitting ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "Aggiungi"
+                            )}
                           </Button>
                         </DialogFooter>
                       </form>
@@ -397,22 +545,34 @@ const CampaignDetail = () => {
                   </Dialog>
                 )}
               </div>
+
               <div className="flex flex-wrap gap-2">
                 {members.length === 0 && (
-                  <span className="font-script italic text-ink-faded text-sm">Nessun membro ancora.</span>
+                  <span className="font-script italic text-ink-faded text-sm">
+                    Nessun membro ancora.
+                  </span>
                 )}
+
                 {members.map((m) => (
-                  <div key={m.id} className="flex items-center gap-2 bg-parchment-deep/30 rounded-full pl-1 pr-2 py-1 border border-border/60">
+                  <div
+                    key={m.id}
+                    className="flex items-center gap-2 bg-parchment-deep/30 rounded-full pl-1 pr-2 py-1 border border-border/60"
+                  >
                     <Avatar className="h-6 w-6">
                       <AvatarImage src={m.profile?.avatar_url ?? undefined} />
                       <AvatarFallback className="text-xs">
                         {m.profile?.display_name?.[0]?.toUpperCase() ?? "?"}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-script">{m.profile?.display_name ?? "..."}</span>
+
+                    <span className="text-sm font-script">
+                      {m.profile?.display_name ?? "..."}
+                    </span>
+
                     {m.role === "narratore" && (
                       <Crown className="h-3.5 w-3.5 text-primary" aria-label="Narratore" />
                     )}
+
                     {isAdmin && m.role === "giocatore" && !narrator && (
                       <button
                         onClick={() => promoteToNarrator(m.id)}
@@ -423,6 +583,7 @@ const CampaignDetail = () => {
                         <Crown className="h-3.5 w-3.5" />
                       </button>
                     )}
+
                     {isAdmin && m.role === "narratore" && (
                       <button
                         onClick={() => demoteNarrator(m.id)}
@@ -433,6 +594,7 @@ const CampaignDetail = () => {
                         <Crown className="h-3.5 w-3.5 line-through opacity-60" />
                       </button>
                     )}
+
                     {isAdmin && (
                       <button
                         onClick={() => removeMember(m.id)}
@@ -448,58 +610,80 @@ const CampaignDetail = () => {
             </div>
           </div>
 
-          {(isNarrator || isAdmin) && (
+          {(isNarrator || isAdmin || isActingAsNarrator) && (
             <div className="mt-4 flex items-center gap-2 text-xs font-script italic text-ink-faded">
               <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-              {isAdmin ? "Come Admin vedi tutte le schede." : "Come Narratore vedi tutte le schede dei giocatori."}
+              {isAdmin
+                ? "Come Admin puoi entrare in tutte le schede."
+                : "Come Narratore puoi entrare nelle schede di tutti i membri della campagna."}
             </div>
           )}
         </div>
 
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-heading text-2xl">Schede della campagna</h2>
-          {((isMember && !isNarrator) || isAdmin) && (
-            useOsgdr && isActingAsPlayer ? (
+
+          {((myMembership && !isNarrator) || isAdmin) &&
+            (useOsgdr && isActingAsPlayer ? (
               <Button className="font-heading" onClick={() => setWizardOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" /> Nuovo eroe
               </Button>
             ) : (
               <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                 <DialogTrigger asChild>
-                  <Button className="font-heading"><Plus className="h-4 w-4 mr-2" /> Nuovo eroe</Button>
+                  <Button className="font-heading">
+                    <Plus className="h-4 w-4 mr-2" /> Nuovo eroe
+                  </Button>
                 </DialogTrigger>
+
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle className="font-display gold-text">Forgia un nuovo eroe</DialogTitle>
+                    <DialogTitle className="font-display gold-text">
+                      Forgia un nuovo eroe
+                    </DialogTitle>
                   </DialogHeader>
+
                   <form onSubmit={handleCreateChar} className="space-y-4">
                     <div>
-                      <Label htmlFor="cname" className="font-heading">Nome</Label>
-                      <Input id="cname" value={name} onChange={(e) => setName(e.target.value)} required />
+                      <Label htmlFor="cname" className="font-heading">
+                        Nome
+                      </Label>
+                      <Input
+                        id="cname"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                      />
                     </div>
+
                     <div>
-                      <Label htmlFor="cconcept" className="font-heading">Breve descrizione</Label>
-                      <Input id="cconcept" value={concept} onChange={(e) => setConcept(e.target.value)} placeholder="Es. Ladro elfico in cerca di redenzione" />
+                      <Label htmlFor="cconcept" className="font-heading">
+                        Breve descrizione
+                      </Label>
+                      <Input
+                        id="cconcept"
+                        value={concept}
+                        onChange={(e) => setConcept(e.target.value)}
+                        placeholder="Es. Ladro elfico in cerca di redenzione"
+                      />
                     </div>
+
                     <DialogFooter>
                       <Button type="submit" disabled={submitting} className="font-heading">
-                        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Forgia"}
+                        {submitting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Forgia"
+                        )}
                       </Button>
                     </DialogFooter>
                   </form>
                 </DialogContent>
               </Dialog>
-            )
-          )}
+            ))}
         </div>
 
-        {!isMember && !isAdmin ? (
-          <div className="parchment-panel p-10 text-center">
-            <p className="font-script italic text-ink-faded">
-              Non sei membro di questa campagna. Chiedi all'Admin di aggiungerti.
-            </p>
-          </div>
-        ) : visibleCharacters.length === 0 ? (
+        {visibleCharacters.length === 0 ? (
           <div className="parchment-panel p-10 text-center">
             <ScrollText className="h-12 w-12 text-primary/60 mx-auto mb-3" />
             <p className="font-script italic text-ink-faded">Nessuna scheda ancora.</p>
@@ -511,9 +695,9 @@ const CampaignDetail = () => {
               const canOpenCharacter =
                 isAdmin || isActingAsNarrator || isNarrator || c.owner_id === user?.id;
 
-              const ownerMember = members.find((m) => m.user_id === c.owner_id);
               const ownerName =
-                ownerMember?.profile?.display_name ??
+                c.owner_display_name ??
+                members.find((m) => m.user_id === c.owner_id)?.profile?.display_name ??
                 allProfiles.find((p) => p.id === c.owner_id)?.display_name ??
                 "Giocatore";
 
@@ -574,16 +758,18 @@ const CampaignDetail = () => {
                     )}
 
                     {c.owner_id === user?.id ? (
-                      <Badge variant="outline" className="mt-2 text-xs">Tuo</Badge>
+                      <Badge variant="outline" className="mt-2 text-xs">
+                        Tuo
+                      </Badge>
                     ) : (
                       <Badge variant="outline" className="mt-2 text-xs">
-                        Di {ownerName}
+                        {c.label ?? `Di ${ownerName}`}
                       </Badge>
                     )}
 
                     {!canOpenCharacter && (
                       <p className="mt-2 text-xs font-script italic text-ink-faded">
-                        Puoi vedere nome e ritratto, ma non aprire la scheda.
+                        Puoi vedere nome, descrizione e ritratto, ma non aprire la scheda.
                       </p>
                     )}
                   </div>
@@ -602,9 +788,7 @@ const CampaignDetail = () => {
                       {cardBody}
                     </Link>
                   ) : (
-                    <div className="block cursor-default">
-                      {cardBody}
-                    </div>
+                    <div className="block cursor-default">{cardBody}</div>
                   )}
                 </article>
               );
@@ -612,21 +796,39 @@ const CampaignDetail = () => {
           </div>
         )}
 
-        {/* Edit campaign dialog */}
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="font-display gold-text">Modifica campagna</DialogTitle>
+              <DialogTitle className="font-display gold-text">
+                Modifica campagna
+              </DialogTitle>
             </DialogHeader>
+
             <form onSubmit={saveCampaign} className="space-y-4">
               <div>
-                <Label htmlFor="ecname" className="font-heading">Nome</Label>
-                <Input id="ecname" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+                <Label htmlFor="ecname" className="font-heading">
+                  Nome
+                </Label>
+                <Input
+                  id="ecname"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  required
+                />
               </div>
+
               <div>
-                <Label htmlFor="ecdesc" className="font-heading">Descrizione</Label>
-                <Textarea id="ecdesc" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={4} />
+                <Label htmlFor="ecdesc" className="font-heading">
+                  Descrizione
+                </Label>
+                <Textarea
+                  id="ecdesc"
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  rows={4}
+                />
               </div>
+
               <DialogFooter>
                 <Button type="submit" disabled={submitting} className="font-heading">
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salva"}
@@ -636,7 +838,6 @@ const CampaignDetail = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Wizard creazione personaggio OSGDR */}
         <OsgdrCharacterWizard
           open={wizardOpen}
           submitting={submitting}
