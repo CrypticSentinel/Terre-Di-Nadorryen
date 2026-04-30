@@ -59,7 +59,7 @@ interface CharacterCardRow {
   short_description: string | null;
   image_url: string | null;
   owner_display_name: string | null;
-  label: string | null;
+  label: string;
 }
 
 interface Member {
@@ -123,13 +123,9 @@ const CampaignDetail = () => {
         .eq("id", campaignId)
         .maybeSingle(),
 
-      supabase
-        .from("character_cards")
-        .select(
-          "id, campaign_id, owner_id, name, short_description, image_url, owner_display_name, label"
-        )
-        .eq("campaign_id", campaignId)
-        .order("name"),
+      supabase.rpc("get_campaign_character_cards", {
+        _campaign_id: campaignId,
+      }),
 
       supabase
         .from("campaign_members")
@@ -281,7 +277,7 @@ const CampaignDetail = () => {
     setSubmitting(false);
 
     if (error) {
-      if (error.code === "23505") {
+      if ((error as any).code === "23505") {
         toast.error("Questa campagna ha già un narratore o l'utente è già membro");
       } else {
         toast.error(error.message);
@@ -765,12 +761,6 @@ const CampaignDetail = () => {
                       <Badge variant="outline" className="mt-2 text-xs">
                         {c.label ?? `Di ${ownerName}`}
                       </Badge>
-                    )}
-
-                    {!canOpenCharacter && (
-                      <p className="mt-2 text-xs font-script italic text-ink-faded">
-                        Puoi vedere nome, descrizione e ritratto, ma non aprire la scheda.
-                      </p>
                     )}
                   </div>
                 </>

@@ -365,6 +365,19 @@ export type Database = {
         Args: { _character_id: string; _user_id: string }
         Returns: boolean
       }
+      get_campaign_character_cards: {
+        Args: { _campaign_id: string }
+        Returns: {
+          id: string
+          campaign_id: string
+          owner_id: string
+          name: string
+          short_description: string | null
+          image_url: string | null
+          owner_display_name: string | null
+          label: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
