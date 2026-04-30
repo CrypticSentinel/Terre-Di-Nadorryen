@@ -20,11 +20,16 @@ const ABILITIES = [
 ] as const;
 
 const BODY_PARTS = [
-  "Testa", "Torace",
-  "Braccio DX", "Braccio SX",
-  "Mano DX", "Mano SX",
-  "Gamba DX", "Gamba SX",
-  "Piede DX", "Piede SX",
+  "Testa",
+  "Torace",
+  "Braccio DX",
+  "Braccio SX",
+  "Mano DX",
+  "Mano SX",
+  "Gamba DX",
+  "Gamba SX",
+  "Piede DX",
+  "Piede SX",
 ] as const;
 
 const EQUIPMENT_SECTIONS = [
@@ -39,9 +44,16 @@ const EQUIPMENT_SECTIONS = [
 ] as const;
 
 const MAGIC_SCHOOLS = [
-  "Acqua", "Fuoco", "Aria", "Terra",
-  "Vita", "Morte", "Spirito", "Materia",
-  "Mente", "Corpo",
+  "Acqua",
+  "Fuoco",
+  "Aria",
+  "Terra",
+  "Vita",
+  "Morte",
+  "Spirito",
+  "Materia",
+  "Mente",
+  "Corpo",
 ] as const;
 
 const COIN_TYPES = [
@@ -50,10 +62,10 @@ const COIN_TYPES = [
   { key: "rame", label: "Rame" },
 ] as const;
 
-export type Ability = typeof ABILITIES[number]["key"];
-export type EquipmentKey = typeof EQUIPMENT_SECTIONS[number]["key"];
-export type MagicSchool = typeof MAGIC_SCHOOLS[number];
-export type CoinKey = typeof COIN_TYPES[number]["key"];
+export type Ability = (typeof ABILITIES)[number]["key"];
+export type EquipmentKey = (typeof EQUIPMENT_SECTIONS)[number]["key"];
+export type MagicSchool = (typeof MAGIC_SCHOOLS)[number];
+export type CoinKey = (typeof COIN_TYPES)[number]["key"];
 
 export interface OsgdrSkill {
   id: string;
@@ -62,7 +74,6 @@ export interface OsgdrSkill {
 }
 
 export interface OsgdrSheet {
-  // Anagrafica
   razza: string;
   provenienza: string;
   eta: string;
@@ -71,36 +82,42 @@ export interface OsgdrSheet {
   capelli: string;
   carnagione: string;
   occhi: string;
-  // Caratteristiche (1-20)
   abilities: Record<Ability, number>;
-  // Stati derivati / risorse
   iniziativa: string;
   penalita: string;
   fortuna: string;
   fatica: string;
   pe: number;
-  // Magia: punteggio per ciascuna scuola
   magic: Record<MagicSchool, number>;
-  // Monete
   coins: Record<CoinKey, number>;
-  // Ferite localizzate (testo libero per descrivere stato)
   ferite: Record<string, string>;
-  // Equipaggiamento (liste)
   equipment: Record<EquipmentKey, string[]>;
   note: string;
-  // Abilità apprese (lista con grado)
   skills: OsgdrSkill[];
 }
 
 export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
-  razza: "", provenienza: "",
-  eta: "", peso: "", altezza: "", capelli: "", carnagione: "", occhi: "",
+  razza: "",
+  provenienza: "",
+  eta: "",
+  peso: "",
+  altezza: "",
+  capelli: "",
+  carnagione: "",
+  occhi: "",
   abilities: { for: 8, des: 8, cos: 8, vol: 8, pro: 8, emp: 8 },
-  iniziativa: "", penalita: "", fortuna: "", fatica: "", pe: 0,
+  iniziativa: "",
+  penalita: "",
+  fortuna: "",
+  fatica: "",
+  pe: 0,
   magic: Object.fromEntries(MAGIC_SCHOOLS.map((s) => [s, 0])) as Record<MagicSchool, number>,
   coins: Object.fromEntries(COIN_TYPES.map((c) => [c.key, 0])) as Record<CoinKey, number>,
   ferite: Object.fromEntries(BODY_PARTS.map((p) => [p, ""])) as Record<string, string>,
-  equipment: Object.fromEntries(EQUIPMENT_SECTIONS.map((s) => [s.key, [] as string[]])) as Record<EquipmentKey, string[]>,
+  equipment: Object.fromEntries(EQUIPMENT_SECTIONS.map((s) => [s.key, [] as string[]])) as Record<
+    EquipmentKey,
+    string[]
+  >,
   note: "",
   skills: [],
 };
@@ -118,8 +135,10 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
       skills: [],
     };
   }
+
   const abilities = { ...base.abilities, ...(input.abilities ?? {}) };
   const ferite = { ...base.ferite, ...(input.ferite ?? {}) };
+
   const magic: Record<MagicSchool, number> = { ...base.magic };
   if (input.magic && typeof input.magic === "object") {
     for (const s of MAGIC_SCHOOLS) {
@@ -127,6 +146,7 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
       if (Number.isFinite(v)) magic[s] = v;
     }
   }
+
   const coins: Record<CoinKey, number> = { ...base.coins };
   if (input.coins && typeof input.coins === "object") {
     for (const c of COIN_TYPES) {
@@ -134,6 +154,7 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
       if (Number.isFinite(v)) coins[c.key] = v;
     }
   }
+
   const equipment: Record<EquipmentKey, string[]> = { ...base.equipment };
   if (input.equipment) {
     for (const s of EQUIPMENT_SECTIONS) {
@@ -141,6 +162,7 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
       equipment[s.key] = Array.isArray(v) ? v.map(String) : [];
     }
   }
+
   const skills: OsgdrSkill[] = Array.isArray(input.skills)
     ? input.skills.map((sk: any) => ({
         id: String(sk?.id ?? crypto.randomUUID()),
@@ -148,6 +170,7 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
         grade: Number(sk?.grade ?? 0),
       }))
     : [];
+
   return {
     ...base,
     ...input,
@@ -189,7 +212,7 @@ export const OpenSourceGdrSheet = ({
   assignedUserId,
   onAssignedUserIdChange,
 }: Props) => {
-  const { user, isAdmin, isNarratore } = useAuth();
+  const { user, isAdmin, isActingAsNarrator } = useAuth();
   const [profiles, setProfiles] = useState<SelectableProfile[]>([]);
 
   const canAssignCharacter = canEdit && !!onAssignedUserIdChange && (isAdmin || isNarratore);
@@ -219,6 +242,7 @@ export const OpenSourceGdrSheet = ({
 
     onAssignedUserIdChange?.(user.id);
   }, [canAssignCharacter, assignedUserId, onAssignedUserIdChange, user?.id]);
+
   const totalPoints = useMemo(
     () => ABILITIES.reduce((acc, a) => acc + (Number(value.abilities[a.key]) || 0), 0),
     [value.abilities],
@@ -260,7 +284,10 @@ export const OpenSourceGdrSheet = ({
   };
 
   const addSkill = () =>
-    onChange({ ...value, skills: [...value.skills, { id: crypto.randomUUID(), name: "Nuova abilità", grade: 1 }] });
+    onChange({
+      ...value,
+      skills: [...value.skills, { id: crypto.randomUUID(), name: "Nuova abilità", grade: 1 }],
+    });
   const updateSkill = (id: string, patch: Partial<OsgdrSkill>) =>
     onChange({ ...value, skills: value.skills.map((s) => (s.id === id ? { ...s, ...patch } : s)) });
   const removeSkill = (id: string) =>
@@ -270,8 +297,12 @@ export const OpenSourceGdrSheet = ({
     <span className="font-script whitespace-pre-wrap">{val || "—"}</span>
   );
 
-  // Shorthand: render an editable label that admins can rename/resize.
-  const lbl = (key: string, defaultText: string, className: string, as: "span" | "div" | "label" | "h3" = "span") => (
+  const lbl = (
+    key: string,
+    defaultText: string,
+    className: string,
+    as: "span" | "div" | "label" | "h3" = "span",
+  ) => (
     <EditableLabel
       defaultText={defaultText}
       override={labelOverrides[key]}
@@ -283,14 +314,12 @@ export const OpenSourceGdrSheet = ({
   );
 
   return (
-    <div className="space-y-6 osgdr-sheet">
-      {/* osgdr-sheet applica font-size 18px ai campi e 22px ai modificatori (regola in index.css) */}
-      {/* === Anagrafica === */}
+    <div className="osgdr-sheet space-y-5 sm:space-y-6">
       <section className="space-y-3">
         {lbl("section.anagrafica", "Anagrafica", "font-display text-xl gold-text", "h3")}
 
         {canAssignCharacter && (
-          <div className="bg-parchment-deep/20 border border-border/60 rounded p-3">
+          <div className="rounded border border-border/60 bg-parchment-deep/20 p-3">
             <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">
               Assegna scheda a
             </Label>
@@ -309,41 +338,63 @@ export const OpenSourceGdrSheet = ({
           </div>
         )}
 
-        <div className="grid sm:grid-cols-3 gap-3">
-          {([
-            ["razza", "Razza"], ["provenienza", "Provenienza"], ["eta", "Età"],
-            ["altezza", "Altezza"], ["peso", "Peso"], ["carnagione", "Carnagione"],
-            ["capelli", "Capelli"], ["occhi", "Occhi"],
-          ] as const).map(([k, label]) => (
-            <div key={k} className="bg-parchment-deep/20 border border-border/60 rounded p-3">
-              {lbl(`field.${k}`, label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {(
+            [
+              ["razza", "Razza"],
+              ["provenienza", "Provenienza"],
+              ["eta", "Età"],
+              ["altezza", "Altezza"],
+              ["peso", "Peso"],
+              ["carnagione", "Carnagione"],
+              ["capelli", "Capelli"],
+              ["occhi", "Occhi"],
+            ] as const
+          ).map(([k, label]) => (
+            <div key={k} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
+              {lbl(
+                `field.${k}`,
+                label,
+                "font-heading text-xs uppercase tracking-wider text-ink-faded",
+                "label",
+              )}
               {canEdit ? (
                 <Input
                   value={(value as any)[k] ?? ""}
                   onChange={(e) => set(k as any, e.target.value as any)}
-                  className="bg-transparent border-0 px-0 h-7 focus-visible:ring-0 font-script"
+                  className="h-9 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
                 />
-              ) : renderText((value as any)[k])}
+              ) : (
+                renderText((value as any)[k])
+              )}
             </div>
           ))}
         </div>
       </section>
 
-      {/* === Caratteristiche === */}
       <section className="space-y-3">
-        <div className="flex items-baseline justify-between flex-wrap gap-2">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
           {lbl("section.caratteristiche", "Caratteristiche", "font-display text-xl gold-text", "h3")}
-          <p className="font-script italic text-xs text-ink-faded">
+          <p className="font-script text-xs italic text-ink-faded">
             Totale punti distribuiti: <strong>{totalPoints}</strong> · base 48 + 5d4 + 1d6
           </p>
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           {ABILITIES.map((a) => {
             const v = value.abilities[a.key] ?? 0;
             const mod = abilityModifier(v);
             return (
-              <div key={a.key} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
-                {lbl(`ability.${a.key}`, a.label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "div")}
+              <div
+                key={a.key}
+                className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
+              >
+                {lbl(
+                  `ability.${a.key}`,
+                  a.label,
+                  "font-heading text-xs uppercase tracking-wider text-ink-faded",
+                  "div",
+                )}
                 {canEdit ? (
                   <Input
                     type="number"
@@ -351,40 +402,49 @@ export const OpenSourceGdrSheet = ({
                     max={30}
                     value={v}
                     onChange={(e) => setAbility(a.key, e.target.value)}
-                    className="bg-transparent border-0 text-center font-display h-10 px-0 focus-visible:ring-0"
+                    className="h-10 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
                     style={{ fontSize: "18px" }}
                   />
                 ) : (
-                  <div className="font-display" style={{ fontSize: "18px" }}>{v}</div>
+                  <div className="font-display" style={{ fontSize: "18px" }}>
+                    {v}
+                  </div>
                 )}
-                <div className="font-script text-primary" style={{ fontSize: "22px" }}>{formatModifier(mod)}</div>
+                <div className="mt-1 font-script text-xs text-primary" style={{ fontSize: "22px" }}>
+                  {formatModifier(mod)}
+                </div>
               </div>
             );
           })}
         </div>
       </section>
 
-      {/* === Stati / Risorse === */}
       <section className="space-y-3">
         {lbl("section.stati", "Stati & Risorse", "font-display text-xl gold-text", "h3")}
-        <p className="font-script italic text-xs text-ink-faded">
+        <p className="font-script text-xs italic text-ink-faded">
           L'<strong>Iniziativa</strong> è calcolata automaticamente come <em>Mod. Destrezza + Mod. Prontezza</em>.
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          {([
-            ["iniziativa", "Iniziativa"],
-            ["penalita", "Penalità"],
-            ["fortuna", "Fortuna"],
-            ["fatica", "Fatica"],
-            ["pe", "PE"],
-          ] as const).map(([k, label]) => {
-            // Iniziativa autocalcolata = mod(des) + mod(pro)
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          {(
+            [
+              ["iniziativa", "Iniziativa"],
+              ["penalita", "Penalità"],
+              ["fortuna", "Fortuna"],
+              ["fatica", "Fatica"],
+              ["pe", "PE"],
+            ] as const
+          ).map(([k, label]) => {
             const autoIniziativa =
               abilityModifier(value.abilities.des ?? 0) + abilityModifier(value.abilities.pro ?? 0);
             const isInit = k === "iniziativa";
             const displayValue = isInit ? formatModifier(autoIniziativa) : String((value as any)[k]) || "—";
+
             return (
-              <div key={k} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
+              <div
+                key={k}
+                className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
+              >
                 {lbl(`stat.${k}`, label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
                 {isInit ? (
                   <div
@@ -402,11 +462,13 @@ export const OpenSourceGdrSheet = ({
                         ? set("pe", Math.max(0, Number(e.target.value) || 0) as any)
                         : set(k as any, e.target.value as any)
                     }
-                    className="bg-transparent border-0 text-center font-display h-9 px-0 focus-visible:ring-0"
+                    className="h-9 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
                     style={{ fontSize: "18px" }}
                   />
                 ) : (
-                  <div className="font-display" style={{ fontSize: "18px" }}>{displayValue}</div>
+                  <div className="font-display" style={{ fontSize: "18px" }}>
+                    {displayValue}
+                  </div>
                 )}
               </div>
             );
@@ -414,19 +476,27 @@ export const OpenSourceGdrSheet = ({
         </div>
       </section>
 
-      {/* === Magia === */}
       <section className="space-y-3">
         {lbl("section.magia", "Magia", "font-display text-xl gold-text", "h3")}
-        <p className="font-script italic text-xs text-ink-faded">
+        <p className="font-script text-xs italic text-ink-faded">
           Punteggio per ciascuna delle dieci scuole di magia libera.
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           {MAGIC_SCHOOLS.map((school) => {
             const grade = value.magic[school] ?? 0;
             const dmg = magicBaseDamage(grade);
             return (
-              <div key={school} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
-                {lbl(`magic.${school}`, school, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
+              <div
+                key={school}
+                className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
+              >
+                {lbl(
+                  `magic.${school}`,
+                  school,
+                  "font-heading text-xs uppercase tracking-wider text-ink-faded",
+                  "label",
+                )}
                 {canEdit ? (
                   <Input
                     type="number"
@@ -434,15 +504,12 @@ export const OpenSourceGdrSheet = ({
                     max={99}
                     value={grade}
                     onChange={(e) => setMagic(school, e.target.value)}
-                    className="bg-transparent border-0 text-center font-display text-xl h-9 px-0 focus-visible:ring-0"
+                    className="h-9 border-0 bg-transparent px-0 text-center font-display text-xl focus-visible:ring-0"
                   />
                 ) : (
                   <div className="font-display text-xl">{grade}</div>
                 )}
-                <div
-                  className="font-script text-primary text-xs mt-1"
-                  title="Danno base incantesimo per questa scuola"
-                >
+                <div className="mt-1 text-xs font-script text-primary" title="Danno base incantesimo per questa scuola">
                   Danno base {formatModifier(dmg)}
                 </div>
               </div>
@@ -451,20 +518,24 @@ export const OpenSourceGdrSheet = ({
         </div>
       </section>
 
-      {/* === Monete === */}
       <section className="space-y-3">
         {lbl("section.monete", "Monete", "font-display text-xl gold-text", "h3")}
         <div className="grid grid-cols-3 gap-2">
           {COIN_TYPES.map((c) => (
-            <div key={c.key} className="bg-parchment-deep/20 border border-border/60 rounded p-3 text-center">
-              {lbl(`coin.${c.key}`, c.label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
+            <div key={c.key} className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center">
+              {lbl(
+                `coin.${c.key}`,
+                c.label,
+                "font-heading text-xs uppercase tracking-wider text-ink-faded",
+                "label",
+              )}
               {canEdit ? (
                 <Input
                   type="number"
                   min={0}
                   value={value.coins[c.key] ?? 0}
                   onChange={(e) => setCoin(c.key, e.target.value)}
-                  className="bg-transparent border-0 text-center font-display text-xl h-9 px-0 focus-visible:ring-0"
+                  className="h-9 border-0 bg-transparent px-0 text-center font-display text-xl focus-visible:ring-0"
                 />
               ) : (
                 <div className="font-display text-xl">{value.coins[c.key] ?? 0}</div>
@@ -474,44 +545,51 @@ export const OpenSourceGdrSheet = ({
         </div>
       </section>
 
-      {/* === Abilità apprese === */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           {lbl("section.abilita", "Abilità", "font-display text-xl gold-text", "h3")}
           {canEdit && (
             <Button variant="outline" size="sm" onClick={addSkill} className="font-heading">
-              <Plus className="h-4 w-4 mr-1" /> Aggiungi
+              <Plus className="mr-1 h-4 w-4" /> Aggiungi
             </Button>
           )}
         </div>
+
         {value.skills.length === 0 ? (
-          <p className="font-script italic text-ink-faded text-sm">Nessuna abilità appresa.</p>
+          <p className="text-sm font-script italic text-ink-faded">Nessuna abilità appresa.</p>
         ) : (
-          <div className="grid sm:grid-cols-2 gap-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             {value.skills.map((s) => (
-              <div key={s.id} className="bg-parchment-deep/20 border border-border/60 rounded p-2 flex items-center gap-2">
+              <div
+                key={s.id}
+                className="flex items-center gap-2 rounded border border-border/60 bg-parchment-deep/20 p-2"
+              >
                 {canEdit ? (
                   <>
                     <Input
                       value={s.name}
                       onChange={(e) => updateSkill(s.id, { name: e.target.value })}
-                      className="bg-transparent border-0 px-0 h-7 focus-visible:ring-0 font-script flex-1"
+                      className="h-9 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
                     />
                     <Input
                       type="number"
                       min={0}
                       max={20}
                       value={s.grade}
-                      onChange={(e) => updateSkill(s.id, { grade: Math.max(0, Math.min(20, Number(e.target.value) || 0)) })}
-                      className="bg-transparent border border-border/60 text-center w-16 h-7 px-0 focus-visible:ring-0 font-display"
+                      onChange={(e) =>
+                        updateSkill(s.id, {
+                          grade: Math.max(0, Math.min(20, Number(e.target.value) || 0)),
+                        })
+                      }
+                      className="h-9 w-16 border border-border/60 px-0 text-center font-display focus-visible:ring-0"
                     />
-                    <button onClick={() => removeSkill(s.id)} className="text-destructive">
+                    <button onClick={() => removeSkill(s.id)} className="shrink-0 text-destructive">
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </>
                 ) : (
                   <>
-                    <span className="font-script flex-1">{s.name}</span>
+                    <span className="flex-1 font-script">{s.name}</span>
                     <span className="font-display text-primary">{s.grade}</span>
                   </>
                 )}
@@ -521,57 +599,72 @@ export const OpenSourceGdrSheet = ({
         )}
       </section>
 
-      {/* === Ferite localizzate === */}
       <section className="space-y-3">
         {lbl("section.ferite", "Ferite & Stato del corpo", "font-display text-xl gold-text", "h3")}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {BODY_PARTS.map((p) => (
-            <div key={p} className="bg-parchment-deep/20 border border-border/60 rounded p-3">
-              {lbl(`ferita.${p}`, p, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
+            <div key={p} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
+              {lbl(
+                `ferita.${p}`,
+                p,
+                "font-heading text-xs uppercase tracking-wider text-ink-faded",
+                "label",
+              )}
               {canEdit ? (
                 <Input
                   value={value.ferite[p] ?? ""}
                   onChange={(e) => setFerita(p, e.target.value)}
                   placeholder="Stato / ferita..."
-                  className="bg-transparent border-0 px-0 h-7 focus-visible:ring-0 font-script"
+                  className="h-9 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
                 />
-              ) : renderText(value.ferite[p])}
+              ) : (
+                renderText(value.ferite[p])
+              )}
             </div>
           ))}
         </div>
       </section>
 
-      {/* === Equipaggiamento === */}
       <section className="space-y-3">
         {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           {EQUIPMENT_SECTIONS.map((sec) => {
             const items = value.equipment[sec.key] ?? [];
             return (
-              <div key={sec.key} className="bg-parchment-deep/20 border border-border/60 rounded p-3 space-y-1">
-                <div className="flex items-center justify-between">
-                  {lbl(`equip.${sec.key}`, sec.label, "font-heading text-sm uppercase tracking-wider text-ink-faded", "h3")}
+              <div
+                key={sec.key}
+                className="space-y-1 rounded border border-border/60 bg-parchment-deep/20 p-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  {lbl(
+                    `equip.${sec.key}`,
+                    sec.label,
+                    "font-heading text-sm uppercase tracking-wider text-ink-faded",
+                    "h3",
+                  )}
                   {canEdit && (
                     <button onClick={() => addEquipItem(sec.key)} className="text-primary hover:text-primary/80">
                       <Plus className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
+
                 {items.length === 0 && !canEdit && (
-                  <p className="font-script italic text-xs text-ink-faded">—</p>
+                  <p className="text-xs font-script italic text-ink-faded">—</p>
                 )}
+
                 {items.map((it, idx) => (
-                  <div key={idx} className="flex items-center gap-1 group">
+                  <div key={idx} className="group flex items-center gap-1">
                     {canEdit ? (
                       <>
                         <Input
                           value={it}
                           onChange={(e) => setEquipItem(sec.key, idx, e.target.value)}
-                          className="bg-transparent border-0 px-0 h-7 focus-visible:ring-0 font-script"
+                          className="h-9 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
                         />
                         <button
                           onClick={() => removeEquipItem(sec.key, idx)}
-                          className="opacity-0 group-hover:opacity-100 text-destructive shrink-0"
+                          className="shrink-0 text-destructive opacity-0 transition-opacity group-hover:opacity-100"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -587,7 +680,6 @@ export const OpenSourceGdrSheet = ({
         </div>
       </section>
 
-      {/* === Note === */}
       <section className="space-y-3">
         {lbl("section.note", "Note", "font-display text-xl gold-text", "h3")}
         {canEdit ? (
@@ -595,7 +687,7 @@ export const OpenSourceGdrSheet = ({
             value={value.note}
             onChange={(e) => set("note", e.target.value)}
             rows={4}
-            className="bg-parchment-deep/20 border-border/60 font-script focus-visible:ring-0"
+            className="border-border/60 bg-parchment-deep/20 font-script focus-visible:ring-0"
             placeholder="Annotazioni libere sul personaggio..."
           />
         ) : (
