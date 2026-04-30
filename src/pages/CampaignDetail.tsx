@@ -7,34 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ArrowLeft,
-  Plus,
-  Crown,
-  Loader2,
-  Trash2,
-  ScrollText,
-  UserPlus,
-  ShieldCheck,
-  Pencil,
-  Lock,
+  ArrowLeft, Plus, Crown, Loader2, Trash2, ScrollText, UserPlus, ShieldCheck, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenSourceGdr } from "@/lib/rulesets";
@@ -47,14 +29,12 @@ interface Character {
   image_url: string | null;
   owner_id: string;
 }
-
 interface Member {
   id: string;
   user_id: string;
   role: "narratore" | "giocatore";
   profile?: { display_name: string; avatar_url: string | null };
 }
-
 interface CampaignData {
   id: string;
   name: string;
@@ -62,7 +42,6 @@ interface CampaignData {
   ruleset_id: string;
   ruleset?: { name: string };
 }
-
 interface ProfileLite {
   id: string;
   display_name: string;
@@ -80,16 +59,19 @@ const CampaignDetail = () => {
   const [allProfiles, setAllProfiles] = useState<ProfileLite[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // create char dialog
   const [createOpen, setCreateOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [name, setName] = useState("");
   const [concept, setConcept] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // add member dialog (admin)
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [newMemberId, setNewMemberId] = useState<string>("");
   const [newMemberRole, setNewMemberRole] = useState<"giocatore" | "narratore">("giocatore");
 
+  // edit campaign dialog (admin)
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
@@ -102,7 +84,6 @@ const CampaignDetail = () => {
   const load = async () => {
     if (!campaignId) return;
     setLoading(true);
-
     const [camp, chars, mem] = await Promise.all([
       supabase
         .from("campaigns")
@@ -125,12 +106,10 @@ const CampaignDetail = () => {
       navigate("/campaigns");
       return;
     }
-
     setCampaign(camp.data as any);
 
     const memberRows = (mem.data ?? []) as Member[];
     const userIds = memberRows.map((r) => r.user_id);
-
     const profiles = userIds.length
       ? await supabase.from("profiles").select("id, display_name, avatar_url").in("id", userIds)
       : { data: [] as ProfileLite[] };
@@ -152,14 +131,11 @@ const CampaignDetail = () => {
     setLoading(false);
   };
 
-  useEffect(() => {
-    load();
-  }, [campaignId, isAdmin]);
+  useEffect(() => { load(); }, [campaignId, isAdmin]);
 
   const handleCreateChar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !campaignId) return;
-
     setSubmitting(true);
     const { data, error } = await supabase
       .from("characters")
@@ -171,16 +147,13 @@ const CampaignDetail = () => {
       })
       .select()
       .single();
-
     setSubmitting(false);
-
     if (error) {
       toast.error(error.message);
     } else {
       toast.success("Eroe creato!");
       setCreateOpen(false);
-      setName("");
-      setConcept("");
+      setName(""); setConcept("");
       navigate(`/characters/${data.id}`);
     }
   };
@@ -190,9 +163,7 @@ const CampaignDetail = () => {
 
   const handleWizardComplete = async (result: WizardResult) => {
     if (!user || !campaignId) return;
-
     setSubmitting(true);
-
     const customFields = [
       {
         id: OSGDR_FIELD_ID,
@@ -200,7 +171,6 @@ const CampaignDetail = () => {
         value: JSON.stringify(result.sheet),
       },
     ];
-
     const { data, error } = await supabase
       .from("characters")
       .insert({
@@ -212,9 +182,7 @@ const CampaignDetail = () => {
       })
       .select()
       .single();
-
     setSubmitting(false);
-
     if (error) {
       toast.error(error.message);
     } else {
@@ -227,7 +195,6 @@ const CampaignDetail = () => {
   const addMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!campaignId || !newMemberId) return;
-
     setSubmitting(true);
     const { error } = await supabase.from("campaign_members").insert({
       campaign_id: campaignId,
@@ -235,31 +202,22 @@ const CampaignDetail = () => {
       role: newMemberRole,
     });
     setSubmitting(false);
-
     if (error) {
-      if (error.code === "23505") {
-        toast.error("Questa campagna ha già un narratore o l'utente è già membro");
-      } else {
-        toast.error(error.message);
-      }
+      if (error.code === "23505") toast.error("Questa campagna ha già un narratore o l'utente è già membro");
+      else toast.error(error.message);
     } else {
       toast.success("Membro aggiunto");
       setAddMemberOpen(false);
-      setNewMemberId("");
-      setNewMemberRole("giocatore");
+      setNewMemberId(""); setNewMemberRole("giocatore");
       load();
     }
   };
 
   const removeMember = async (memberId: string) => {
     if (!confirm("Rimuovere questo membro dalla campagna?")) return;
-
     const { error } = await supabase.from("campaign_members").delete().eq("id", memberId);
     if (error) toast.error(error.message);
-    else {
-      toast.success("Membro rimosso");
-      load();
-    }
+    else { toast.success("Membro rimosso"); load(); }
   };
 
   const openEditCampaign = () => {
@@ -272,15 +230,12 @@ const CampaignDetail = () => {
   const saveCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!campaign) return;
-
     setSubmitting(true);
     const { error } = await supabase
       .from("campaigns")
       .update({ name: editName, description: editDesc || null })
       .eq("id", campaign.id);
-
     setSubmitting(false);
-
     if (error) toast.error(error.message);
     else {
       toast.success("Campagna aggiornata");
@@ -291,22 +246,15 @@ const CampaignDetail = () => {
 
   const promoteToNarrator = async (memberId: string) => {
     if (narrator) {
-      toast.error(
-        "C'è già un Narratore in questa campagna. Rimuovi prima il ruolo all'attuale Narratore."
-      );
+      toast.error("C'è già un Narratore in questa campagna. Rimuovi prima il ruolo all'attuale Narratore.");
       return;
     }
-
     const { error } = await supabase
       .from("campaign_members")
       .update({ role: "narratore" })
       .eq("id", memberId);
-
     if (error) toast.error(error.message);
-    else {
-      toast.success("Narratore assegnato");
-      load();
-    }
+    else { toast.success("Narratore assegnato"); load(); }
   };
 
   const demoteNarrator = async (memberId: string) => {
@@ -314,17 +262,12 @@ const CampaignDetail = () => {
       .from("campaign_members")
       .update({ role: "giocatore" })
       .eq("id", memberId);
-
     if (error) toast.error(error.message);
-    else {
-      toast.success("Ruolo di Narratore rimosso");
-      load();
-    }
+    else { toast.success("Ruolo di Narratore rimosso"); load(); }
   };
 
   const deleteCampaign = async () => {
     if (!campaign || !confirm("Eliminare definitivamente questa campagna e tutte le sue schede?")) return;
-
     const { error } = await supabase.from("campaigns").delete().eq("id", campaign.id);
     if (error) toast.error(error.message);
     else {
@@ -335,13 +278,9 @@ const CampaignDetail = () => {
 
   const deleteCharacter = async (charId: string, charName: string) => {
     if (!confirm(`Eliminare la scheda di "${charName}"? L'azione è irreversibile.`)) return;
-
     const { error } = await supabase.from("characters").delete().eq("id", charId);
     if (error) toast.error(error.message);
-    else {
-      toast.success("Scheda eliminata");
-      load();
-    }
+    else { toast.success("Scheda eliminata"); load(); }
   };
 
   if (loading || !campaign) {
@@ -355,6 +294,11 @@ const CampaignDetail = () => {
     );
   }
 
+  // Schede visibili in lista: giocatore vede solo le sue, narratore/admin vedono tutte (RLS lo impone già)
+  const visibleCharacters = isNarrator || isAdmin
+    ? characters
+    : characters.filter((c) => c.owner_id === user?.id);
+
   const availableProfiles = allProfiles.filter(
     (p) => !members.some((m) => m.user_id === p.id)
   );
@@ -363,97 +307,68 @@ const CampaignDetail = () => {
     <div className="min-h-screen">
       <SiteHeader />
       <main className="container py-8">
-        <Link
-          to="/campaigns"
-          className="mb-4 inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary"
-        >
+        <Link to="/campaigns" className="inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary mb-4">
           <ArrowLeft className="h-4 w-4" /> Tutte le campagne
         </Link>
 
-        <div className="parchment-panel mb-8 p-6 md:p-8">
+        <div className="parchment-panel p-6 md:p-8 mb-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="mb-1 text-xs font-heading uppercase tracking-wider text-primary/80">
+              <p className="text-xs uppercase tracking-wider font-heading text-primary/80 mb-1">
                 {campaign.ruleset?.name}
               </p>
-              <h1 className="mb-2 font-display text-3xl gold-text md:text-4xl">
-                {campaign.name}
-              </h1>
+              <h1 className="font-display text-3xl md:text-4xl gold-text mb-2">{campaign.name}</h1>
               {campaign.description && (
-                <p className="max-w-2xl font-script italic text-ink-faded">
-                  {campaign.description}
-                </p>
+                <p className="font-script italic text-ink-faded max-w-2xl">{campaign.description}</p>
               )}
             </div>
-
             {isAdmin && (
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="sm" onClick={openEditCampaign}>
-                  <Pencil className="mr-1 h-4 w-4" /> Modifica
+                  <Pencil className="h-4 w-4 mr-1" /> Modifica
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={deleteCampaign}
-                  className="text-destructive"
-                >
-                  <Trash2 className="mr-1 h-4 w-4" /> Elimina
+                <Button variant="ghost" size="sm" onClick={deleteCampaign} className="text-destructive">
+                  <Trash2 className="h-4 w-4 mr-1" /> Elimina
                 </Button>
               </div>
             )}
           </div>
 
-          <div className="ornament-divider my-5">
-            <span>✦</span>
-          </div>
+          <div className="ornament-divider my-5"><span>✦</span></div>
 
           <div className="flex flex-wrap items-start gap-4">
-            <div className="min-w-[240px] flex-1">
-              <div className="mb-2 flex items-center justify-between">
+            <div className="flex-1 min-w-[240px]">
+              <div className="flex items-center justify-between mb-2">
                 <Label className="text-xs font-heading uppercase tracking-wider text-ink-faded">
                   Membri
                 </Label>
-
                 {isAdmin && (
                   <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
                     <DialogTrigger asChild>
-                      <Button size="sm" variant="outline" className="h-7 font-heading">
-                        <UserPlus className="mr-1 h-3.5 w-3.5" /> Aggiungi
+                      <Button size="sm" variant="outline" className="font-heading h-7">
+                        <UserPlus className="h-3.5 w-3.5 mr-1" /> Aggiungi
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle className="font-display gold-text">
-                          Aggiungi un membro
-                        </DialogTitle>
+                        <DialogTitle className="font-display gold-text">Aggiungi un membro</DialogTitle>
                       </DialogHeader>
-
                       <form onSubmit={addMember} className="space-y-4">
                         <div>
                           <Label className="font-heading">Utente</Label>
                           <Select value={newMemberId} onValueChange={setNewMemberId}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Scegli un utente" />
-                            </SelectTrigger>
+                            <SelectTrigger><SelectValue placeholder="Scegli un utente" /></SelectTrigger>
                             <SelectContent>
                               {availableProfiles.map((p) => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {p.display_name}
-                                </SelectItem>
+                                <SelectItem key={p.id} value={p.id}>{p.display_name}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </div>
-
                         <div>
                           <Label className="font-heading">Ruolo</Label>
-                          <Select
-                            value={newMemberRole}
-                            onValueChange={(v) => setNewMemberRole(v as any)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
+                          <Select value={newMemberRole} onValueChange={(v) => setNewMemberRole(v as any)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="giocatore">Giocatore</SelectItem>
                               <SelectItem value="narratore" disabled={!!narrator}>
@@ -462,13 +377,8 @@ const CampaignDetail = () => {
                             </SelectContent>
                           </Select>
                         </div>
-
                         <DialogFooter>
-                          <Button
-                            type="submit"
-                            disabled={submitting || !newMemberId}
-                            className="font-heading"
-                          >
+                          <Button type="submit" disabled={submitting || !newMemberId} className="font-heading">
                             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aggiungi"}
                           </Button>
                         </DialogFooter>
@@ -477,60 +387,46 @@ const CampaignDetail = () => {
                   </Dialog>
                 )}
               </div>
-
               <div className="flex flex-wrap gap-2">
                 {members.length === 0 && (
-                  <span className="text-sm font-script italic text-ink-faded">
-                    Nessun membro ancora.
-                  </span>
+                  <span className="font-script italic text-ink-faded text-sm">Nessun membro ancora.</span>
                 )}
-
                 {members.map((m) => (
-                  <div
-                    key={m.id}
-                    className="flex items-center gap-2 rounded-full border border-border/60 bg-parchment-deep/30 py-1 pl-1 pr-2"
-                  >
+                  <div key={m.id} className="flex items-center gap-2 bg-parchment-deep/30 rounded-full pl-1 pr-2 py-1 border border-border/60">
                     <Avatar className="h-6 w-6">
                       <AvatarImage src={m.profile?.avatar_url ?? undefined} />
                       <AvatarFallback className="text-xs">
                         {m.profile?.display_name?.[0]?.toUpperCase() ?? "?"}
                       </AvatarFallback>
                     </Avatar>
-
-                    <span className="text-sm font-script">
-                      {m.profile?.display_name ?? "..."}
-                    </span>
-
+                    <span className="text-sm font-script">{m.profile?.display_name ?? "..."}</span>
                     {m.role === "narratore" && (
                       <Crown className="h-3.5 w-3.5 text-primary" aria-label="Narratore" />
                     )}
-
                     {isAdmin && m.role === "giocatore" && !narrator && (
                       <button
                         onClick={() => promoteToNarrator(m.id)}
-                        className="ml-1 text-primary/70 hover:text-primary"
+                        className="text-primary/70 hover:text-primary ml-1"
                         aria-label="Promuovi a Narratore"
                         title="Promuovi a Narratore"
                       >
                         <Crown className="h-3.5 w-3.5" />
                       </button>
                     )}
-
                     {isAdmin && m.role === "narratore" && (
                       <button
                         onClick={() => demoteNarrator(m.id)}
-                        className="ml-1 text-ink-faded hover:text-ink"
+                        className="text-ink-faded hover:text-ink ml-1"
                         aria-label="Rimuovi ruolo Narratore"
                         title="Rimuovi ruolo Narratore"
                       >
                         <Crown className="h-3.5 w-3.5 line-through opacity-60" />
                       </button>
                     )}
-
                     {isAdmin && (
                       <button
                         onClick={() => removeMember(m.id)}
-                        className="ml-1 text-destructive/70 hover:text-destructive"
+                        className="text-destructive/70 hover:text-destructive ml-1"
                         aria-label="Rimuovi"
                       >
                         <Trash2 className="h-3 w-3" />
@@ -545,57 +441,39 @@ const CampaignDetail = () => {
           {(isNarrator || isAdmin) && (
             <div className="mt-4 flex items-center gap-2 text-xs font-script italic text-ink-faded">
               <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-              {isAdmin
-                ? "Come Admin vedi tutte le schede."
-                : "Come Narratore vedi tutte le schede dei giocatori."}
+              {isAdmin ? "Come Admin vedi tutte le schede." : "Come Narratore vedi tutte le schede dei giocatori."}
             </div>
           )}
         </div>
 
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="font-heading text-2xl">Schede della campagna</h2>
-
-          {((isMember && !isNarrator) || isAdmin) &&
-            (useOsgdr && isActingAsPlayer ? (
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-heading text-2xl">
+            {isNarrator || isAdmin ? "Schede della campagna" : "Le tue schede"}
+          </h2>
+          {((isMember && !isNarrator) || isAdmin) && (
+            // Il wizard OSGDR si attiva SOLO se l'utente sta agendo come Giocatore.
+            // Admin e Narratore aprono direttamente la compilazione libera.
+            useOsgdr && isActingAsPlayer ? (
               <Button className="font-heading" onClick={() => setWizardOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" /> Nuovo eroe
+                <Plus className="h-4 w-4 mr-2" /> Nuovo eroe
               </Button>
             ) : (
               <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                 <DialogTrigger asChild>
-                  <Button className="font-heading">
-                    <Plus className="mr-2 h-4 w-4" /> Nuovo eroe
-                  </Button>
+                  <Button className="font-heading"><Plus className="h-4 w-4 mr-2" /> Nuovo eroe</Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle className="font-display gold-text">
-                      Forgia un nuovo eroe
-                    </DialogTitle>
+                    <DialogTitle className="font-display gold-text">Forgia un nuovo eroe</DialogTitle>
                   </DialogHeader>
-
                   <form onSubmit={handleCreateChar} className="space-y-4">
                     <div>
-                      <Label htmlFor="cname" className="font-heading">
-                        Nome
-                      </Label>
-                      <Input
-                        id="cname"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                      />
+                      <Label htmlFor="cname" className="font-heading">Nome</Label>
+                      <Input id="cname" value={name} onChange={(e) => setName(e.target.value)} required />
                     </div>
                     <div>
-                      <Label htmlFor="cconcept" className="font-heading">
-                        Breve descrizione
-                      </Label>
-                      <Input
-                        id="cconcept"
-                        value={concept}
-                        onChange={(e) => setConcept(e.target.value)}
-                        placeholder="Es. Ladro elfico in cerca di redenzione"
-                      />
+                      <Label htmlFor="cconcept" className="font-heading">Breve descrizione</Label>
+                      <Input id="cconcept" value={concept} onChange={(e) => setConcept(e.target.value)} placeholder="Es. Ladro elfico in cerca di redenzione" />
                     </div>
                     <DialogFooter>
                       <Button type="submit" disabled={submitting} className="font-heading">
@@ -605,7 +483,8 @@ const CampaignDetail = () => {
                   </form>
                 </DialogContent>
               </Dialog>
-            ))}
+            )
+          )}
         </div>
 
         {!isMember && !isAdmin ? (
@@ -614,152 +493,81 @@ const CampaignDetail = () => {
               Non sei membro di questa campagna. Chiedi all'Admin di aggiungerti.
             </p>
           </div>
-        ) : characters.length === 0 ? (
+        ) : visibleCharacters.length === 0 ? (
           <div className="parchment-panel p-10 text-center">
-            <ScrollText className="mx-auto mb-3 h-12 w-12 text-primary/60" />
+            <ScrollText className="h-12 w-12 text-primary/60 mx-auto mb-3" />
             <p className="font-script italic text-ink-faded">Nessuna scheda ancora.</p>
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {characters.map((c) => {
-              const canOpenCharacter =
-                isAdmin || isActingAsNarrator || isNarrator || c.owner_id === user?.id;
-
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {visibleCharacters.map((c) => {
               const canDelete = c.owner_id === user?.id || isAdmin;
-
-              const ownerMember = members.find((m) => m.user_id === c.owner_id);
-              const ownerName =
-                ownerMember?.profile?.display_name ??
-                allProfiles.find((p) => p.id === c.owner_id)?.display_name ??
-                "Giocatore";
-
-              const cardContent = (
-                <>
+              return (
+                <article key={c.id} className="parchment-panel overflow-hidden hover:shadow-glow transition-shadow group relative">
                   {canDelete && (
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        deleteCharacter(c.id, c.name);
-                      }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteCharacter(c.id, c.name); }}
                       title="Elimina scheda"
-                      className="absolute right-2 top-2 z-10 rounded-md bg-ink/50 p-1.5 text-destructive opacity-0 transition-opacity hover:bg-ink/70 group-hover:opacity-100"
+                      className="absolute top-2 right-2 z-10 p-1.5 rounded-md bg-ink/50 text-destructive opacity-0 group-hover:opacity-100 hover:bg-ink/70 transition-opacity"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}
-
-                  {!canOpenCharacter && (
-                    <div className="absolute left-2 top-2 z-10 flex items-center gap-1 rounded-md bg-ink/55 px-2 py-1 text-[11px] text-primary-foreground">
-                      <Lock className="h-3 w-3" />
-                      <span>Solo visibile</span>
-                    </div>
-                  )}
-
-                  <div className="relative aspect-[4/3] overflow-hidden bg-gradient-ember/20">
-                    {c.image_url ? (
-                      <img
-                        src={c.image_url}
-                        alt={c.name}
-                        className={`h-full w-full object-cover transition-transform duration-500 ${
-                          canOpenCharacter ? "group-hover:scale-105" : ""
-                        }`}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-parchment-deep to-parchment-shadow">
-                        <ScrollText className="h-16 w-16 text-primary/40" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-4">
-                    <h3
-                      className={`font-heading text-lg transition-colors ${
-                        canOpenCharacter ? "group-hover:text-primary" : ""
-                      }`}
-                    >
-                      {c.name}
-                    </h3>
-
-                    {c.concept && (
-                      <p className="line-clamp-1 text-sm font-script italic text-ink-faded">
-                        {c.concept}
-                      </p>
-                    )}
-
-                    {c.owner_id === user?.id ? (
-                      <Badge variant="outline" className="mt-2 text-xs">
-                        Tuo
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="mt-2 text-xs">
-                        Di {ownerName}
-                      </Badge>
-                    )}
-
-                    {!canOpenCharacter && (
-                      <p className="mt-2 text-xs font-script italic text-ink-faded">
-                        Puoi vedere nome e ritratto, ma non aprire la scheda.
-                      </p>
-                    )}
-                  </div>
-                </>
-              );
-
-              return canOpenCharacter ? (
-                <article
-                  key={c.id}
-                  className="group relative overflow-hidden parchment-panel transition-shadow hover:shadow-glow"
-                >
                   <Link to={`/characters/${c.id}`} className="block">
-                    {cardContent}
+                    <div className="aspect-[4/3] bg-gradient-ember/20 relative overflow-hidden">
+                      {c.image_url ? (
+                        <img src={c.image_url} alt={c.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-parchment-deep to-parchment-shadow">
+                          <ScrollText className="h-16 w-16 text-primary/40" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-heading text-lg group-hover:text-primary transition-colors">{c.name}</h3>
+                      {c.concept && <p className="font-script italic text-sm text-ink-faded line-clamp-1">{c.concept}</p>}
+                      {(() => {
+                        if (c.owner_id === user?.id) {
+                          return <Badge variant="outline" className="mt-2 text-xs">Tuo</Badge>;
+                        }
+                        // Per Admin/Narratore mostra il nome del giocatore proprietario
+                        if (isAdmin || isActingAsNarrator || isNarrator) {
+                          const ownerMember = members.find((m) => m.user_id === c.owner_id);
+                          const ownerName =
+                            ownerMember?.profile?.display_name ??
+                            allProfiles.find((p) => p.id === c.owner_id)?.display_name ??
+                            "Giocatore";
+                          return (
+                            <Badge variant="outline" className="mt-2 text-xs">
+                              Di {ownerName}
+                            </Badge>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
                   </Link>
-                </article>
-              ) : (
-                <article
-                  key={c.id}
-                  className="group relative overflow-hidden parchment-panel opacity-95"
-                >
-                  <div className="block cursor-default">
-                    {cardContent}
-                  </div>
                 </article>
               );
             })}
           </div>
         )}
 
+        {/* Edit campaign dialog */}
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="font-display gold-text">
-                Modifica campagna
-              </DialogTitle>
+              <DialogTitle className="font-display gold-text">Modifica campagna</DialogTitle>
             </DialogHeader>
             <form onSubmit={saveCampaign} className="space-y-4">
               <div>
-                <Label htmlFor="ecname" className="font-heading">
-                  Nome
-                </Label>
-                <Input
-                  id="ecname"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  required
-                />
+                <Label htmlFor="ecname" className="font-heading">Nome</Label>
+                <Input id="ecname" value={editName} onChange={(e) => setEditName(e.target.value)} required />
               </div>
               <div>
-                <Label htmlFor="ecdesc" className="font-heading">
-                  Descrizione
-                </Label>
-                <Textarea
-                  id="ecdesc"
-                  value={editDesc}
-                  onChange={(e) => setEditDesc(e.target.value)}
-                  rows={4}
-                />
+                <Label htmlFor="ecdesc" className="font-heading">Descrizione</Label>
+                <Textarea id="ecdesc" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={4} />
               </div>
               <DialogFooter>
                 <Button type="submit" disabled={submitting} className="font-heading">
@@ -770,6 +578,7 @@ const CampaignDetail = () => {
           </DialogContent>
         </Dialog>
 
+        {/* Wizard creazione personaggio OSGDR */}
         <OsgdrCharacterWizard
           open={wizardOpen}
           submitting={submitting}
