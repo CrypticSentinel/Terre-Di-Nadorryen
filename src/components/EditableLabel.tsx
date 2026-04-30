@@ -8,33 +8,19 @@ import { cn } from "@/lib/utils";
 
 export interface LabelOverride {
   text?: string;
-  size?: number; // font-size in px
+  size?: number;
 }
 
 interface EditableLabelProps {
-  /** Default text shown when no override is set */
   defaultText: string;
-  /** Current override (if any) */
   override?: LabelOverride;
-  /** Called when admin saves changes */
   onChange: (next: LabelOverride | undefined) => void;
-  /** Whether admin editing is enabled */
   canCustomize: boolean;
   className?: string;
   as?: "span" | "div" | "label" | "h1" | "h2" | "h3" | "h4";
-  /** Render extra children inline (e.g. asterisks) */
   children?: ReactNode;
 }
 
-/**
- * Renders a piece of label text. If `canCustomize` is true (admin), a small
- * pencil button appears on hover that opens a popover where the admin can
- * change both the displayed text and its font-size.
- *
- * The `override` is meant to be persisted by the parent (e.g. inside
- * `custom_fields` of a character) so the customisation is shared with all
- * users that view the same record.
- */
 export const EditableLabel = ({
   defaultText,
   override,
@@ -52,19 +38,37 @@ export const EditableLabel = ({
 
   const Tag = as as any;
   const text = override?.text?.trim() ? override.text : defaultText;
-  const style: CSSProperties = override?.size ? { fontSize: `${override.size}px`, lineHeight: 1.15 } : {};
 
-  const openEditor = () => {
+  const style: CSSProperties = override?.size
+    ? { fontSize: `${override.size}px`, lineHeight: 1.15 }
+    : {};
+
+  const syncDraftFromProps = () => {
     setDraftText(override?.text ?? defaultText);
     setDraftSize(override?.size ? String(override.size) : "");
-    setOpen(true);
+  };
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      syncDraftFromProps();
+    } else {
+      syncDraftFromProps();
+    }
+    setOpen(nextOpen);
   };
 
   const save = () => {
     const sizeNum = Number(draftSize);
     const next: LabelOverride = {};
-    if (draftText.trim() && draftText.trim() !== defaultText) next.text = draftText.trim();
-    if (Number.isFinite(sizeNum) && sizeNum > 0) next.size = Math.round(sizeNum);
+
+    if (draftText.trim() && draftText.trim() !== defaultText) {
+      next.text = draftText.trim();
+    }
+
+    if (Number.isFinite(sizeNum) && sizeNum > 0) {
+      next.size = Math.round(sizeNum);
+    }
+
     onChange(Object.keys(next).length ? next : undefined);
     setOpen(false);
   };
@@ -84,26 +88,39 @@ export const EditableLabel = ({
   }
 
   return (
-    <span className="inline-flex items-center gap-1 group/edit max-w-full">
+    <span className="group/edit inline-flex max-w-full items-center gap-1 align-middle">
       <Tag className={cn(className, "min-w-0")} style={style}>
         {text}
         {children}
       </Tag>
-      <Popover open={open} onOpenChange={setOpen}>
+
+      <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <button
             type="button"
-            onClick={openEditor}
-            className="opacity-0 group-hover/edit:opacity-100 focus:opacity-100 transition-opacity text-primary hover:text-primary/80 shrink-0"
-            title="Personalizza testo e dimensione (admin)"
-            aria-label="Personalizza etichetta"
+            className={cn(
+              "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
+              "text-primary transition-colors hover:bg-primary/10 hover:text-primary/80",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              "opacity-100 sm:h-7 sm:w-7 sm:opacity-0 sm:group-hover/edit:opacity-100 sm:focus:opacity-100"
+            )}
+            title="Personalizza etichetta"
+            aria-label={`Personalizza etichetta ${defaultText}`}
+            aria-expanded={open}
           >
-            <Pencil className="h-3 w-3" />
+            <Pencil className="h-3.5 w-3.5" />
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-72 space-y-3" align="start">
+
+        <PopoverContent
+          className="w-[min(22rem,calc(100vw-2rem))] space-y-3"
+          align="start"
+          sideOffset={8}
+        >
           <div className="space-y-1">
-            <Label className="font-heading text-xs uppercase tracking-wider">Testo</Label>
+            <Label className="font-heading text-xs uppercase tracking-wider">
+              Testo
+            </Label>
             <Input
               value={draftText}
               onChange={(e) => setDraftText(e.target.value)}
@@ -111,6 +128,7 @@ export const EditableLabel = ({
               autoFocus
             />
           </div>
+
           <div className="space-y-1">
             <Label className="font-heading text-xs uppercase tracking-wider">
               Dimensione (px)
@@ -127,11 +145,25 @@ export const EditableLabel = ({
               Lascia vuoto per usare la dimensione predefinita.
             </p>
           </div>
-          <div className="flex justify-between gap-2 pt-1">
-            <Button variant="ghost" size="sm" onClick={reset} className="font-heading">
-              <RotateCcw className="h-3.5 w-3.5 mr-1" /> Ripristina
+
+          <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:justify-between">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={reset}
+              className="font-heading"
+            >
+              <RotateCcw className="mr-1 h-3.5 w-3.5" />
+              Ripristina
             </Button>
-            <Button size="sm" onClick={save} className="font-heading">
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={save}
+              className="font-heading"
+            >
               Salva
             </Button>
           </div>
