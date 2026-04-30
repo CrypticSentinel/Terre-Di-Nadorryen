@@ -192,15 +192,15 @@ interface Props {
   value: OsgdrSheet;
   onChange: (next: OsgdrSheet) => void;
   canEdit: boolean;
-  /** Override map (key → text/size) used for admin label customisation */
   labelOverrides?: Record<string, LabelOverride>;
-  /** Whether the current user can customise labels (admin) */
   canCustomizeLabels?: boolean;
-  /** Persist a label override change (called immediately on save) */
   onLabelOverrideChange?: (key: string, override: LabelOverride | undefined) => void;
   assignedUserId?: string;
   onAssignedUserIdChange?: (next: string | undefined) => void;
 }
+
+const iconButtonClass =
+  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors";
 
 export const OpenSourceGdrSheet = ({
   value,
@@ -398,6 +398,8 @@ export const OpenSourceGdrSheet = ({
                 {canEdit ? (
                   <Input
                     type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     min={1}
                     max={30}
                     value={v}
@@ -500,6 +502,8 @@ export const OpenSourceGdrSheet = ({
                 {canEdit ? (
                   <Input
                     type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     min={0}
                     max={99}
                     value={grade}
@@ -532,6 +536,8 @@ export const OpenSourceGdrSheet = ({
               {canEdit ? (
                 <Input
                   type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   min={0}
                   value={value.coins[c.key] ?? 0}
                   onChange={(e) => setCoin(c.key, e.target.value)}
@@ -573,6 +579,8 @@ export const OpenSourceGdrSheet = ({
                     />
                     <Input
                       type="number"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       min={0}
                       max={20}
                       value={s.grade}
@@ -583,8 +591,13 @@ export const OpenSourceGdrSheet = ({
                       }
                       className="h-9 w-16 border border-border/60 px-0 text-center font-display focus-visible:ring-0"
                     />
-                    <button onClick={() => removeSkill(s.id)} className="shrink-0 text-destructive">
-                      <Trash2 className="h-3.5 w-3.5" />
+                    <button
+                      type="button"
+                      onClick={() => removeSkill(s.id)}
+                      className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
+                      aria-label="Rimuovi abilità"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </>
                 ) : (
@@ -643,8 +656,13 @@ export const OpenSourceGdrSheet = ({
                     "h3",
                   )}
                   {canEdit && (
-                    <button onClick={() => addEquipItem(sec.key)} className="text-primary hover:text-primary/80">
-                      <Plus className="h-3.5 w-3.5" />
+                    <button
+                      type="button"
+                      onClick={() => addEquipItem(sec.key)}
+                      className={`${iconButtonClass} text-primary hover:bg-primary/10`}
+                      aria-label={`Aggiungi item a ${sec.label}`}
+                    >
+                      <Plus className="h-4 w-4" />
                     </button>
                   )}
                 </div>
@@ -663,10 +681,12 @@ export const OpenSourceGdrSheet = ({
                           className="h-9 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
                         />
                         <button
+                          type="button"
                           onClick={() => removeEquipItem(sec.key, idx)}
-                          className="shrink-0 text-destructive opacity-0 transition-opacity group-hover:opacity-100"
+                          className={`${iconButtonClass} text-destructive opacity-90 hover:bg-destructive/10`}
+                          aria-label={`Rimuovi item da ${sec.label}`}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </>
                     ) : (
