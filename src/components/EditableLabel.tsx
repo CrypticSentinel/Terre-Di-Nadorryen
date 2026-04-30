@@ -1,142 +1,152 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useId, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Pencil, RotateCcw } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Settings2, Type, Check, X } from "lucide-react";
 
 export interface LabelOverride {
   text?: string;
-  size?: number; // font-size in px
+  size?: number;
 }
 
 interface EditableLabelProps {
-  /** Default text shown when no override is set */
   defaultText: string;
-  /** Current override (if any) */
   override?: LabelOverride;
-  /** Called when admin saves changes */
-  onChange: (next: LabelOverride | undefined) => void;
-  /** Whether admin editing is enabled */
-  canCustomize: boolean;
+  onChange?: (override: LabelOverride | undefined) => void;
+  canCustomize?: boolean;
   className?: string;
-  as?: "span" | "div" | "label" | "h1" | "h2" | "h3" | "h4";
-  /** Render extra children inline (e.g. asterisks) */
-  children?: ReactNode;
+  as?: keyof JSX.IntrinsicElements;
 }
 
-/**
- * Renders a piece of label text. If `canCustomize` is true (admin), a small
- * pencil button appears on hover that opens a popover where the admin can
- * change both the displayed text and its font-size.
- *
- * The `override` is meant to be persisted by the parent (e.g. inside
- * `custom_fields` of a character) so the customisation is shared with all
- * users that view the same record.
- */
 export const EditableLabel = ({
   defaultText,
   override,
   onChange,
-  canCustomize,
-  className,
+  canCustomize = false,
+  className = "",
   as = "span",
-  children,
 }: EditableLabelProps) => {
   const [open, setOpen] = useState(false);
   const [draftText, setDraftText] = useState(override?.text ?? defaultText);
-  const [draftSize, setDraftSize] = useState<string>(
-    override?.size ? String(override.size) : "",
+  const [draftSize, setDraftSize] = useState<string>(override?.size ? String(override.size) : "");
+  const elementId = useId();
+
+  const resolvedText = useMemo(() => override?.text?.trim() || defaultText, [override?.text, defaultText]);
+  const resolvedStyle = useMemo(
+    () => (override?.size ? { fontSize: `${override.size}px` } : undefined),
+    [override?.size],
   );
 
   const Tag = as as any;
-  const text = override?.text?.trim() ? override.text : defaultText;
-  const style: CSSProperties = override?.size ? { fontSize: `${override.size}px`, lineHeight: 1.15 } : {};
 
-  const openEditor = () => {
+  const resetDraft = () => {
     setDraftText(override?.text ?? defaultText);
     setDraftSize(override?.size ? String(override.size) : "");
-    setOpen(true);
   };
 
-  const save = () => {
-    const sizeNum = Number(draftSize);
-    const next: LabelOverride = {};
-    if (draftText.trim() && draftText.trim() !== defaultText) next.text = draftText.trim();
-    if (Number.isFinite(sizeNum) && sizeNum > 0) next.size = Math.round(sizeNum);
-    onChange(Object.keys(next).length ? next : undefined);
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (next) resetDraft();
+  };
+
+  const handleSave = () => {
+    const nextText = draftText.trim();
+    const nextSize = Number(draftSize);
+    const normalized: LabelOverride = {};
+
+    if (nextText && nextText !== defaultText) normalized.text = nextText;
+    if (!Number.isNaN(nextSize) && nextSize > 0) normalized.size = nextSize;
+
+    onChange?.(Object.keys(normalized).length ? normalized : undefined);
     setOpen(false);
   };
 
-  const reset = () => {
-    onChange(undefined);
+  const handleReset = () => {
+    setDraftText(defaultText);
+    setDraftSize("");
+    onChange?.(undefined);
     setOpen(false);
   };
-
-  if (!canCustomize) {
-    return (
-      <Tag className={className} style={style}>
-        {text}
-        {children}
-      </Tag>
-    );
-  }
 
   return (
-    <span className="inline-flex items-center gap-1 group/edit max-w-full">
-      <Tag className={cn(className, "min-w-0")} style={style}>
-        {text}
-        {children}
+    <div className="group flex w-full items-start justify-between gap-2 sm:items-center">
+      <Tag id={elementId} className={className} style={resolvedStyle}>
+        {resolvedText}
       </Tag>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            onClick={openEditor}
-            className="opacity-0 group-hover/edit:opacity-100 focus:opacity-100 transition-opacity text-primary hover:text-primary/80 shrink-0"
-            title="Personalizza testo e dimensione (admin)"
-            aria-label="Personalizza etichetta"
-          >
-            <Pencil className="h-3 w-3" />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-72 space-y-3" align="start">
-          <div className="space-y-1">
-            <Label className="font-heading text-xs uppercase tracking-wider">Testo</Label>
-            <Input
-              value={draftText}
-              onChange={(e) => setDraftText(e.target.value)}
-              placeholder={defaultText}
-              autoFocus
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="font-heading text-xs uppercase tracking-wider">
-              Dimensione (px)
-            </Label>
-            <Input
-              type="number"
-              min={8}
-              max={96}
-              value={draftSize}
-              onChange={(e) => setDraftSize(e.target.value)}
-              placeholder="auto"
-            />
-            <p className="text-[11px] font-script italic text-ink-faded">
-              Lascia vuoto per usare la dimensione predefinita.
-            </p>
-          </div>
-          <div className="flex justify-between gap-2 pt-1">
-            <Button variant="ghost" size="sm" onClick={reset} className="font-heading">
-              <RotateCcw className="h-3.5 w-3.5 mr-1" /> Ripristina
+
+      {canCustomize && (
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+          <DialogTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0 opacity-100 transition-opacity sm:h-8 sm:w-8 sm:opacity-0 sm:group-hover:opacity-100"
+              aria-label={`Modifica etichetta ${resolvedText}`}
+              aria-labelledby={elementId}
+            >
+              <Settings2 className="h-4 w-4" />
             </Button>
-            <Button size="sm" onClick={save} className="font-heading">
-              Salva
-            </Button>
-          </div>
-        </PopoverContent>
-      </Popover>
-    </span>
+          </DialogTrigger>
+
+          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-display gold-text">Modifica etichetta</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor={`${elementId}-text`} className="font-heading flex items-center gap-2">
+                  <Type className="h-4 w-4" /> Testo
+                </Label>
+                <Input
+                  id={`${elementId}-text`}
+                  value={draftText}
+                  onChange={(e) => setDraftText(e.target.value)}
+                  className="min-h-11"
+                  placeholder={defaultText}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`${elementId}-size`} className="font-heading">Dimensione font</Label>
+                <Input
+                  id={`${elementId}-size`}
+                  type="number"
+                  inputMode="numeric"
+                  min="10"
+                  max="40"
+                  step="1"
+                  value={draftSize}
+                  onChange={(e) => setDraftSize(e.target.value)}
+                  className="min-h-11"
+                  placeholder="Automatico"
+                />
+                <p className="text-xs italic text-muted-foreground">
+                  Lascia vuoto per usare la dimensione predefinita.
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter className="flex-col gap-2 sm:flex-row">
+              <Button type="button" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={handleReset}>
+                <X className="mr-2 h-4 w-4" /> Ripristina
+              </Button>
+              <Button type="button" className="min-h-11 w-full sm:w-auto" onClick={handleSave}>
+                <Check className="mr-2 h-4 w-4" /> Salva
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
   );
 };
