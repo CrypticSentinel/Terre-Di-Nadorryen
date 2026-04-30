@@ -753,14 +753,14 @@ const CampaignDetail = () => {
                       </p>
                     )}
 
-                    {c.owner_id === user?.id ? (
-                      <Badge variant="outline" className="mt-2 text-xs">
-                        Tuo
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="mt-2 text-xs">
-                        {c.label ?? `Di ${ownerName}`}
-                      </Badge>
+                    <Badge variant="outline" className="mt-2 text-xs">
+                      {c.owner_id === user?.id ? "Tuo" : ownerName}
+                    </Badge>
+
+                    {!canOpenCharacter && (
+                      <p className="mt-2 text-xs font-script italic text-ink-faded">
+                        Puoi vedere nome, descrizione e ritratto, ma non aprire la scheda.
+                      </p>
                     )}
                   </div>
                 </>
