@@ -81,10 +81,7 @@ function extractLabelOverrides(fields: CustomField[]): LabelOverridesMap {
 function packLabelOverrides(fields: CustomField[], overrides: LabelOverridesMap): CustomField[] {
   const others = fields.filter((x) => x.id !== LABEL_OVERRIDES_FIELD_ID);
   if (Object.keys(overrides).length === 0) return others;
-  return [
-    ...others,
-    { id: LABEL_OVERRIDES_FIELD_ID, label: "Label overrides", value: JSON.stringify(overrides) },
-  ];
+  return [...others, { id: LABEL_OVERRIDES_FIELD_ID, label: "Label overrides", value: JSON.stringify(overrides) }];
 }
 interface Note {
   id: string;
@@ -147,9 +144,7 @@ const CharacterDetail = () => {
   const canAssignCharacter = canEdit && (isAdmin || isActingAsNarrator);
   const canEditBackground = isOwner || isActingAsNarrator || isAdmin;
   const useOsgdrForm = isOpenSourceGdr(rulesetName);
-  const visibleFields = fields.filter(
-    (f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID && f.id !== BACKGROUND_FIELD_ID,
-  );
+  const visibleFields = fields.filter((f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID && f.id !== BACKGROUND_FIELD_ID);
 
   const load = async () => {
     if (!characterId) return;
@@ -186,19 +181,10 @@ const CharacterDetail = () => {
       owner_id: ch.owner_id,
     };
 
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("id", ch.owner_id)
-      .maybeSingle();
+    const { data: prof } = await supabase.from("profiles").select("display_name").eq("id", ch.owner_id).maybeSingle();
     setOwnerProfile(prof ?? null);
 
-    const { data: auditRows } = await supabase
-      .from("character_audit_log")
-      .select("id, user_id, user_display_name, summary, details, created_at")
-      .eq("character_id", ch.id)
-      .order("created_at", { ascending: false })
-      .limit(100);
+    const { data: auditRows } = await supabase.from("character_audit_log").select("id, user_id, user_display_name, summary, details, created_at").eq("character_id", ch.id).order("created_at", { ascending: false }).limit(100);
     setAuditLog((auditRows ?? []) as AuditEntry[]);
 
     setLoading(false);
@@ -206,31 +192,19 @@ const CharacterDetail = () => {
 
   useEffect(() => { void load(); }, [characterId]);
 
-  const addField = () => {
-    setFields((prev) => [...prev, { id: crypto.randomUUID(), label: "Nuovo campo", value: "" }]);
-  };
-  const updateField = (id: string, key: "label" | "value", val: string) => {
-    setFields((prev) => prev.map((f) => (f.id === id ? { ...f, [key]: val } : f)));
-  };
-  const removeField = (id: string) => {
-    setFields((prev) => prev.filter((f) => f.id !== id));
-  };
+  const addField = () => setFields((prev) => [...prev, { id: crypto.randomUUID(), label: "Nuovo campo", value: "" }]);
+  const updateField = (id: string, key: "label" | "value", val: string) => setFields((prev) => prev.map((f) => (f.id === id ? { ...f, [key]: val } : f)));
+  const removeField = (id: string) => setFields((prev) => prev.filter((f) => f.id !== id));
 
   const persistLabelOverride = async (key: string, override: LabelOverride | undefined) => {
     if (!character) return;
     const next = { ...labelOverrides };
-    if (!override || (override.text === undefined && override.size === undefined)) {
-      delete next[key];
-    } else {
-      next[key] = override;
-    }
+    if (!override || (override.text === undefined && override.size === undefined)) delete next[key];
+    else next[key] = override;
     setLabelOverrides(next);
     const newFields = packLabelOverrides(fields, next);
     setFields(newFields);
-    const { error } = await supabase
-      .from("characters")
-      .update({ custom_fields: newFields as any })
-      .eq("id", character.id);
+    const { error } = await supabase.from("characters").update({ custom_fields: newFields as any }).eq("id", character.id);
     if (error) toast.error(error.message);
     else toast.success("Etichetta aggiornata");
   };
@@ -239,17 +213,10 @@ const CharacterDetail = () => {
     if (!character || !user) return;
     let userName: string | null = null;
     try {
-      const { data: prof } = await supabase
-        .from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+      const { data: prof } = await supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
       userName = prof?.display_name ?? null;
     } catch {}
-    await supabase.from("character_audit_log").insert({
-      character_id: character.id,
-      user_id: user.id,
-      user_display_name: userName,
-      summary,
-      details: details ?? null,
-    });
+    await supabase.from("character_audit_log").insert({ character_id: character.id, user_id: user.id, user_display_name: userName, summary, details: details ?? null });
   };
 
   const buildChangeSummary = (snap: NonNullable<typeof dbSnapshotRef.current>) => {
@@ -260,20 +227,10 @@ const CharacterDetail = () => {
     if (useOsgdrForm) {
       const a1 = snap.osgdrSheet, a2 = osgdrSheet;
       const abilityKeys = Object.keys(a2.abilities ?? {}) as (keyof typeof a2.abilities)[];
-      for (const k of abilityKeys) {
-        if ((a1.abilities?.[k] ?? 0) !== (a2.abilities?.[k] ?? 0)) {
-          changes.push(`${String(k).toUpperCase()}: ${a1.abilities?.[k] ?? 0} → ${a2.abilities?.[k] ?? 0}`);
-        }
-      }
-      for (const sk of Object.keys(a2.magic ?? {})) {
-        if ((a1.magic as any)?.[sk] !== (a2.magic as any)?.[sk]) {
-          changes.push(`Magia ${sk}: ${(a1.magic as any)?.[sk] ?? 0} → ${(a2.magic as any)?.[sk] ?? 0}`);
-        }
-      }
+      for (const k of abilityKeys) if ((a1.abilities?.[k] ?? 0) !== (a2.abilities?.[k] ?? 0)) changes.push(`${String(k).toUpperCase()}: ${a1.abilities?.[k] ?? 0} → ${a2.abilities?.[k] ?? 0}`);
+      for (const sk of Object.keys(a2.magic ?? {})) if ((a1.magic as any)?.[sk] !== (a2.magic as any)?.[sk]) changes.push(`Magia ${sk}: ${(a1.magic as any)?.[sk] ?? 0} → ${(a2.magic as any)?.[sk] ?? 0}`);
       if ((a1.note ?? "") !== (a2.note ?? "")) changes.push("Note aggiornate");
-      if ((a1.skills?.length ?? 0) !== (a2.skills?.length ?? 0)) {
-        changes.push(`Abilità: ${a1.skills?.length ?? 0} → ${a2.skills?.length ?? 0}`);
-      }
+      if ((a1.skills?.length ?? 0) !== (a2.skills?.length ?? 0)) changes.push(`Abilità: ${a1.skills?.length ?? 0} → ${a2.skills?.length ?? 0}`);
     } else {
       const v1 = snap.fields.filter((f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID && f.id !== BACKGROUND_FIELD_ID);
       const v2 = fields.filter((f) => f.id !== OSGDR_FIELD_ID && f.id !== LABEL_OVERRIDES_FIELD_ID && f.id !== BACKGROUND_FIELD_ID);
@@ -289,25 +246,15 @@ const CharacterDetail = () => {
     let finalFields = useOsgdrForm ? packOsgdrSheet(fields, osgdrSheet) : fields;
     finalFields = packLabelOverrides(finalFields, labelOverrides);
     finalFields = packBackground(finalFields, background);
-
     const nextOwnerId = canAssignCharacter ? (assignedUserId ?? character.owner_id) : character.owner_id;
-
-    const { error } = await supabase
-      .from("characters")
-      .update({ name, concept: concept || null, custom_fields: finalFields as any, owner_id: nextOwnerId })
-      .eq("id", character.id);
+    const { error } = await supabase.from("characters").update({ name, concept: concept || null, custom_fields: finalFields as any, owner_id: nextOwnerId }).eq("id", character.id);
     setSaving(false);
     if (error) toast.error(error.message);
     else {
       toast.success("Scheda salvata");
       if (snap) {
         const changes = buildChangeSummary(snap);
-        if (changes.length > 0) {
-          await logAudit(
-            changes.length === 1 ? changes[0] : `${changes.length} modifiche alla scheda`,
-            { changes },
-          );
-        }
+        if (changes.length > 0) await logAudit(changes.length === 1 ? changes[0] : `${changes.length} modifiche alla scheda`, { changes });
       }
       await load();
     }
@@ -318,18 +265,13 @@ const CharacterDetail = () => {
     setBgSaving(true);
     const prev = dbSnapshotRef.current?.background ?? "";
     const finalFields = packBackground(fields, background);
-    const { error } = await supabase
-      .from("characters")
-      .update({ custom_fields: finalFields as any })
-      .eq("id", character.id);
+    const { error } = await supabase.from("characters").update({ custom_fields: finalFields as any }).eq("id", character.id);
     setBgSaving(false);
     if (error) toast.error(error.message);
     else {
       setFields(finalFields);
       toast.success("Background salvato");
-      if (prev !== background) {
-        await logAudit("Background aggiornato", { length_before: prev.length, length_after: background.length });
-      }
+      if (prev !== background) await logAudit("Background aggiornato", { length_before: prev.length, length_after: background.length });
       await load();
     }
   };
@@ -409,19 +351,22 @@ const CharacterDetail = () => {
   return (
     <div className="min-h-screen">
       <SiteHeader />
-      <main className="container py-8">
-        <Link to={`/campaigns/${character.campaign_id}`} className="inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary mb-4">
+      <main className="container py-4 sm:py-6 lg:py-8">
+        <Link
+          to={`/campaigns/${character.campaign_id}`}
+          className="mb-4 inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary"
+        >
           <ArrowLeft className="h-4 w-4" /> Torna alla campagna
         </Link>
 
-        <div className="grid lg:grid-cols-[300px_1fr] gap-4 lg:gap-6">
-          <aside className="space-y-5">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-6">
+          <aside className="order-1 space-y-4 lg:sticky lg:top-24 lg:self-start">
             <div className="parchment-panel p-3">
-              <div className="w-full max-w-[240px] aspect-[3/4] mx-auto bg-gradient-to-br from-parchment-deep to-parchment-shadow rounded overflow-hidden relative group">
+              <div className="relative group mx-auto aspect-[3/4] w-full max-w-[240px] overflow-hidden rounded bg-gradient-to-br from-parchment-deep to-parchment-shadow">
                 {character.image_url ? (
-                  <img src={character.image_url} alt={character.name} className="w-full h-full object-cover" />
+                  <img src={character.image_url} alt={character.name} className="h-full w-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
+                  <div className="flex h-full w-full items-center justify-center">
                     <ScrollText className="h-20 w-20 text-primary/40" />
                   </div>
                 )}
@@ -429,9 +374,9 @@ const CharacterDetail = () => {
                   <button
                     onClick={() => fileRef.current?.click()}
                     disabled={uploading}
-                    className="absolute inset-0 bg-ink/0 hover:bg-ink/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                    className="absolute inset-0 flex items-center justify-center bg-ink/0 opacity-0 transition-opacity hover:bg-ink/40 hover:opacity-100"
                   >
-                    <div className="text-primary-foreground flex flex-col items-center gap-1">
+                    <div className="flex flex-col items-center gap-1 text-primary-foreground">
                       {uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Camera className="h-6 w-6" />}
                       <span className="text-xs font-heading">Cambia immagine</span>
                     </div>
@@ -448,47 +393,62 @@ const CharacterDetail = () => {
             />
           </aside>
 
-          <div className="space-y-5">
-            <div className="parchment-panel p-6">
-              <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="space-y-4">
+            <div className="parchment-panel p-4 sm:p-5 lg:p-6">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex-1">
                   {canEdit ? (
                     <>
-                      <Input value={name} onChange={(e) => setName(e.target.value)} className="font-display text-3xl gold-text bg-transparent border-0 border-b border-border rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary h-auto py-1" />
-                      <Input value={concept} onChange={(e) => setConcept(e.target.value)} placeholder="Breve descrizione del personaggio..." className="font-script italic text-ink-faded bg-transparent border-0 px-0 focus-visible:ring-0 mt-1 h-auto" />
+                      <Input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="h-auto border-0 border-b border-border rounded-none bg-transparent px-0 py-1 text-2xl gold-text focus-visible:border-primary focus-visible:ring-0 sm:text-3xl font-display"
+                      />
+                      <Input
+                        value={concept}
+                        onChange={(e) => setConcept(e.target.value)}
+                        placeholder="Breve descrizione del personaggio..."
+                        className="mt-1 h-auto border-0 bg-transparent px-0 font-script italic text-ink-faded focus-visible:ring-0 text-sm sm:text-base"
+                      />
                     </>
                   ) : (
                     <>
-                      <h1 className="font-display text-3xl gold-text">{character.name}</h1>
-                      {character.concept && <p className="font-script italic text-ink-faded">{character.concept}</p>}
+                      <h1 className="font-display text-2xl gold-text sm:text-3xl">{character.name}</h1>
+                      {character.concept && <p className="font-script italic text-ink-faded text-sm sm:text-base">{character.concept}</p>}
                     </>
                   )}
                   <div className="mt-2">
                     {isOwner ? (
                       <Badge variant="outline" className="text-xs">Tuo</Badge>
                     ) : ownerProfile ? (
-                      <Badge variant="outline" className="text-xs">
-                        Di {ownerProfile.display_name}
-                      </Badge>
+                      <Badge variant="outline" className="text-xs">Di {ownerProfile.display_name}</Badge>
                     ) : null}
                   </div>
                 </div>
                 {canEdit && (
-                  <Button variant="ghost" size="sm" onClick={handleDelete} className="text-destructive shrink-0">
+                  <Button variant="ghost" size="sm" onClick={handleDelete} className="shrink-0 self-start text-destructive">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
               </div>
 
               <Tabs defaultValue="sheet">
-                <TabsList className="bg-parchment-deep/40 flex-wrap h-auto">
-                  <TabsTrigger value="sheet" className="font-heading"><ScrollText className="h-4 w-4 mr-1" /> Scheda</TabsTrigger>
-                  <TabsTrigger value="diary" className="font-heading"><BookMarked className="h-4 w-4 mr-1" /> Diario ({notes.length})</TabsTrigger>
-                  <TabsTrigger value="background" className="font-heading"><BookOpen className="h-4 w-4 mr-1" /> Background</TabsTrigger>
-                  <TabsTrigger value="audit" className="font-heading"><History className="h-4 w-4 mr-1" /> Modifiche</TabsTrigger>
+                <TabsList className="flex h-auto w-full gap-2 overflow-x-auto whitespace-nowrap bg-parchment-deep/40 p-1">
+                  <TabsTrigger value="sheet" className="shrink-0 font-heading text-xs sm:text-sm">
+                    <ScrollText className="mr-1 h-4 w-4" /> Scheda
+                  </TabsTrigger>
+                  <TabsTrigger value="diary" className="shrink-0 font-heading text-xs sm:text-sm">
+                    <BookMarked className="mr-1 h-4 w-4" /> Diario ({notes.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="background" className="shrink-0 font-heading text-xs sm:text-sm">
+                    <BookOpen className="mr-1 h-4 w-4" /> Background
+                  </TabsTrigger>
+                  <TabsTrigger value="audit" className="shrink-0 font-heading text-xs sm:text-sm">
+                    <History className="mr-1 h-4 w-4" /> Modifiche
+                  </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="sheet" className="space-y-4 mt-4">
+                <TabsContent value="sheet" className="mt-4 space-y-4">
                   {useOsgdrForm ? (
                     <>
                       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -561,11 +521,7 @@ const CharacterDetail = () => {
                                 />
                                 <div
                                   className="font-script whitespace-pre-wrap"
-                                  style={
-                                    labelOverrides[`free.${f.id}.value`]?.size
-                                      ? { fontSize: `${labelOverrides[`free.${f.id}.value`]!.size}px` }
-                                      : undefined
-                                  }
+                                  style={labelOverrides[`free.${f.id}.value`]?.size ? { fontSize: `${labelOverrides[`free.${f.id}.value`]!.size}px` } : undefined}
                                 >
                                   {f.value}
                                 </div>
@@ -601,13 +557,13 @@ const CharacterDetail = () => {
                   )}
                 </TabsContent>
 
-                <TabsContent value="diary" className="space-y-4 mt-4">
+                <TabsContent value="diary" className="mt-4 space-y-4">
                   <div className="flex justify-end">
                     <Dialog open={noteOpen} onOpenChange={setNoteOpen}>
                       <DialogTrigger asChild>
                         <Button size="sm" className="font-heading"><Plus className="h-4 w-4 mr-1" /> Nuova annotazione</Button>
                       </DialogTrigger>
-                      <DialogContent>
+                      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
                         <DialogHeader>
                           <DialogTitle className="font-display gold-text">Annotazione di sessione</DialogTitle>
                         </DialogHeader>
@@ -625,7 +581,7 @@ const CharacterDetail = () => {
                             <Textarea value={noteContent} onChange={(e) => setNoteContent(e.target.value)} rows={6} required />
                           </div>
                           <DialogFooter>
-                            <Button type="submit" disabled={noteSubmitting} className="font-heading">
+                            <Button type="submit" disabled={noteSubmitting} className="font-heading w-full sm:w-auto">
                               {noteSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Annota"}
                             </Button>
                           </DialogFooter>
@@ -660,7 +616,7 @@ const CharacterDetail = () => {
                   )}
                 </TabsContent>
 
-                <TabsContent value="background" className="space-y-3 mt-4">
+                <TabsContent value="background" className="mt-4 space-y-3">
                   {canEditBackground ? (
                     <>
                       <Textarea
@@ -671,7 +627,7 @@ const CharacterDetail = () => {
                         className="bg-parchment-deep/20 border-border/60 font-script focus-visible:ring-0"
                       />
                       <div className="flex justify-end pt-2 border-t border-border/40">
-                        <Button size="sm" onClick={saveBackground} disabled={bgSaving} className="font-heading">
+                        <Button size="sm" onClick={saveBackground} disabled={bgSaving} className="font-heading w-full sm:w-auto">
                           {bgSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Salva background</>}
                         </Button>
                       </div>
@@ -679,32 +635,21 @@ const CharacterDetail = () => {
                   ) : background.trim() ? (
                     <p className="font-script whitespace-pre-wrap text-ink leading-relaxed drop-cap">{background}</p>
                   ) : (
-                    <p className="text-center font-script italic text-ink-faded py-6">
-                      Nessun background scritto.
-                    </p>
+                    <p className="text-center font-script italic text-ink-faded py-6">Nessun background scritto.</p>
                   )}
                 </TabsContent>
 
-                <TabsContent value="audit" className="space-y-3 mt-4">
+                <TabsContent value="audit" className="mt-4 space-y-3">
                   {auditLog.length === 0 ? (
-                    <p className="text-center font-script italic text-ink-faded py-6">
-                      Nessuna modifica registrata.
-                    </p>
+                    <p className="text-center font-script italic text-ink-faded py-6">Nessuna modifica registrata.</p>
                   ) : (
                     <ul className="space-y-2">
                       {auditLog.map((entry) => {
-                        const changes: string[] = Array.isArray(entry.details?.changes)
-                          ? entry.details.changes
-                          : [];
+                        const changes: string[] = Array.isArray(entry.details?.changes) ? entry.details.changes : [];
                         return (
-                          <li
-                            key={entry.id}
-                            className="bg-parchment-deep/20 border border-border/60 rounded p-3"
-                          >
+                          <li key={entry.id} className="bg-parchment-deep/20 border border-border/60 rounded p-3">
                             <div className="flex items-start justify-between gap-2 flex-wrap">
-                              <div className="font-heading text-sm">
-                                {entry.summary}
-                              </div>
+                              <div className="font-heading text-sm">{entry.summary}</div>
                               <div className="text-xs font-script italic text-ink-faded">
                                 {new Date(entry.created_at).toLocaleString("it-IT", {
                                   day: "numeric",
@@ -715,14 +660,10 @@ const CharacterDetail = () => {
                                 })}
                               </div>
                             </div>
-                            <div className="text-xs font-script italic text-ink-faded mt-1">
-                              di {entry.user_display_name ?? "Utente sconosciuto"}
-                            </div>
+                            <div className="text-xs font-script italic text-ink-faded mt-1">di {entry.user_display_name ?? "Utente sconosciuto"}</div>
                             {changes.length > 1 && (
                               <ul className="mt-2 list-disc list-inside text-sm font-script space-y-0.5">
-                                {changes.map((c, i) => (
-                                  <li key={i}>{c}</li>
-                                ))}
+                                {changes.map((c, i) => <li key={i}>{c}</li>)}
                               </ul>
                             )}
                           </li>
