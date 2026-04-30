@@ -4,60 +4,35 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
-  Terre di Nadorryen — Design System (Clean / SpellCheck-inspired)
-  Sfondo bianco-azzurrino, accenti blu, tipografia serif classica.
-  Tutti i colori sono in HSL.
-*/
-
 @layer base {
   :root {
-    /* Base — bianco con sfumatura azzurrina */
     --background: 210 40% 98%;
     --foreground: 215 28% 17%;
-
     --card: 0 0% 100%;
     --card-foreground: 215 28% 17%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 215 28% 17%;
-
-    /* Blu primario (stile SpellCheck) */
     --primary: 217 91% 55%;
     --primary-foreground: 0 0% 100%;
     --primary-glow: 213 94% 68%;
-
-    /* Secondari neutri */
     --secondary: 210 40% 96%;
     --secondary-foreground: 215 28% 17%;
-
     --muted: 210 40% 94%;
     --muted-foreground: 215 16% 45%;
-
     --accent: 217 91% 55%;
     --accent-foreground: 0 0% 100%;
-
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 215 20% 88%;
     --input: 215 20% 88%;
     --ring: 217 91% 55%;
-
     --radius: 0.625rem;
-
-    /* Gradienti tematici */
     --gradient-sky: linear-gradient(180deg, hsl(210 60% 98%) 0%, hsl(215 50% 94%) 100%);
     --gradient-primary: linear-gradient(135deg, hsl(217 91% 55%) 0%, hsl(213 94% 68%) 100%);
-
-    /* Ombre soft */
     --shadow-soft: 0 1px 2px hsl(215 28% 17% / 0.04), 0 1px 3px hsl(215 28% 17% / 0.06);
     --shadow-card: 0 4px 12px -2px hsl(215 28% 17% / 0.06), 0 2px 4px -1px hsl(215 28% 17% / 0.04);
     --shadow-glow: 0 0 24px hsl(217 91% 55% / 0.25);
-
-    /* Transizioni */
     --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-
     --sidebar-background: 210 40% 98%;
     --sidebar-foreground: 215 28% 17%;
     --sidebar-primary: 217 91% 55%;
@@ -67,30 +42,36 @@
     --sidebar-border: 215 20% 88%;
     --sidebar-ring: 217 91% 55%;
   }
-}
 
-@layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
 
-  html, body, #root {
-    min-height: 100vh;
-  }
+  html, body, #root { min-height: 100vh; }
+
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
   body {
-    @apply text-foreground;
+    @apply text-foreground antialiased;
     font-family: 'Source Serif 4', 'Lora', Georgia, 'Times New Roman', serif;
     background-color: hsl(var(--background));
-    background-image:
-      linear-gradient(180deg, hsl(210 60% 99%) 0%, hsl(215 50% 95%) 100%);
+    background-image: linear-gradient(180deg, hsl(210 60% 99%) 0%, hsl(215 50% 95%) 100%);
     background-attachment: fixed;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   h1, h2, h3, h4 {
     font-family: 'Source Serif 4', 'Lora', Georgia, 'Times New Roman', serif;
     @apply tracking-normal;
     color: hsl(215 30% 25%);
+  }
+
+  img, video, canvas, svg {
+    max-width: 100%;
+  }
+
+  button, a, input, select, textarea {
+    -webkit-tap-highlight-color: transparent;
   }
 
   .font-display {
@@ -105,7 +86,6 @@
 }
 
 @layer components {
-  /* Pannello card pulito */
   .parchment-panel {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
@@ -113,7 +93,6 @@
     border-radius: var(--radius);
   }
 
-  /* Divisore minimale */
   .ornament-divider {
     display: flex;
     align-items: center;
@@ -129,12 +108,8 @@
     background: hsl(var(--border));
   }
 
-  /* Titolo (ex dorato) — ora blu pieno */
-  .gold-text {
-    color: hsl(var(--primary));
-  }
+  .gold-text { color: hsl(var(--primary)); }
 
-  /* Initial cap stile sobrio */
   .drop-cap::first-letter {
     font-family: 'Source Serif 4', Georgia, serif;
     font-weight: 700;
@@ -145,29 +120,20 @@
     color: hsl(var(--primary));
   }
 
-  /* Bottone pill stile SpellCheck */
   .btn-pill {
     @apply inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-medium text-primary-foreground transition-all;
     background: hsl(var(--primary));
     box-shadow: var(--shadow-soft);
   }
-  .btn-pill:hover {
-    background: hsl(var(--primary-glow));
-  }
+  .btn-pill:hover { background: hsl(var(--primary-glow)); }
 }
 
 @layer utilities {
-  .bg-vignette {
-    background-image: none;
-  }
-  .text-shadow-emboss {
-    text-shadow: none;
-  }
+  .bg-vignette { background-image: none; }
+  .text-shadow-emboss { text-shadow: none; }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 }
 
-/* === Open Source GDR — dimensioni testo richieste dall'utente === */
-/* Tutti i campi testo/numero della scheda OSGDR usano font-size 18px,
-   mentre i modificatori (caratteristiche e iniziativa) usano 22px. */
 .osgdr-sheet input,
 .osgdr-sheet textarea,
 .osgdr-sheet select,
@@ -176,7 +142,53 @@
   font-size: 18px;
 }
 
-/* === Theme variants — Stile === */
+@media (max-width: 768px) {
+  body {
+    background-attachment: scroll;
+  }
+
+  .container {
+    @apply px-4;
+  }
+
+  .parchment-panel {
+    border-radius: 0.75rem;
+  }
+
+  .osgdr-sheet {
+    font-size: 16px;
+  }
+
+  .osgdr-sheet input,
+  .osgdr-sheet textarea,
+  .osgdr-sheet select {
+    min-height: 44px;
+  }
+
+  .osgdr-sheet button {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  h1 { font-size: 1.6rem; line-height: 1.15; }
+  h2 { font-size: 1.35rem; line-height: 1.2; }
+  h3 { font-size: 1.15rem; line-height: 1.25; }
+
+  .font-display {
+    letter-spacing: 0;
+  }
+
+  .drop-cap::first-letter {
+    font-size: 2.4rem;
+    padding-right: 0.35rem;
+  }
+
+  .btn-pill {
+    width: 100%;
+  }
+}
+
 :root[data-theme-style="parchment"] {
   --background: 38 35% 92%;
   --foreground: 28 30% 18%;
@@ -190,9 +202,7 @@
   --border: 32 25% 70%;
   --input: 32 25% 70%;
 }
-:root[data-theme-style="parchment"] body {
-  background-image: linear-gradient(180deg, hsl(40 50% 95%) 0%, hsl(36 35% 88%) 100%);
-}
+:root[data-theme-style="parchment"] body { background-image: linear-gradient(180deg, hsl(40 50% 95%) 0%, hsl(36 35% 88%) 100%); }
 :root[data-theme-style="dark"] {
   --background: 222 30% 10%;
   --foreground: 210 40% 96%;
@@ -212,47 +222,12 @@
   --sidebar-accent-foreground: 210 40% 96%;
   --sidebar-border: 222 22% 24%;
 }
-:root[data-theme-style="dark"] body {
-  background-image: linear-gradient(180deg, hsl(222 30% 10%) 0%, hsl(222 30% 6%) 100%);
-}
+:root[data-theme-style="dark"] body { background-image: linear-gradient(180deg, hsl(222 30% 10%) 0%, hsl(222 30% 6%) 100%); }
 :root[data-theme-style="dark"] h1,
 :root[data-theme-style="dark"] h2,
 :root[data-theme-style="dark"] h3,
-:root[data-theme-style="dark"] h4 {
-  color: hsl(210 40% 92%);
-}
-
-/* === Theme variants — Accento === */
-:root[data-theme-accent="amber"] {
-  --primary: 38 92% 50%;
-  --primary-glow: 45 95% 60%;
-  --accent: 38 92% 50%;
-  --ring: 38 92% 50%;
-  --sidebar-primary: 38 92% 50%;
-  --sidebar-ring: 38 92% 50%;
-}
-:root[data-theme-accent="emerald"] {
-  --primary: 160 84% 39%;
-  --primary-glow: 158 75% 52%;
-  --accent: 160 84% 39%;
-  --ring: 160 84% 39%;
-  --sidebar-primary: 160 84% 39%;
-  --sidebar-ring: 160 84% 39%;
-}
-:root[data-theme-accent="rose"] {
-  --primary: 346 84% 56%;
-  --primary-glow: 350 90% 68%;
-  --accent: 346 84% 56%;
-  --ring: 346 84% 56%;
-  --sidebar-primary: 346 84% 56%;
-  --sidebar-ring: 346 84% 56%;
-}
-:root[data-theme-accent="violet"] {
-  --primary: 262 83% 58%;
-  --primary-glow: 268 90% 70%;
-  --accent: 262 83% 58%;
-  --ring: 262 83% 58%;
-  --sidebar-primary: 262 83% 58%;
-  --sidebar-ring: 262 83% 58%;
-}
-
+:root[data-theme-style="dark"] h4 { color: hsl(210 40% 92%); }
+:root[data-theme-accent="amber"] { --primary: 38 92% 50%; --primary-glow: 45 95% 60%; --accent: 38 92% 50%; --ring: 38 92% 50%; --sidebar-primary: 38 92% 50%; --sidebar-ring: 38 92% 50%; }
+:root[data-theme-accent="emerald"] { --primary: 160 84% 39%; --primary-glow: 158 75% 52%; --accent: 160 84% 39%; --ring: 160 84% 39%; --sidebar-primary: 160 84% 39%; --sidebar-ring: 160 84% 39%; }
+:root[data-theme-accent="rose"] { --primary: 346 84% 56%; --primary-glow: 350 90% 68%; --accent: 346 84% 56%; --ring: 346 84% 56%; --sidebar-primary: 346 84% 56%; --sidebar-ring: 346 84% 56%; }
+:root[data-theme-accent="violet"] { --primary: 262 83% 58%; --primary-glow: 268 90% 70%; --accent: 262 83% 58%; --ring: 262 83% 58%; --sidebar-primary: 262 83% 58%; --sidebar-ring: 262 83% 58%; }
