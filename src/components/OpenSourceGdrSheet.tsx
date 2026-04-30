@@ -552,69 +552,65 @@ export const OpenSourceGdrSheet = ({
       </section>
 
       <section className="space-y-3">
-  <div className="flex items-center justify-between gap-2">
-    {lbl("section.abilita", "Abilità", "font-display text-xl gold-text", "h3")}
-    {canEdit && (
-      <Button variant="outline" size="sm" onClick={addSkill} className="font-heading">
-        <Plus className="mr-1 h-4 w-4" /> Aggiungi
-      </Button>
-    )}
-  </div>
-
-  {value.skills.length === 0 ? (
-    <p className="text-sm font-script italic text-ink-faded">Nessuna abilità appresa.</p>
-  ) : (
-    <div className="grid gap-2 sm:grid-cols-2">
-      {value.skills.map((s) => (
-        <div
-          key={s.id}
-          className="rounded border border-border/60 bg-parchment-deep/20 p-3"
-        >
-          {canEdit ? (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Input
-                value={s.name}
-                onChange={(e) => updateSkill(s.id, { name: e.target.value })}
-                className="h-9 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
-              />
-
-              <div className="flex items-center gap-2 sm:w-auto">
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  min={0}
-                  max={20}
-                  value={s.grade}
-                  onChange={(e) =>
-                    updateSkill(s.id, {
-                      grade: Math.max(0, Math.min(20, Number(e.target.value) || 0)),
-                    })
-                  }
-                  className="h-9 w-20 border border-border/60 px-0 text-center font-display focus-visible:ring-0"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => removeSkill(s.id)}
-                  className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
-                  aria-label="Rimuovi abilità"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="flex-1 font-script">{s.name}</span>
-              <span className="font-display text-primary">{s.grade}</span>
-            </div>
+        <div className="flex items-center justify-between gap-2">
+          {lbl("section.abilita", "Abilità", "font-display text-xl gold-text", "h3")}
+          {canEdit && (
+            <Button variant="outline" size="sm" onClick={addSkill} className="font-heading">
+              <Plus className="mr-1 h-4 w-4" /> Aggiungi
+            </Button>
           )}
         </div>
-      ))}
-    </div>
-  )}
-</section>
+
+        {value.skills.length === 0 ? (
+          <p className="text-sm font-script italic text-ink-faded">Nessuna abilità appresa.</p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {value.skills.map((s) => (
+              <div
+                key={s.id}
+                className="flex items-center gap-2 rounded border border-border/60 bg-parchment-deep/20 p-2"
+              >
+                {canEdit ? (
+                  <>
+                    <Input
+                      value={s.name}
+                      onChange={(e) => updateSkill(s.id, { name: e.target.value })}
+                      className="h-9 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
+                    />
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      min={0}
+                      max={20}
+                      value={s.grade}
+                      onChange={(e) =>
+                        updateSkill(s.id, {
+                          grade: Math.max(0, Math.min(20, Number(e.target.value) || 0)),
+                        })
+                      }
+                      className="h-9 w-16 border border-border/60 px-0 text-center font-display focus-visible:ring-0"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeSkill(s.id)}
+                      className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
+                      aria-label="Rimuovi abilità"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-1 font-script">{s.name}</span>
+                    <span className="font-display text-primary">{s.grade}</span>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="space-y-3">
         {lbl("section.ferite", "Ferite & Stato del corpo", "font-display text-xl gold-text", "h3")}
@@ -643,69 +639,66 @@ export const OpenSourceGdrSheet = ({
       </section>
 
       <section className="space-y-3">
-  {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
-  <div className="grid gap-3 sm:grid-cols-2">
-    {EQUIPMENT_SECTIONS.map((sec) => {
-      const items = value.equipment[sec.key] ?? [];
-      return (
-        <div
-          key={sec.key}
-          className="space-y-2 rounded border border-border/60 bg-parchment-deep/20 p-3"
-        >
-          <div className="flex items-center justify-between gap-2">
-            {lbl(
-              `equip.${sec.key}`,
-              sec.label,
-              "font-heading text-sm uppercase tracking-wider text-ink-faded",
-              "h3",
-            )}
-            {canEdit && (
-              <button
-                type="button"
-                onClick={() => addEquipItem(sec.key)}
-                className={`${iconButtonClass} text-primary hover:bg-primary/10`}
-                aria-label={`Aggiungi item a ${sec.label}`}
+        {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {EQUIPMENT_SECTIONS.map((sec) => {
+            const items = value.equipment[sec.key] ?? [];
+            return (
+              <div
+                key={sec.key}
+                className="space-y-1 rounded border border-border/60 bg-parchment-deep/20 p-3"
               >
-                <Plus className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
-          {items.length === 0 && !canEdit && (
-            <p className="text-xs font-script italic text-ink-faded">—</p>
-          )}
-
-          {items.map((it, idx) => (
-            <div key={idx} className="rounded bg-background/20 p-2">
-              {canEdit ? (
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <Input
-                    value={it}
-                    onChange={(e) => setEquipItem(sec.key, idx, e.target.value)}
-                    className="h-9 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
-                  />
-
-                  <div className="flex justify-end sm:justify-start">
+                <div className="flex items-center justify-between gap-2">
+                  {lbl(
+                    `equip.${sec.key}`,
+                    sec.label,
+                    "font-heading text-sm uppercase tracking-wider text-ink-faded",
+                    "h3",
+                  )}
+                  {canEdit && (
                     <button
                       type="button"
-                      onClick={() => removeEquipItem(sec.key, idx)}
-                      className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
-                      aria-label={`Rimuovi item da ${sec.label}`}
+                      onClick={() => addEquipItem(sec.key)}
+                      className={`${iconButtonClass} text-primary hover:bg-primary/10`}
+                      aria-label={`Aggiungi item a ${sec.label}`}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Plus className="h-4 w-4" />
                     </button>
-                  </div>
+                  )}
                 </div>
-              ) : (
-                <span className="font-script">• {it}</span>
-              )}
-            </div>
-          ))}
+
+                {items.length === 0 && !canEdit && (
+                  <p className="text-xs font-script italic text-ink-faded">—</p>
+                )}
+
+                {items.map((it, idx) => (
+                  <div key={idx} className="group flex items-center gap-1">
+                    {canEdit ? (
+                      <>
+                        <Input
+                          value={it}
+                          onChange={(e) => setEquipItem(sec.key, idx, e.target.value)}
+                          className="h-9 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeEquipItem(sec.key, idx)}
+                          className={`${iconButtonClass} text-destructive opacity-90 hover:bg-destructive/10`}
+                          aria-label={`Rimuovi item da ${sec.label}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <span className="font-script">• {it}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
         </div>
-      );
-    })}
-  </div>
-</section>
+      </section>
 
       <section className="space-y-3">
         {lbl("section.note", "Note", "font-display text-xl gold-text", "h3")}
