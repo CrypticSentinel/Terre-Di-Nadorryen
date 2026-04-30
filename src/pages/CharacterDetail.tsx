@@ -45,6 +45,7 @@ interface CustomField {
   label: string;
   value: string;
 }
+
 interface Character {
   id: string;
   campaign_id: string;
@@ -71,6 +72,7 @@ function extractOsgdrSheet(fields: CustomField[]): OsgdrSheet {
       abilities: { ...EMPTY_OSGDR_SHEET.abilities },
       skills: [],
     };
+
   try {
     return normalizeOsgdrSheet(JSON.parse(f.value));
   } catch {
@@ -90,6 +92,7 @@ function extractBackground(fields: CustomField[]): string {
   const f = fields.find((x) => x.id === BACKGROUND_FIELD_ID);
   return f?.value ?? "";
 }
+
 function packBackground(fields: CustomField[], background: string): CustomField[] {
   const others = fields.filter((x) => x.id !== BACKGROUND_FIELD_ID);
   if (!background.trim()) return others;
@@ -160,6 +163,7 @@ const CharacterDetail = () => {
     details: any;
     created_at: string;
   }
+
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const dbSnapshotRef = useRef<{
     name: string;
@@ -177,10 +181,12 @@ const CharacterDetail = () => {
   const [noteSubmitting, setNoteSubmitting] = useState(false);
 
   const isOwner = !!character && !!user && character.owner_id === user.id;
-  const canEdit = isOwner || isAdmin || isActingAsNarrator;
+  const canView = isOwner || isAdmin || isActingAsNarrator;
+  const canEdit = canView;
   const canAssignCharacter = canEdit && (isAdmin || isActingAsNarrator);
-  const canEditBackground = isOwner || isActingAsNarrator || isAdmin;
+  const canEditBackground = canView;
   const useOsgdrForm = isOpenSourceGdr(rulesetName);
+
   const visibleFields = fields.filter(
     (f) =>
       f.id !== OSGDR_FIELD_ID &&
@@ -191,6 +197,7 @@ const CharacterDetail = () => {
   const load = async () => {
     if (!characterId) return;
     setLoading(true);
+
     const [c, n] = await Promise.all([
       supabase
         .from("characters")
@@ -203,14 +210,27 @@ const CharacterDetail = () => {
         .eq("character_id", characterId)
         .order("created_at", { ascending: false }),
     ]);
+
     if (c.error || !c.data) {
       toast.error("Personaggio non trovato");
       navigate("/campaigns");
       return;
     }
+
     const raw = c.data as any;
     const ch = raw as Character;
+
     if (!Array.isArray(ch.custom_fields)) ch.custom_fields = [];
+
+    const isAllowed =
+      !!user && (isAdmin || isActingAsNarrator || ch.owner_id === user.id);
+
+    if (!isAllowed) {
+      toast.error("Non puoi visualizzare questa scheda");
+      navigate(`/campaigns/${ch.campaign_id}`);
+      return;
+    }
+
     setCharacter(ch);
     setAssignedUserId(ch.owner_id);
     setRulesetName(raw?.campaigns?.rulesets?.name ?? null);
@@ -251,7 +271,7 @@ const CharacterDetail = () => {
 
   useEffect(() => {
     void load();
-  }, [characterId]);
+  }, [characterId, user?.id, isAdmin, isActingAsNarrator]);
 
   const addField = () => {
     setFields((prev) => [
@@ -259,9 +279,11 @@ const CharacterDetail = () => {
       { id: crypto.randomUUID(), label: "Nuovo campo", value: "" },
     ]);
   };
+
   const updateField = (id: string, key: "label" | "value", val: string) => {
     setFields((prev) => prev.map((f) => (f.id === id ? { ...f, [key]: val } : f)));
   };
+
   const removeField = (id: string) => {
     setFields((prev) => prev.filter((f) => f.id !== id));
   };
@@ -269,24 +291,29 @@ const CharacterDetail = () => {
   const persistLabelOverride = async (key: string, override: LabelOverride | undefined) => {
     if (!character) return;
     const next = { ...labelOverrides };
+
     if (!override || (override.text === undefined && override.size === undefined)) {
       delete next[key];
     } else {
       next[key] = override;
     }
+
     setLabelOverrides(next);
     const newFields = packLabelOverrides(fields, next);
     setFields(newFields);
+
     const { error } = await supabase
       .from("characters")
       .update({ custom_fields: newFields as any })
       .eq("id", character.id);
+
     if (error) toast.error(error.message);
     else toast.success("Etichetta aggiornata");
   };
 
   const logAudit = async (summary: string, details?: any) => {
     if (!character || !user) return;
+
     let userName: string | null = null;
     try {
       const { data: prof } = await supabase
@@ -296,6 +323,7 @@ const CharacterDetail = () => {
         .maybeSingle();
       userName = prof?.display_name ?? null;
     } catch {}
+
     await supabase.from("character_audit_log").insert({
       character_id: character.id,
       user_id: user.id,
@@ -307,17 +335,20 @@ const CharacterDetail = () => {
 
   const buildChangeSummary = (snap: NonNullable<typeof dbSnapshotRef.current>) => {
     const changes: string[] = [];
+
     if (snap.name !== name) changes.push(`Nome: "${snap.name}" → "${name}"`);
     if ((snap.concept ?? "") !== (concept ?? "")) changes.push("Descrizione aggiornata");
-    if (
-      snap.owner_id !==
-      (assignedUserId ?? character?.owner_id ?? snap.owner_id)
-    )
+
+    if (snap.owner_id !== (assignedUserId ?? character?.owner_id ?? snap.owner_id)) {
       changes.push("Proprietario scheda aggiornato");
+    }
+
     if (useOsgdrForm) {
-      const a1 = snap.osgdrSheet,
-        a2 = osgdrSheet;
+      const a1 = snap.osgdrSheet;
+      const a2 = osgdrSheet;
+
       const abilityKeys = Object.keys(a2.abilities ?? {}) as (keyof typeof a2.abilities)[];
+
       for (const k of abilityKeys) {
         if ((a1.abilities?.[k] ?? 0) !== (a2.abilities?.[k] ?? 0)) {
           changes.push(
@@ -325,6 +356,7 @@ const CharacterDetail = () => {
           );
         }
       }
+
       for (const sk of Object.keys(a2.magic ?? {})) {
         if ((a1.magic as any)?.[sk] !== (a2.magic as any)?.[sk]) {
           changes.push(
@@ -332,6 +364,7 @@ const CharacterDetail = () => {
           );
         }
       }
+
       if ((a1.note ?? "") !== (a2.note ?? "")) changes.push("Note aggiornate");
       if ((a1.skills?.length ?? 0) !== (a2.skills?.length ?? 0)) {
         changes.push(`Abilità: ${a1.skills?.length ?? 0} → ${a2.skills?.length ?? 0}`);
@@ -349,15 +382,19 @@ const CharacterDetail = () => {
           f.id !== LABEL_OVERRIDES_FIELD_ID &&
           f.id !== BACKGROUND_FIELD_ID
       );
-      if (JSON.stringify(v1) !== JSON.stringify(v2))
+
+      if (JSON.stringify(v1) !== JSON.stringify(v2)) {
         changes.push("Campi liberi modificati");
+      }
     }
+
     return changes;
   };
 
   const handleSave = async () => {
     if (!character) return;
     setSaving(true);
+
     const snap = dbSnapshotRef.current;
     let finalFields = useOsgdrForm ? packOsgdrSheet(fields, osgdrSheet) : fields;
     finalFields = packLabelOverrides(finalFields, labelOverrides);
@@ -376,10 +413,13 @@ const CharacterDetail = () => {
         owner_id: nextOwnerId,
       })
       .eq("id", character.id);
+
     setSaving(false);
+
     if (error) toast.error(error.message);
     else {
       toast.success("Scheda salvata");
+
       if (snap) {
         const changes = buildChangeSummary(snap);
         if (changes.length > 0) {
@@ -389,6 +429,7 @@ const CharacterDetail = () => {
           );
         }
       }
+
       await load();
     }
   };
@@ -396,23 +437,29 @@ const CharacterDetail = () => {
   const saveBackground = async () => {
     if (!character) return;
     setBgSaving(true);
+
     const prev = dbSnapshotRef.current?.background ?? "";
     const finalFields = packBackground(fields, background);
+
     const { error } = await supabase
       .from("characters")
       .update({ custom_fields: finalFields as any })
       .eq("id", character.id);
+
     setBgSaving(false);
+
     if (error) toast.error(error.message);
     else {
       setFields(finalFields);
       toast.success("Background salvato");
+
       if (prev !== background) {
         await logAudit("Background aggiornato", {
           length_before: prev.length,
           length_after: background.length,
         });
       }
+
       await load();
     }
   };
@@ -420,26 +467,34 @@ const CharacterDetail = () => {
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !character || !user) return;
+
     setUploading(true);
     const ext = file.name.split(".").pop();
     const path = `${user.id}/${character.id}-${Date.now()}.${ext}`;
+
     const { error: upErr } = await supabase.storage
       .from("avatars")
       .upload(path, file, { upsert: true });
+
     if (upErr) {
       toast.error(upErr.message);
       setUploading(false);
       return;
     }
+
     const { data: signed } = await supabase.storage
       .from("avatars")
       .createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
+
     const url = signed?.signedUrl ?? null;
+
     const { error: updErr } = await supabase
       .from("characters")
       .update({ image_url: url })
       .eq("id", character.id);
+
     setUploading(false);
+
     if (updErr) toast.error(updErr.message);
     else {
       toast.success("Immagine aggiornata");
@@ -449,7 +504,9 @@ const CharacterDetail = () => {
 
   const handleDelete = async () => {
     if (!character || !confirm("Eliminare questa scheda?")) return;
+
     const { error } = await supabase.from("characters").delete().eq("id", character.id);
+
     if (error) toast.error(error.message);
     else {
       toast.success("Scheda eliminata");
@@ -460,7 +517,9 @@ const CharacterDetail = () => {
   const submitNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !character) return;
+
     setNoteSubmitting(true);
+
     const { error } = await supabase.from("session_notes").insert({
       character_id: character.id,
       author_id: user.id,
@@ -468,7 +527,9 @@ const CharacterDetail = () => {
       content: noteContent,
       session_date: noteDate || null,
     });
+
     setNoteSubmitting(false);
+
     if (error) toast.error(error.message);
     else {
       toast.success("Annotazione aggiunta al diario");
@@ -482,7 +543,9 @@ const CharacterDetail = () => {
 
   const deleteNote = async (id: string) => {
     if (!confirm("Eliminare questa annotazione?")) return;
+
     const { error } = await supabase.from("session_notes").delete().eq("id", id);
+
     if (error) toast.error(error.message);
     else {
       toast.success("Annotazione rimossa");
@@ -515,7 +578,7 @@ const CharacterDetail = () => {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-6">
           <aside className="order-1 space-y-4 lg:order-none lg:space-y-5 lg:self-start">
             <div className="parchment-panel p-3 sm:p-4">
-              <div className="relative mx-auto aspect-[3/4] w-full max-w-[240px] overflow-hidden rounded bg-gradient-to-br from-parchment-deep to-parchment-shadow group">
+              <div className="group relative mx-auto aspect-[3/4] w-full max-w-[240px] overflow-hidden rounded bg-gradient-to-br from-parchment-deep to-parchment-shadow">
                 {character.image_url ? (
                   <img
                     src={character.image_url}
@@ -571,7 +634,7 @@ const CharacterDetail = () => {
                       <Input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="h-auto border-0 border-b border-border rounded-none bg-transparent px-0 py-1 font-display text-2xl gold-text focus-visible:border-primary focus-visible:ring-0 sm:text-3xl"
+                        className="h-auto rounded-none border-0 border-b border-border bg-transparent px-0 py-1 font-display text-2xl gold-text focus-visible:border-primary focus-visible:ring-0 sm:text-3xl"
                       />
                       <Input
                         value={concept}
@@ -586,9 +649,7 @@ const CharacterDetail = () => {
                         {character.name}
                       </h1>
                       {character.concept && (
-                        <p className="font-script italic text-ink-faded">
-                          {character.concept}
-                        </p>
+                        <p className="font-script italic text-ink-faded">{character.concept}</p>
                       )}
                     </>
                   )}
@@ -645,7 +706,8 @@ const CharacterDetail = () => {
                           Scheda <strong>Open Source GDR</strong>
                           {isAdmin && (
                             <span className="ml-2 not-italic text-primary">
-                              · Admin: passa il mouse sulle etichette per modificarne testo e dimensione.
+                              · Admin: passa il mouse sulle etichette per modificarne testo e
+                              dimensione.
                             </span>
                           )}
                         </p>
@@ -940,6 +1002,7 @@ const CharacterDetail = () => {
                         const changes: string[] = Array.isArray(entry.details?.changes)
                           ? entry.details.changes
                           : [];
+
                         return (
                           <li
                             key={entry.id}
