@@ -29,13 +29,16 @@ export default function Profile() {
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
-  const initialValues = useMemo<ProfileValues>(() => ({
-    name: "",
-    email: String(user?.email || ""),
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  }), [user]);
+  const initialValues = useMemo<ProfileValues>(
+    () => ({
+      name: "",
+      email: String(user?.email || ""),
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    }),
+    [user],
+  );
 
   const form = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
@@ -70,8 +73,12 @@ export default function Profile() {
     setSavingName(true);
 
     const name = form.getValues("name").trim();
+
     const { error } = await supabase.auth.update({
-      data: { full_name: name, display_name: name },
+      data: {
+        full_name: name,
+        display_name: name,
+      },
     });
 
     if (!error && user?.id) {
@@ -97,6 +104,7 @@ export default function Profile() {
     setSavingEmail(true);
 
     const email = form.getValues("email").trim();
+
     const { error } = await supabase.auth.update({
       email,
     });
@@ -152,7 +160,9 @@ export default function Profile() {
     <div className="container max-w-3xl py-8 space-y-6">
       <div className="space-y-1">
         <h1 className="font-display text-3xl">Profilo utente</h1>
-        <p className="text-muted-foreground">Gestisci i dati del tuo account personale.</p>
+        <p className="text-muted-foreground">
+          Gestisci i dati del tuo account personale.
+        </p>
       </div>
 
       {(error || message) && (
@@ -194,7 +204,11 @@ export default function Profile() {
                 )}
               />
               <Button type="button" onClick={saveName} disabled={savingName}>
-                {savingName ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserIcon className="mr-2 h-4 w-4" />}
+                {savingName ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <UserIcon className="mr-2 h-4 w-4" />
+                )}
                 Salva nome
               </Button>
             </div>
@@ -229,7 +243,11 @@ export default function Profile() {
                 )}
               />
               <Button type="button" onClick={saveEmail} disabled={savingEmail}>
-                {savingEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                {savingEmail ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="mr-2 h-4 w-4" />
+                )}
                 Salva e-mail
               </Button>
             </div>
@@ -277,7 +295,11 @@ export default function Profile() {
                 )}
               />
               <Button type="button" onClick={savePassword} disabled={savingPassword}>
-                {savingPassword ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
+                {savingPassword ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Lock className="mr-2 h-4 w-4" />
+                )}
                 Salva password
               </Button>
             </div>
