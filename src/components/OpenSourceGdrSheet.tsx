@@ -92,14 +92,6 @@ export interface OsgdrArmor {
   notes: string;
 }
 
-export interface OsgdrDamageEntry {
-  id: string;
-  source: string;
-  amount: string;
-  target: string;
-  notes: string;
-}
-
 export interface OsgdrSheet {
   razza: string;
   provenienza: string;
@@ -121,7 +113,6 @@ export interface OsgdrSheet {
   equipment: Record<EquipmentKey, OsgdrEquipmentItem[]>;
   weapons: OsgdrWeapon[];
   armors: OsgdrArmor[];
-  damageLog: OsgdrDamageEntry[];
   note: string;
   skills: OsgdrSkill[];
 }
@@ -149,7 +140,6 @@ export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
   ) as Record<EquipmentKey, OsgdrEquipmentItem[]>,
   weapons: [],
   armors: [],
-  damageLog: [],
   note: "",
   skills: [],
 };
@@ -259,16 +249,6 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
         notes: String(a?.notes ?? ""),
       }))
     : [];
-
-  const damageLog: OsgdrDamageEntry[] = Array.isArray(input.damageLog)
-    ? input.damageLog.map((d: any) => ({
-        id: String(d?.id ?? crypto.randomUUID()),
-        source: String(d?.source ?? ""),
-        amount: String(d?.amount ?? ""),
-        target: String(d?.target ?? ""),
-        notes: String(d?.notes ?? ""),
-      }))
-    : [];
   
     return {
     ...base,
@@ -280,7 +260,6 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
     equipment,
     weapons,
     armors,
-    damageLog,
     skills: sortSkillsAlphabetically(skills),
   };
 }
@@ -463,33 +442,6 @@ export const OpenSourceGdrSheet = ({
     onChange({
       ...value,
       armors: (value.armors ?? []).filter((a) => a.id !== id),
-    });
-
-  const addDamageEntry = () =>
-    onChange({
-      ...value,
-      damageLog: [
-        ...(value.damageLog ?? []),
-        {
-          id: crypto.randomUUID(),
-          source: "",
-          amount: "",
-          target: "",
-          notes: "",
-        },
-      ],
-    });
-
-  const updateDamageEntry = (id: string, patch: Partial<OsgdrDamageEntry>) =>
-    onChange({
-      ...value,
-      damageLog: (value.damageLog ?? []).map((d) => (d.id === id ? { ...d, ...patch } : d)),
-    });
-
-  const removeDamageEntry = (id: string) =>
-    onChange({
-      ...value,
-      damageLog: (value.damageLog ?? []).filter((d) => d.id !== id),
     });
 
   const addSkill = () =>
@@ -1045,72 +997,6 @@ export const OpenSourceGdrSheet = ({
                     <div><strong className="font-heading text-ink">{a.name || "—"}</strong></div>
                     <div className="text-sm text-ink-faded">Protezione: {a.protection || "—"} · Zona: {a.location || "—"}</div>
                     {a.notes && <div className="text-sm text-ink-faded">{a.notes}</div>}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          {lbl("section.damage", "Danni", "font-display text-xl gold-text", "h3")}
-          {canEdit && (
-            <Button variant="outline" size="sm" onClick={addDamageEntry} className="font-heading">
-              <Plus className="mr-1 h-4 w-4" /> Aggiungi
-            </Button>
-          )}
-        </div>
-
-        {(!value.damageLog || value.damageLog.length === 0) ? (
-          <p className="text-sm font-script italic text-ink-faded">Nessun danno registrato.</p>
-        ) : (
-          <div className="space-y-2">
-            {value.damageLog.map((d) => (
-              <div key={d.id} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
-                {canEdit ? (
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                    <Input
-                      value={d.source}
-                      onChange={(e) => updateDamageEntry(d.id, { source: e.target.value })}
-                      placeholder="Fonte es. Spada lunga"
-                      className="font-script"
-                    />
-                    <Input
-                      value={d.amount}
-                      onChange={(e) => updateDamageEntry(d.id, { amount: e.target.value })}
-                      placeholder="Danno es. 7"
-                      className="font-script"
-                    />
-                    <Input
-                      value={d.target}
-                      onChange={(e) => updateDamageEntry(d.id, { target: e.target.value })}
-                      placeholder="Bersaglio / zona"
-                      className="font-script"
-                    />
-                    <div className="flex gap-2">
-                      <Input
-                        value={d.notes}
-                        onChange={(e) => updateDamageEntry(d.id, { notes: e.target.value })}
-                        placeholder="Note"
-                        className="font-script"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeDamageEntry(d.id)}
-                        className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
-                        aria-label="Rimuovi danno"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-1 font-script">
-                    <div><strong className="font-heading text-ink">{d.source || "—"}</strong></div>
-                    <div className="text-sm text-ink-faded">Danno: {d.amount || "—"} · Bersaglio: {d.target || "—"}</div>
-                    {d.notes && <div className="text-sm text-ink-faded">{d.notes}</div>}
                   </div>
                 )}
               </div>
