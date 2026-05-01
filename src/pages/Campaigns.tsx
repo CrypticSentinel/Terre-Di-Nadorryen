@@ -7,10 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Plus, BookOpen, Loader2, Scroll, ShieldCheck, Pencil, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
@@ -166,137 +175,148 @@ const Campaigns = () => {
 
   return (
     <div className="min-h-screen">
-      <main className="container py-10">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="mb-1 font-display text-4xl gold-text">Le campagne</h1>
-            <p className="font-script italic text-ink-faded">
-              Le cronache aperte nelle Terre di Nadorryen
-            </p>
-          </div>
-
-          {isAdmin && (
-            <div className="flex flex-wrap gap-2">
-              <Dialog open={openRule} onOpenChange={setOpenRule}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="font-heading">
-                    <BookOpen className="mr-2 h-4 w-4" /> Nuovo regolamento
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle className="font-display gold-text">
-                      Nuovo regolamento
-                    </DialogTitle>
-                  </DialogHeader>
-
-                  <form onSubmit={createRuleset} className="space-y-4">
-                    <div>
-                      <Label htmlFor="rname" className="font-heading">Nome</Label>
-                      <Input
-                        id="rname"
-                        value={ruleName}
-                        onChange={(e) => setRuleName(e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="rdesc" className="font-heading">Descrizione</Label>
-                      <Textarea
-                        id="rdesc"
-                        value={ruleDesc}
-                        onChange={(e) => setRuleDesc(e.target.value)}
-                        rows={3}
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="rurl" className="font-heading">Link al regolamento</Label>
-                      <Input
-                        id="rurl"
-                        type="url"
-                        placeholder="https://..."
-                        value={ruleUrl}
-                        onChange={(e) => setRuleUrl(e.target.value)}
-                      />
-                    </div>
-
-                    <DialogFooter>
-                      <Button type="submit" disabled={submitting} className="font-heading">
-                        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crea"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-
-              <Dialog open={openCamp} onOpenChange={setOpenCamp}>
-                <DialogTrigger asChild>
-                  <Button className="font-heading">
-                    <Plus className="mr-2 h-4 w-4" /> Nuova campagna
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle className="font-display gold-text">
-                      Apri una nuova campagna
-                    </DialogTitle>
-                  </DialogHeader>
-
-                  <form onSubmit={createCampaign} className="space-y-4">
-                    <div>
-                      <Label htmlFor="cname" className="font-heading">Nome</Label>
-                      <Input
-                        id="cname"
-                        value={campName}
-                        onChange={(e) => setCampName(e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="cdesc" className="font-heading">Descrizione</Label>
-                      <Textarea
-                        id="cdesc"
-                        value={campDesc}
-                        onChange={(e) => setCampDesc(e.target.value)}
-                        rows={3}
-                      />
-                    </div>
-
-                    <div>
-                      <Label className="font-heading">Regolamento</Label>
-                      <Select value={campRuleset} onValueChange={setCampRuleset}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Scegli un regolamento" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {rulesets.map((r) => (
-                            <SelectItem key={r.id} value={r.id}>
-                              {r.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <DialogFooter>
-                      <Button type="submit" disabled={submitting} className="font-heading">
-                        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crea"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-          )}
+      <main className="container py-8 md:py-12">
+        <div className="mb-8">
+          <h1 className="mb-2 flex items-center gap-3 font-display text-4xl gold-text">
+            <Scroll className="h-8 w-8" />
+            Le campagne
+          </h1>
+          <p className="font-script italic text-ink-faded">
+            Le cronache aperte nelle Terre di Nadorryen
+          </p>
         </div>
 
         {isAdmin && (
-          <div className="parchment-panel mb-6 flex items-center gap-2 p-3 text-sm font-script italic text-ink-faded">
+          <div className="parchment-panel mb-8 flex items-center gap-2 p-3 text-sm font-script italic text-ink-faded">
             <ShieldCheck className="h-4 w-4 text-primary" />
             Sei <span className="font-heading not-italic text-ink">Admin</span>: puoi gestire campagne, regolamenti e membri.
+          </div>
+        )}
+
+        {isAdmin && (
+          <div className="mb-10 flex flex-wrap gap-2">
+            <Dialog open={openRule} onOpenChange={setOpenRule}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="font-heading">
+                  <BookOpen className="mr-2 h-4 w-4" /> Nuovo regolamento
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="font-display gold-text">
+                    Nuovo regolamento
+                  </DialogTitle>
+                </DialogHeader>
+
+                <form onSubmit={createRuleset} className="space-y-4">
+                  <div>
+                    <Label htmlFor="rname" className="font-heading">
+                      Nome
+                    </Label>
+                    <Input
+                      id="rname"
+                      value={ruleName}
+                      onChange={(e) => setRuleName(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="rdesc" className="font-heading">
+                      Descrizione
+                    </Label>
+                    <Textarea
+                      id="rdesc"
+                      value={ruleDesc}
+                      onChange={(e) => setRuleDesc(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="rurl" className="font-heading">
+                      Link al regolamento
+                    </Label>
+                    <Input
+                      id="rurl"
+                      type="url"
+                      placeholder="https://..."
+                      value={ruleUrl}
+                      onChange={(e) => setRuleUrl(e.target.value)}
+                    />
+                  </div>
+
+                  <DialogFooter>
+                    <Button type="submit" disabled={submitting} className="font-heading">
+                      {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crea"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={openCamp} onOpenChange={setOpenCamp}>
+              <DialogTrigger asChild>
+                <Button className="font-heading">
+                  <Plus className="mr-2 h-4 w-4" /> Nuova campagna
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="font-display gold-text">
+                    Apri una nuova campagna
+                  </DialogTitle>
+                </DialogHeader>
+
+                <form onSubmit={createCampaign} className="space-y-4">
+                  <div>
+                    <Label htmlFor="cname" className="font-heading">
+                      Nome
+                    </Label>
+                    <Input
+                      id="cname"
+                      value={campName}
+                      onChange={(e) => setCampName(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="cdesc" className="font-heading">
+                      Descrizione
+                    </Label>
+                    <Textarea
+                      id="cdesc"
+                      value={campDesc}
+                      onChange={(e) => setCampDesc(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="font-heading">Regolamento</Label>
+                    <Select value={campRuleset} onValueChange={setCampRuleset}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Scegli un regolamento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {rulesets.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <DialogFooter>
+                    <Button type="submit" disabled={submitting} className="font-heading">
+                      {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crea"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
 
@@ -331,7 +351,9 @@ const Campaigns = () => {
                     </p>
                   )}
 
-                  <div className="ornament-divider my-3"><span>✦</span></div>
+                  <div className="ornament-divider my-3">
+                    <span>✦</span>
+                  </div>
 
                   <div className="flex items-center gap-1 text-sm font-script text-ink-faded">
                     <BookOpen className="h-4 w-4" /> Apri la cronaca
@@ -343,7 +365,10 @@ const Campaigns = () => {
         )}
 
         <section className="mt-12">
-          <h2 className="mb-4 font-heading text-2xl">Regolamenti disponibili</h2>
+          <h2 className="mb-4 flex items-center gap-2 font-heading text-2xl">
+            <BookOpen className="h-5 w-5 text-primary" />
+            Regolamenti disponibili
+          </h2>
 
           <div className="grid gap-4 sm:grid-cols-2">
             {rulesets.map((r) => (
@@ -394,7 +419,9 @@ const Campaigns = () => {
 
             <form onSubmit={saveRuleset} className="space-y-4">
               <div>
-                <Label htmlFor="ename" className="font-heading">Nome</Label>
+                <Label htmlFor="ename" className="font-heading">
+                  Nome
+                </Label>
                 <Input
                   id="ename"
                   value={editName}
@@ -404,7 +431,9 @@ const Campaigns = () => {
               </div>
 
               <div>
-                <Label htmlFor="edesc" className="font-heading">Descrizione</Label>
+                <Label htmlFor="edesc" className="font-heading">
+                  Descrizione
+                </Label>
                 <Textarea
                   id="edesc"
                   value={editDesc}
@@ -414,7 +443,9 @@ const Campaigns = () => {
               </div>
 
               <div>
-                <Label htmlFor="eurl" className="font-heading">Link al regolamento</Label>
+                <Label htmlFor="eurl" className="font-heading">
+                  Link al regolamento
+                </Label>
                 <Input
                   id="eurl"
                   type="url"
