@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Mail, Lock, User as UserIcon } from "lucide-react";
+import { Loader2, Lock, User as UserIcon, Mail } from "lucide-react";
 
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 
 const profileSchema = z.object({
   name: z.string().trim().min(2, "Il nome deve contenere almeno 2 caratteri."),
-  email: z.string().trim().email("Inserisci un indirizzo e-mail valido."),
   newPassword: z.string().optional(),
   confirmPassword: z.string().optional(),
 });
@@ -25,19 +24,16 @@ export default function Profile() {
 
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
   const [savingName, setSavingName] = useState(false);
-  const [savingEmail, setSavingEmail] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
   const initialValues = useMemo<ProfileValues>(
     () => ({
       name: "",
-      email: String(user?.email || ""),
       newPassword: "",
       confirmPassword: "",
     }),
-    [user]
+    []
   );
 
   const form = useForm<ProfileValues>({
@@ -113,83 +109,50 @@ export default function Profile() {
     }
   };
 
-  const saveEmail = async () => {
-  setError(null);
-  setMessage(null);
-  setSavingEmail(true);
-
-  try {
-    const email = form.getValues("email").trim();
-
-    const { error } = await supabase.auth.updateUser({
-      email,
-    });
-
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
-    setMessage("Richiesta di cambio e-mail inviata. Controlla la posta per confermare.");
-  } catch (err) {
-    setError(
-      err instanceof Error
-        ? err.message
-        : "Errore imprevisto durante il salvataggio dell’e-mail."
-    );
-  } finally {
-    setSavingEmail(false);
-  }
-};
-
   const savePassword = async () => {
-  setError(null);
-  setMessage(null);
-  setSavingPassword(true);
+    setError(null);
+    setMessage(null);
+    setSavingPassword(true);
 
-  try {
-    const newPassword = form.getValues("newPassword")?.trim() || "";
-    const confirmPassword = form.getValues("confirmPassword")?.trim() || "";
+    try {
+      const newPassword = form.getValues("newPassword")?.trim() || "";
+      const confirmPassword = form.getValues("confirmPassword")?.trim() || "";
 
-    if (newPassword.length < 8) {
-      setError("La nuova password deve contenere almeno 8 caratteri.");
-      return;
+      if (newPassword.length < 8) {
+        setError("La nuova password deve contenere almeno 8 caratteri.");
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        setError("La conferma password non corrisponde.");
+        return;
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      form.setValue("newPassword", "");
+      form.setValue("confirmPassword", "");
+      setMessage("Password aggiornata con successo.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore imprevisto durante il salvataggio della password.");
+    } finally {
+      setSavingPassword(false);
     }
-
-    if (newPassword !== confirmPassword) {
-      setError("La conferma password non corrisponde.");
-      return;
-    }
-
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
-    form.setValue("newPassword", "");
-    form.setValue("confirmPassword", "");
-    setMessage("Password aggiornata con successo.");
-  } catch (err) {
-    setError(
-      err instanceof Error
-        ? err.message
-        : "Errore imprevisto durante il salvataggio della password."
-    );
-  } finally {
-    setSavingPassword(false);
-  }
-};
+  };
 
   return (
-    <div className="container max-w-3xl py-8 space-y-6">
+    <div className="space-y-6">
       <div className="space-y-1">
         <h1 className="font-display text-3xl">Profilo utente</h1>
         <p className="text-muted-foreground">
-          Gestisci i dati del tuo account personale.
+          Gestisci il tuo nome visualizzato e la password dell’account.
         </p>
       </div>
 
@@ -204,6 +167,21 @@ export default function Profile() {
           {error || message}
         </div>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            E-mail
+          </CardTitle>
+          <CardDescription>
+            L’indirizzo e-mail del tuo account non è modificabile.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Input value={user?.email ?? ""} disabled />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -225,7 +203,7 @@ export default function Profile() {
                   <FormItem>
                     <FormLabel>Nome</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="" />
+                      <Input {...field} placeholder="Inserisci il tuo nome" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -238,45 +216,6 @@ export default function Profile() {
                   <UserIcon className="mr-2 h-4 w-4" />
                 )}
                 Salva nome
-              </Button>
-            </div>
-          </Form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
-            E-mail
-          </CardTitle>
-          <CardDescription>
-            Modifica l’indirizzo e-mail usato per accedere.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>E-mail</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="email" placeholder="nome@esempio.it" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="button" onClick={saveEmail} disabled={savingEmail}>
-                {savingEmail ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Mail className="mr-2 h-4 w-4" />
-                )}
-                Salva e-mail
               </Button>
             </div>
           </Form>
