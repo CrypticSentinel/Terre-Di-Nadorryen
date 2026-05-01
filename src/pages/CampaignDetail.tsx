@@ -420,9 +420,12 @@ const CampaignDetail = () => {
     );
   }
 
-  const visibleCharacters = characters.filter(
-    (c) => !c.is_dead && (isAdmin || isActingAsNarrator || isNarrator || c.owner_id === user?.id)
-  );
+    const canManageAllCharacters = isAdmin || isActingAsNarrator || isNarrator;
+
+  const visibleCharacters = characters.filter((c) => {
+    if (c.is_dead) return false;
+    return canManageAllCharacters || c.owner_id === user?.id;
+  });
 
   const cemeteryCharacters = characters.filter((c) => !!c.is_dead);
 
@@ -700,11 +703,7 @@ const CampaignDetail = () => {
             {visibleCharacters.map((c) => {
               const canDelete = c.owner_id === user?.id || isAdmin;
               const canOpenCharacter =
-                isAdmin ||
-                isActingAsNarrator ||
-                isNarrator ||
-                c.owner_id === user?.id ||
-                !!c.is_dead;
+  canManageAllCharacters || c.owner_id === user?.id;
 
               const ownerName =
                 c.owner_display_name ??
