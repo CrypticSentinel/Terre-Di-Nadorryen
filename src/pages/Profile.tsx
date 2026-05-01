@@ -179,6 +179,9 @@ export default function Profile() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="" />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
