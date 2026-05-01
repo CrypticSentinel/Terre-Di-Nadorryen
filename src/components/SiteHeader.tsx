@@ -4,14 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  ScrollText,
-  LogOut,
-  User as UserIcon,
-  ShieldCheck,
-  Menu,
-  X,
-} from "lucide-react";
+import { ScrollText, LogOut, User as UserIcon, ShieldCheck, Menu, X,} from "lucide-react";
 import { EditableUiText } from "@/components/EditableUiText";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
@@ -92,7 +85,7 @@ export const SiteHeader = () => {
 
                 <Button asChild variant="ghost" size="sm" className="font-heading">
                   <Link to="/campaigns">
-                    <UserIcon className="mr-2 h-4 w-4" />
+                    <ScrollText className="mr-2 h-4 w-4" />
                     <EditableUiText
                       textKey="nav.campaigns"
                       defaultText="Le campagne"
@@ -185,7 +178,7 @@ export const SiteHeader = () => {
                     className="h-11 w-full justify-start font-heading"
                   >
                     <Link to="/campaigns" onClick={closeMobileMenu}>
-                      <UserIcon className="mr-2 h-4 w-4" />
+                      <ScrollText className="mr-2 h-4 w-4" />
                       <EditableUiText
                         textKey="nav.campaigns"
                         defaultText="Le campagne"
