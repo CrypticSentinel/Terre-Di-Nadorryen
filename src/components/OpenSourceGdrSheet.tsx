@@ -129,12 +129,18 @@ const sortAlphabetically = (items: string[]): string[] =>
 const sortSkillsAlphabetically = (skills: OsgdrSkill[]): OsgdrSkill[] =>
   [...skills].sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base" }));
 
-const normalizeAndSortItems = (items: string[]): string[] =>
-  sortAlphabetically(
-    items
-      .map((item) => item.trim())
-      .filter(Boolean)
-  );
+const normalizeAndSortItems = (items: string[]): string[] => {
+  const normalized = items.map((item) => item ?? "");
+
+  const filled = normalized
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+    .sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
+
+  const emptyCount = normalized.filter((item) => item.trim().length === 0).length;
+
+  return [...filled, ...Array(emptyCount).fill("")];
+};
 
 export function normalizeOsgdrSheet(input: any): OsgdrSheet {
   const base = EMPTY_OSGDR_SHEET;
@@ -288,39 +294,39 @@ export const OpenSourceGdrSheet = ({
     onChange({ ...value, ferite: { ...value.ferite, [part]: txt } });
 
   const setEquipItem = (sec: EquipmentKey, idx: number, txt: string) => {
-    const arr = [...(value.equipment[sec] ?? [])];
-    arr[idx] = txt;
-    onChange({ 
-      ...value, 
-      equipment: { 
-        ...value.equipment, 
-        [sec]: normalizeAndSortItems(arr) 
-      } 
-    });
-  };
+  const arr = [...(value.equipment[sec] ?? [])];
+  arr[idx] = txt;
+  onChange({
+    ...value,
+    equipment: {
+      ...value.equipment,
+      [sec]: normalizeAndSortItems(arr),
+    },
+  });
+};
 
-  const addEquipItem = (sec: EquipmentKey) => {
-    const arr = [...(value.equipment[sec] ?? []), ""];
-    onChange({ 
-      ...value, 
-      equipment: { 
-        ...value.equipment, 
-        [sec]: normalizeAndSortItems(arr) 
-      } 
-    });
-  };
+const addEquipItem = (sec: EquipmentKey) => {
+  const arr = [...(value.equipment[sec] ?? []), ""];
+  onChange({
+    ...value,
+    equipment: {
+      ...value.equipment,
+      [sec]: arr,
+    },
+  });
+};
 
-  const removeEquipItem = (sec: EquipmentKey, idx: number) => {
-    const arr = [...(value.equipment[sec] ?? [])];
-    arr.splice(idx, 1);
-    onChange({ 
-      ...value, 
-      equipment: { 
-        ...value.equipment, 
-        [sec]: normalizeAndSortItems(arr) 
-      } 
-    });
-  };
+const removeEquipItem = (sec: EquipmentKey, idx: number) => {
+  const arr = [...(value.equipment[sec] ?? [])];
+  arr.splice(idx, 1);
+  onChange({
+    ...value,
+    equipment: {
+      ...value.equipment,
+      [sec]: normalizeAndSortItems(arr),
+    },
+  });
+};
 
   const addSkill = () =>
     onChange({
@@ -692,7 +698,7 @@ export const OpenSourceGdrSheet = ({
         {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
         <div className="grid gap-3 sm:grid-cols-2">
           {EQUIPMENT_SECTIONS.map((sec) => {
-            const items = sortAlphabetically(value.equipment[sec.key] ?? []);
+            const items = normalizeAndSortItems(value.equipment[sec.key] ?? []);
             return (
               <div
                 key={sec.key}
