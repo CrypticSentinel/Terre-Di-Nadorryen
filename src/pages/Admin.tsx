@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -24,15 +23,18 @@ const Admin = () => {
 
   const loadProfiles = async () => {
     setLoading(true);
+
     const { data, error } = await supabase
       .from("profiles")
       .select("id, display_name, approval_status, created_at, approved_at")
       .order("created_at", { ascending: false });
+
     if (error) {
       toast.error("Errore nel caricamento dei profili");
     } else {
       setProfiles((data ?? []) as PendingProfile[]);
     }
+
     setLoading(false);
   };
 
@@ -53,6 +55,7 @@ const Admin = () => {
 
   const handleAction = async (id: string, status: "approved" | "rejected") => {
     setActioning(id);
+
     const { error } = await supabase
       .from("profiles")
       .update({
@@ -61,7 +64,9 @@ const Admin = () => {
         approved_at: new Date().toISOString(),
       })
       .eq("id", id);
+
     setActioning(null);
+
     if (error) {
       toast.error("Operazione fallita: " + error.message);
     } else {
@@ -75,10 +80,9 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen">
-      <SiteHeader />
       <div className="container py-8 md:py-12">
         <div className="mb-8">
-          <h1 className="font-display text-4xl gold-text mb-2 flex items-center gap-3">
+          <h1 className="mb-2 flex items-center gap-3 font-display text-4xl gold-text">
             <ShieldCheck className="h-8 w-8" />
             Sala del cronista
           </h1>
@@ -94,11 +98,13 @@ const Admin = () => {
         ) : (
           <>
             <section className="mb-10">
-              <h2 className="font-heading text-2xl mb-4 flex items-center gap-2">
+              <h2 className="mb-4 flex items-center gap-2 font-heading text-2xl">
                 <Hourglass className="h-5 w-5 text-primary" />
                 In attesa di approvazione
                 {pending.length > 0 && (
-                  <Badge variant="destructive" className="ml-2">{pending.length}</Badge>
+                  <Badge variant="destructive" className="ml-2">
+                    {pending.length}
+                  </Badge>
                 )}
               </h2>
 
@@ -109,13 +115,17 @@ const Admin = () => {
               ) : (
                 <div className="space-y-3">
                   {pending.map((p) => (
-                    <div key={p.id} className="parchment-panel p-4 flex items-center justify-between gap-4">
+                    <div
+                      key={p.id}
+                      className="parchment-panel flex items-center justify-between gap-4 p-4"
+                    >
                       <div>
                         <div className="font-heading text-lg">{p.display_name}</div>
                         <div className="text-xs text-ink-faded">
                           Iscritto il {new Date(p.created_at).toLocaleDateString("it-IT")}
                         </div>
                       </div>
+
                       <div className="flex gap-2">
                         <Button
                           size="sm"
@@ -124,8 +134,15 @@ const Admin = () => {
                           disabled={actioning === p.id}
                           className="font-heading"
                         >
-                          {actioning === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="h-4 w-4 mr-1" /> Approva</>}
+                          {actioning === p.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Check className="mr-1 h-4 w-4" /> Approva
+                            </>
+                          )}
                         </Button>
+
                         <Button
                           size="sm"
                           variant="destructive"
@@ -133,7 +150,7 @@ const Admin = () => {
                           disabled={actioning === p.id}
                           className="font-heading"
                         >
-                          <X className="h-4 w-4 mr-1" /> Respingi
+                          <X className="mr-1 h-4 w-4" /> Respingi
                         </Button>
                       </div>
                     </div>
@@ -143,15 +160,23 @@ const Admin = () => {
             </section>
 
             <section>
-              <h2 className="font-heading text-2xl mb-4">Cronache già giudicate</h2>
+              <h2 className="mb-4 font-heading text-2xl">Cronache già giudicate</h2>
+
               <div className="space-y-2">
                 {others.map((p) => (
-                  <div key={p.id} className="parchment-panel p-3 flex items-center justify-between">
+                  <div
+                    key={p.id}
+                    className="parchment-panel flex items-center justify-between p-3"
+                  >
                     <span className="font-heading">{p.display_name}</span>
+
                     <div className="flex items-center gap-2">
-                      <Badge variant={p.approval_status === "approved" ? "default" : "destructive"}>
+                      <Badge
+                        variant={p.approval_status === "approved" ? "default" : "destructive"}
+                      >
                         {p.approval_status === "approved" ? "Approvato" : "Respinto"}
                       </Badge>
+
                       {p.approval_status === "rejected" && (
                         <Button
                           size="sm"
@@ -162,6 +187,7 @@ const Admin = () => {
                           Riapprova
                         </Button>
                       )}
+
                       {p.approval_status === "approved" && p.id !== user.id && (
                         <Button
                           size="sm"
