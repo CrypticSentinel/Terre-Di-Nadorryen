@@ -79,18 +79,6 @@ export default function Profile() {
 
       const name = form.getValues("name").trim();
 
-      const { error: authError } = await supabase.auth.updateUser({
-        data: {
-          full_name: name,
-          display_name: name,
-        },
-      });
-
-      if (authError) {
-        setError(authError.message);
-        return;
-      }
-
       const { error: profileError } = await supabase
         .from("profiles")
         .update({ display_name: name })
@@ -128,18 +116,7 @@ export default function Profile() {
         return;
       }
 
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) {
-        setError(error.message);
-        return;
-      }
-
-      form.setValue("newPassword", "");
-      form.setValue("confirmPassword", "");
-      setMessage("Password aggiornata con successo.");
+      setError("La modifica password va gestita con il flusso auth del progetto.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore imprevisto durante il salvataggio della password.");
     } finally {
