@@ -393,7 +393,9 @@ export const OpenSourceGdrSheet = ({
     onChange({
       ...value,
       ferite: {
-                  ...(value.ferite[part] ?? {
+        ...value.ferite,
+        [part]: {
+          ...(value.ferite[part] ?? {
             naturalArmor: NATURAL_ARMOR_BY_PART[part] ?? 0,
             armor: "",
             wounds: "",
