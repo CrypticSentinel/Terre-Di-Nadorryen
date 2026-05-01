@@ -32,14 +32,13 @@ export const SiteHeader = () => {
 
     loadPendingCount();
 
-    const channel = supabase
-      .channel("admin-pending-profiles")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "profiles" },
-        () => loadPendingCount()
-      )
-      .subscribe();
+    const channel = supabase.channel(`admin-pending-profiles-${Math.random().toString(36).slice(2)}`);
+    channel.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "profiles" },
+      () => loadPendingCount()
+    );
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);
