@@ -67,36 +67,48 @@ export default function Profile() {
     loadDisplayName();
   }, [user, form]);
 
-  const saveName = async () => {
-    setError(null);
-    setMessage(null);
-    setSavingName(true);
+ const saveName = async () => {
+  setError(null);
+  setMessage(null);
+  setSavingName(true);
 
+  try {
     const name = form.getValues("name").trim();
 
-    const { error } = await supabase.auth.update({
+    if (!user?.id) {
+      setError("Utente non autenticato.");
+      return;
+    }
+
+    const { error: authError } = await supabase.auth.update({
       data: {
         full_name: name,
         display_name: name,
       },
     });
 
-    if (!error && user?.id) {
-      await supabase
-        .from("profiles")
-        .update({ display_name: name })
-        .eq("id", user.id);
+    if (authError) {
+      setError(authError.message);
+      return;
     }
 
-    setSavingName(false);
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({ display_name: name })
+      .eq("id", user.id);
 
-    if (error) {
-      setError(error.message);
+    if (profileError) {
+      setError(profileError.message);
       return;
     }
 
     setMessage("Nome aggiornato con successo.");
-  };
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Errore imprevisto durante l'aggiornamento del nome.");
+  } finally {
+    setSavingName(false);
+  }
+};
 
   const saveEmail = async () => {
     setError(null);
