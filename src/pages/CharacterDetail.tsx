@@ -236,7 +236,8 @@ const CharacterDetail = () => {
     if (!Array.isArray(ch.custom_fields)) ch.custom_fields = [];
 
     const isAllowed =
-      !!user && (isAdmin || isActingAsNarrator || ch.owner_id === user.id);
+      !!user &&
+      (isAdmin || isActingAsNarrator || ch.owner_id === user.id || !!ch.is_dead);
 
     if (!isAllowed) {
       toast.error("Non puoi visualizzare questa scheda");
