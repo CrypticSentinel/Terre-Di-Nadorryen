@@ -2,11 +2,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dices, RotateCw, Trash2, Plus, History, X, ChevronUp, ChevronDown } from "lucide-react";
+import {
+  Dices,
+  RotateCw,
+  Trash2,
+  Plus,
+  History,
+  X,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
@@ -48,13 +56,10 @@ export interface DiceRollRow {
 }
 
 interface DiceRollerProps {
-  /** Se passato, i tiri vengono pubblicati e sincronizzati con la campagna */
   campaignId?: string;
   characterId?: string;
   characterName?: string;
-  /** Variante visiva: "panel" (sidebar/desktop), "embedded" (dentro un altro container) */
   variant?: "panel" | "embedded";
-  /** Mostra il pulsante per chiudere/ridurre (usato dal dock mobile) */
   onClose?: () => void;
 }
 
@@ -62,6 +67,7 @@ const formatExpression = (groups: DiceGroup[], modifier: number) => {
   const parts = groups
     .filter((g) => g.count > 0)
     .map((g) => `${g.count}d${g.sides}`);
+
   let expr = parts.join(" + ") || "—";
   if (modifier !== 0) expr += ` ${modifier > 0 ? "+" : "-"} ${Math.abs(modifier)}`;
   return expr;
@@ -93,11 +99,12 @@ export const DiceRoller = ({
 
   const expression = useMemo(() => formatExpression(groups, modifier), [groups, modifier]);
 
-  // Carica cronologia + realtime dei tiri della campagna
   useEffect(() => {
     if (!campaignId) return;
+
     let cancelled = false;
     const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
+
     (async () => {
       const { data, error } = await supabase
         .from("dice_rolls")
@@ -106,7 +113,9 @@ export const DiceRoller = ({
         .gte("created_at", fifteenDaysAgo)
         .order("created_at", { ascending: false })
         .limit(200);
+
       if (cancelled) return;
+
       if (!error && data) {
         const rows = data as unknown as DiceRollRow[];
         setHistory(rows);
@@ -118,30 +127,39 @@ export const DiceRoller = ({
       .channel(`dice-rolls-${campaignId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "dice_rolls", filter: `campaign_id=eq.${campaignId}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "dice_rolls",
+          filter: `campaign_id=eq.${campaignId}`,
+        },
         (payload) => {
           const row = payload.new as unknown as DiceRollRow;
           if (seenIdsRef.current.has(row.id)) return;
+
           seenIdsRef.current.add(row.id);
           setHistory((prev) => [row, ...prev].slice(0, 200));
-          // Mostra a tutti i partecipanti (compreso chi ha tirato? sì,
-          // ma sopprimiamo se è già lo stesso user che ha appena tirato e
-          // quindi ha visto il toast locale): per evitare doppioni mostriamo
-          // solo se non è lo user corrente.
+
           if (row.user_id !== user?.id) {
             toast(formatRollSummary(row));
           }
-        },
+        }
       )
       .on(
         "postgres_changes",
-        { event: "DELETE", schema: "public", table: "dice_rolls", filter: `campaign_id=eq.${campaignId}` },
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "dice_rolls",
+          filter: `campaign_id=eq.${campaignId}`,
+        },
         (payload) => {
           const oldRow = payload.old as { id?: string };
           if (!oldRow?.id) return;
+
           seenIdsRef.current.delete(oldRow.id);
           setHistory((prev) => prev.filter((r) => r.id !== oldRow.id));
-        },
+        }
       )
       .subscribe();
 
@@ -153,8 +171,10 @@ export const DiceRoller = ({
 
   const updateGroup = (id: string, patch: Partial<DiceGroup>) =>
     setGroups((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
+
   const addGroup = () =>
     setGroups((prev) => [...prev, { id: crypto.randomUUID(), count: 1, sides: 6 }]);
+
   const removeGroup = (id: string) =>
     setGroups((prev) => (prev.length > 1 ? prev.filter((g) => g.id !== id) : prev));
 
@@ -166,16 +186,18 @@ export const DiceRoller = ({
     message: string;
   }) => {
     if (!campaignId || !user) return;
-    // Recupera display name dell'utente (best-effort, una sola volta cache lato Supabase)
+
     let userName: string | null = null;
+
     try {
       const { data: prof } = await supabase
         .from("profiles")
         .select("display_name")
         .eq("id", user.id)
         .maybeSingle();
+
       userName = prof?.display_name ?? null;
-    } catch { /* noop */ }
+    } catch {}
 
     const insertRow = {
       campaign_id: campaignId,
@@ -189,11 +211,13 @@ export const DiceRoller = ({
       total: params.total,
       message: params.message,
     };
+
     const { data, error } = await supabase
       .from("dice_rolls")
       .insert(insertRow)
       .select()
       .single();
+
     if (!error && data) {
       const row = data as unknown as DiceRollRow;
       seenIdsRef.current.add(row.id);
@@ -203,31 +227,43 @@ export const DiceRoller = ({
 
   const performRoll = () => {
     const active = groups.filter((g) => g.count > 0);
+
     if (active.length === 0) {
       toast.error("Aggiungi almeno un dado");
       return;
     }
+
     setRolling(true);
+
     setTimeout(() => {
       const dice: RolledDie[] = [];
+
       for (const g of active) {
         const c = Math.min(50, Math.max(1, Math.floor(g.count)));
         for (let i = 0; i < c; i++) {
-          dice.push({ sides: g.sides, value: Math.floor(Math.random() * g.sides) + 1 });
+          dice.push({
+            sides: g.sides,
+            value: Math.floor(Math.random() * g.sides) + 1,
+          });
         }
       }
+
       const sum = dice.reduce((acc, d) => acc + d.value, 0);
       const total = sum + modifier;
       const result: RollResult = { expression, dice, modifier, total };
+
       setLastResult(result);
       setRolling(false);
       setPendingBonusD20(false);
 
-      // Toast locale
-      const isSingleD20 = active.length === 1 && active[0].count === 1 && active[0].sides === 20;
+      const isSingleD20 =
+        active.length === 1 && active[0].count === 1 && active[0].sides === 20;
+
       let message = "";
+
       if (isSingleD20) {
         const v = dice[0].value;
+
         if (v === 1) {
           message = "💀 Fallimento critico!";
           toast.error(message);
@@ -244,28 +280,32 @@ export const DiceRoller = ({
         toast(message);
       }
 
-      // Pubblica per tutti i partecipanti
       publishRoll({ expression, dice, modifier, total, message });
     }, 500);
   };
 
   const performBonusD20 = () => {
     if (!lastResult) return;
+
     setRolling(true);
+
     setTimeout(() => {
       const v = Math.floor(Math.random() * 20) + 1;
       const previousCumulative = lastResult.cumulativeTotal ?? lastResult.total;
       const newCumulative = previousCumulative + v;
       const bonusRolls = [...(lastResult.bonusRolls ?? []), v];
+
       const updated: RollResult = {
         ...lastResult,
         bonusRolls,
         cumulativeTotal: newCumulative,
       };
+
       setLastResult(updated);
       setRolling(false);
 
       let message = "";
+
       if (v === 20) {
         message = `✨ Ancora 20! Ritira di nuovo · cumulato ${newCumulative}`;
         toast.success(message);
@@ -280,8 +320,8 @@ export const DiceRoller = ({
         setPendingBonusD20(false);
       }
 
-      // Pubblica il bonus come tiro a sé
       const dice: RolledDie[] = [{ sides: 20, value: v }];
+
       publishRoll({
         expression: "+1d20 (ritiro)",
         dice,
@@ -294,22 +334,24 @@ export const DiceRoller = ({
 
   const displayedTotal = lastResult?.cumulativeTotal ?? lastResult?.total ?? 0;
 
-  const containerClass = variant === "embedded"
-    ? "space-y-4"
-    : "parchment-panel p-4 sm:p-5 space-y-4";
+  const containerClass =
+    variant === "embedded"
+      ? "space-y-4"
+      : "parchment-panel p-4 sm:p-5 space-y-4";
 
   return (
     <div className={containerClass}>
       <div className="flex items-center gap-2">
         <Dices className="h-5 w-5 text-primary" />
-        <h3 className="font-heading text-lg flex-1">Tiri di dado</h3>
+        <h3 className="flex-1 font-heading text-lg">Tiri di dado</h3>
+
         {campaignId && (
           <button
             type="button"
             onClick={() => setHistoryOpen((v) => !v)}
             className={cn(
-              "p-1.5 rounded-md text-ink-faded hover:text-primary transition-colors",
-              historyOpen && "text-primary bg-primary/10",
+              "rounded-md p-1.5 text-ink-faded transition-colors hover:text-primary",
+              historyOpen && "bg-primary/10 text-primary"
             )}
             title="Cronologia tiri"
             aria-label="Cronologia tiri"
@@ -317,11 +359,12 @@ export const DiceRoller = ({
             <History className="h-4 w-4" />
           </button>
         )}
+
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-md text-ink-faded hover:text-foreground transition-colors"
+            className="rounded-md p-1.5 text-ink-faded transition-colors hover:text-foreground"
             title="Chiudi"
             aria-label="Chiudi"
           >
@@ -330,7 +373,6 @@ export const DiceRoller = ({
         )}
       </div>
 
-      {/* Gruppi di dadi */}
       <div className="space-y-2">
         {groups.map((g) => (
           <div key={g.id} className="flex items-center gap-2">
@@ -340,12 +382,16 @@ export const DiceRoller = ({
               max={50}
               value={g.count}
               onChange={(e) =>
-                updateGroup(g.id, { count: Math.max(1, Math.min(50, Number(e.target.value) || 1)) })
+                updateGroup(g.id, {
+                  count: Math.max(1, Math.min(50, Number(e.target.value) || 1)),
+                })
               }
-              className="w-14 h-9 text-center font-display px-1"
+              className="h-9 w-14 px-1 text-center font-display"
               aria-label="Numero di dadi"
             />
+
             <span className="font-script text-ink-faded">d</span>
+
             <select
               value={g.sides}
               onChange={(e) => updateGroup(g.id, { sides: Number(e.target.value) })}
@@ -353,13 +399,17 @@ export const DiceRoller = ({
               aria-label="Tipo di dado"
             >
               {DIE_SIDES.map((s) => (
-                <option key={s} value={s}>{s}</option>
+                <option key={s} value={s}>
+                  {s}
+                </option>
               ))}
             </select>
+
             {groups.length > 1 && (
               <button
+                type="button"
                 onClick={() => removeGroup(g.id)}
-                className="text-destructive hover:opacity-80 ml-auto p-1"
+                className="ml-auto p-1 text-destructive hover:opacity-80"
                 aria-label="Rimuovi gruppo"
               >
                 <Trash2 className="h-4 w-4" />
@@ -367,70 +417,79 @@ export const DiceRoller = ({
             )}
           </div>
         ))}
-        <Button variant="outline" size="sm" onClick={addGroup} className="font-heading w-full">
-          <Plus className="h-3.5 w-3.5 mr-1" /> Aggiungi dado
+
+        <Button variant="outline" size="sm" onClick={addGroup} className="w-full font-heading">
+          <Plus className="mr-1 h-3.5 w-3.5" />
+          Aggiungi dado
         </Button>
       </div>
 
-      {/* Modificatore */}
       <div className="flex items-center gap-2">
-        <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded shrink-0">
+        <Label className="shrink-0 font-heading text-xs uppercase tracking-wider text-ink-faded">
           Mod.
         </Label>
         <Input
           type="number"
           value={modifier}
           onChange={(e) => setModifier(Math.floor(Number(e.target.value) || 0))}
-          className="w-16 h-9 text-center font-display px-1"
+          className="h-9 w-16 px-1 text-center font-display"
         />
       </div>
 
-      <div className="text-center font-script italic text-sm text-ink-faded break-all">
-        Formula: <strong className="not-italic font-heading text-foreground">{expression}</strong>
+      <div className="break-all text-center font-script text-sm italic text-ink-faded">
+        Formula:{" "}
+        <strong className="font-heading not-italic text-foreground">{expression}</strong>
       </div>
 
       {pendingBonusD20 ? (
         <Button onClick={performBonusD20} disabled={rolling} className="w-full font-heading">
-          <RotateCw className="h-4 w-4 mr-1" />
+          <RotateCw className="mr-1 h-4 w-4" />
           {rolling ? "Tiro in corso..." : "Ritira d20 e somma al totale"}
         </Button>
       ) : (
         <Button onClick={performRoll} disabled={rolling} className="w-full font-heading">
-          <Dices className="h-4 w-4 mr-1" />
+          <Dices className="mr-1 h-4 w-4" />
           {rolling ? "Tiro in corso..." : "Tira"}
         </Button>
       )}
 
       {lastResult && (
         <div
-          className={`text-center py-3 rounded border border-border bg-parchment-deep/30 ${
+          className={`rounded border border-border bg-parchment-deep/30 py-3 text-center ${
             rolling ? "animate-roll-die" : "animate-fade-up"
           }`}
         >
-          <div className="font-script text-xs text-ink-faded uppercase tracking-wider">
+          <div className="font-script text-xs uppercase tracking-wider text-ink-faded">
             {lastResult.expression}
             {lastResult.bonusRolls && lastResult.bonusRolls.length > 0 && (
               <> + {lastResult.bonusRolls.map(() => `d20`).join(" + ")}</>
             )}
           </div>
-          <div className="font-display text-3xl sm:text-4xl gold-text">{displayedTotal}</div>
-          <div className="font-script text-xs text-ink-faded mt-1 break-words px-2">
+
+          <div className="font-display text-3xl gold-text sm:text-4xl">{displayedTotal}</div>
+
+          <div className="mt-1 break-words px-2 font-script text-xs text-ink-faded">
             {lastResult.dice.map((d, i) => (
               <span key={i}>
                 {i > 0 && " + "}
                 <span title={`d${d.sides}`}>{d.value}</span>
               </span>
             ))}
+
             {lastResult.modifier !== 0 && (
-              <> {lastResult.modifier > 0 ? "+" : "−"} {Math.abs(lastResult.modifier)}</>
+              <>
+                {" "}
+                {lastResult.modifier > 0 ? "+" : "−"} {Math.abs(lastResult.modifier)}
+              </>
             )}
+
             {lastResult.bonusRolls && lastResult.bonusRolls.length > 0 && (
               <>
                 {" + "}
                 {lastResult.bonusRolls.map((b, i) => (
                   <span key={`b${i}`}>
                     {i > 0 && " + "}
-                    <span className="text-primary font-semibold">{b}</span>
+                    <span className="font-semibold text-primary">{b}</span>
                   </span>
                 ))}
               </>
@@ -439,17 +498,19 @@ export const DiceRoller = ({
         </div>
       )}
 
-      {/* Cronologia */}
       {campaignId && historyOpen && (
         <div className="border-t border-border pt-3">
-          <div className="flex items-center justify-between mb-2">
+          <div className="mb-2 flex items-center justify-between">
             <h4 className="font-heading text-sm uppercase tracking-wider text-ink-faded">
               Cronologia (15 gg)
             </h4>
-            <span className="text-xs font-script italic text-ink-faded">{history.length} tiri</span>
+            <span className="font-script text-xs italic text-ink-faded">
+              {history.length} tiri
+            </span>
           </div>
+
           {history.length === 0 ? (
-            <p className="font-script italic text-xs text-ink-faded text-center py-4">
+            <p className="py-4 text-center font-script text-xs italic text-ink-faded">
               Nessun tiro recente.
             </p>
           ) : (
@@ -458,22 +519,25 @@ export const DiceRoller = ({
                 {history.map((row) => (
                   <li
                     key={row.id}
-                    className="text-xs bg-parchment-deep/20 border border-border/50 rounded px-2 py-1.5"
+                    className="rounded border border-border/50 bg-parchment-deep/20 px-2 py-1.5 text-xs"
                   >
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="font-heading truncate">
+                      <span className="truncate font-heading">
                         {row.character_name || row.user_display_name || "Anonimo"}
                       </span>
-                      <span className="font-script italic text-[10px] text-ink-faded shrink-0">
+                      <span className="shrink-0 font-script text-[10px] italic text-ink-faded">
                         {new Date(row.created_at).toLocaleString("it-IT", {
-                          day: "2-digit", month: "2-digit",
-                          hour: "2-digit", minute: "2-digit",
+                          day: "2-digit",
+                          month: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
                         })}
                       </span>
                     </div>
+
                     <div className="font-script text-ink-faded">
                       {row.expression} →{" "}
-                      <strong className="text-primary not-italic">{row.total}</strong>
+                      <strong className="not-italic text-primary">{row.total}</strong>
                     </div>
                   </li>
                 ))}
@@ -486,11 +550,6 @@ export const DiceRoller = ({
   );
 };
 
-/**
- * Wrapper responsive del DiceRoller usato nelle pagine di scheda:
- * - desktop: pannello sticky in sidebar
- * - mobile: FAB in basso a sinistra che si espande a tutto schermo
- */
 interface DockProps {
   campaignId?: string;
   characterId?: string;
@@ -498,60 +557,40 @@ interface DockProps {
 }
 
 export const DiceRollerDock = (props: DockProps) => {
-  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
-
-  if (!isMobile) {
-    return (
-      <div className="lg:sticky lg:top-20">
-        <DiceRoller {...props} />
-      </div>
-    );
-  }
 
   return (
     <>
-      {/* FAB in basso a sinistra */}
       {!open && (
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-4 left-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
+          className="fixed bottom-4 left-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
           aria-label="Apri tiri di dado"
         >
           <Dices className="h-6 w-6" />
         </button>
       )}
 
-      {/* Popup espanso a tutto schermo */}
       {open && (
-        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur-sm">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div className="flex items-center gap-2">
               <Dices className="h-5 w-5 text-primary" />
               <span className="font-heading text-lg">Tiri di dado</span>
             </div>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="p-2 rounded-md text-ink-faded hover:text-foreground"
-                aria-label="Riduci"
-                title="Riduci"
-              >
-                <ChevronDown className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="p-2 rounded-md text-ink-faded hover:text-foreground"
-                aria-label="Chiudi"
-                title="Chiudi"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded-md p-2 text-ink-faded transition-colors hover:text-foreground"
+              aria-label="Chiudi"
+              title="Chiudi"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
+
           <div className="flex-1 overflow-y-auto p-4">
             <DiceRoller {...props} variant="embedded" />
           </div>
@@ -561,5 +600,4 @@ export const DiceRollerDock = (props: DockProps) => {
   );
 };
 
-// Re-export icons usati altrove se servono
-export { ChevronUp };
+export { ChevronUp, ChevronDown };
