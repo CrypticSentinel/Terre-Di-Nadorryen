@@ -28,6 +28,7 @@ import {
   BookOpen,
   History,
   ShieldCheck,
+  Skull,
 } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenSourceGdr } from "@/lib/rulesets";
@@ -54,6 +55,27 @@ interface Character {
   concept: string | null;
   image_url: string | null;
   custom_fields: CustomField[];
+  is_dead: boolean;
+  death_description: string | null;
+  died_at: string | null;
+}
+
+interface Note {
+  id: string;
+  title: string;
+  content: string;
+  session_date: string | null;
+  author_id: string;
+  created_at: string;
+}
+
+interface AuditEntry {
+  id: string;
+  user_id: string;
+  user_display_name: string | null;
+  summary: string;
+  details: any;
+  created_at: string;
 }
 
 const OSGDR_FIELD_ID = "__osgdr_sheet__";
@@ -123,15 +145,6 @@ function packLabelOverrides(fields: CustomField[], overrides: LabelOverridesMap)
   ];
 }
 
-interface Note {
-  id: string;
-  title: string;
-  content: string;
-  session_date: string | null;
-  author_id: string;
-  created_at: string;
-}
-
 const CharacterDetail = () => {
   const { characterId } = useParams<{ characterId: string }>();
   const { user, isAdmin, isActingAsNarrator } = useAuth();
@@ -142,9 +155,12 @@ const CharacterDetail = () => {
   const [ownerProfile, setOwnerProfile] = useState<{ display_name: string } | null>(null);
   const [rulesetName, setRulesetName] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [bgSaving, setBgSaving] = useState(false);
+  const [destinySaving, setDestinySaving] = useState(false);
 
   const [name, setName] = useState("");
   const [concept, setConcept] = useState("");
@@ -152,19 +168,12 @@ const CharacterDetail = () => {
   const [osgdrSheet, setOsgdrSheet] = useState<OsgdrSheet>(EMPTY_OSGDR_SHEET);
   const [labelOverrides, setLabelOverrides] = useState<LabelOverridesMap>({});
   const [background, setBackground] = useState<string>("");
-  const [bgSaving, setBgSaving] = useState(false);
   const [assignedUserId, setAssignedUserId] = useState<string | undefined>(undefined);
 
-  interface AuditEntry {
-    id: string;
-    user_id: string;
-    user_display_name: string | null;
-    summary: string;
-    details: any;
-    created_at: string;
-  }
+  const [isDead, setIsDead] = useState(false);
+  const [deathDescription, setDeathDescription] = useState("");
+  const [diedAt, setDiedAt] = useState("");
 
-  const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const dbSnapshotRef = useRef<{
     name: string;
     concept: string;
@@ -172,6 +181,9 @@ const CharacterDetail = () => {
     osgdrSheet: OsgdrSheet;
     background: string;
     owner_id: string;
+    is_dead: boolean;
+    death_description: string;
+    died_at: string;
   } | null>(null);
 
   const [noteOpen, setNoteOpen] = useState(false);
@@ -185,6 +197,7 @@ const CharacterDetail = () => {
   const canEdit = canView;
   const canAssignCharacter = canEdit && (isAdmin || isActingAsNarrator);
   const canEditBackground = canView;
+  const canManageDestiny = isAdmin || isActingAsNarrator;
   const useOsgdrForm = isOpenSourceGdr(rulesetName);
 
   const visibleFields = fields.filter(
@@ -241,6 +254,9 @@ const CharacterDetail = () => {
     setLabelOverrides(extractLabelOverrides(ch.custom_fields));
     setBackground(extractBackground(ch.custom_fields));
     setNotes((n.data ?? []) as Note[]);
+    setIsDead(!!ch.is_dead);
+    setDeathDescription(ch.death_description ?? "");
+    setDiedAt(ch.died_at ? String(ch.died_at).slice(0, 10) : "");
 
     dbSnapshotRef.current = {
       name: ch.name,
@@ -249,6 +265,9 @@ const CharacterDetail = () => {
       osgdrSheet: extractOsgdrSheet(ch.custom_fields),
       background: extractBackground(ch.custom_fields),
       owner_id: ch.owner_id,
+      is_dead: !!ch.is_dead,
+      death_description: ch.death_description ?? "",
+      died_at: ch.died_at ? String(ch.died_at).slice(0, 10) : "",
     };
 
     const { data: prof } = await supabase
@@ -343,6 +362,18 @@ const CharacterDetail = () => {
       changes.push("Proprietario scheda aggiornato");
     }
 
+    if (snap.is_dead !== isDead) {
+      changes.push(isDead ? "Personaggio segnato come morto" : "Personaggio segnato come vivo");
+    }
+
+    if ((snap.death_description ?? "") !== (deathDescription ?? "")) {
+      changes.push("Descrizione della morte aggiornata");
+    }
+
+    if ((snap.died_at ?? "") !== (diedAt ?? "")) {
+      changes.push("Data di morte aggiornata");
+    }
+
     if (useOsgdrForm) {
       const a1 = snap.osgdrSheet;
       const a2 = osgdrSheet;
@@ -411,6 +442,9 @@ const CharacterDetail = () => {
         concept: concept || null,
         custom_fields: finalFields as any,
         owner_id: nextOwnerId,
+        is_dead: isDead,
+        death_description: isDead ? deathDescription || null : null,
+        died_at: isDead ? diedAt || null : null,
       })
       .eq("id", character.id);
 
@@ -462,6 +496,54 @@ const CharacterDetail = () => {
 
       await load();
     }
+  };
+
+  const saveDestiny = async () => {
+    if (!character || !canManageDestiny) return;
+    setDestinySaving(true);
+
+    const snap = dbSnapshotRef.current;
+
+    const { error } = await supabase
+      .from("characters")
+      .update({
+        is_dead: isDead,
+        death_description: isDead ? deathDescription || null : null,
+        died_at: isDead ? diedAt || null : null,
+      })
+      .eq("id", character.id);
+
+    setDestinySaving(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success("Destino del personaggio aggiornato");
+
+    if (snap) {
+      const changes: string[] = [];
+
+      if (snap.is_dead !== isDead) {
+        changes.push(isDead ? "Personaggio segnato come morto" : "Personaggio segnato come vivo");
+      }
+      if ((snap.death_description ?? "") !== (deathDescription ?? "")) {
+        changes.push("Descrizione della morte aggiornata");
+      }
+      if ((snap.died_at ?? "") !== (diedAt ?? "")) {
+        changes.push("Data di morte aggiornata");
+      }
+
+      if (changes.length > 0) {
+        await logAudit(
+          changes.length === 1 ? changes[0] : "Destino del personaggio aggiornato",
+          { changes }
+        );
+      }
+    }
+
+    await load();
   };
 
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -633,7 +715,115 @@ const CharacterDetail = () => {
                   className="hidden"
                 />
               </div>
+
+              {isDead && (
+                <div className="mt-4 space-y-3">
+                  <Badge variant="destructive" className="font-heading">
+                    <Skull className="mr-1 h-3.5 w-3.5" />
+                    Caduto
+                  </Badge>
+
+                  <div className="rounded border border-destructive/30 bg-destructive/5 p-3">
+                    <p className="mb-1 font-heading text-xs uppercase tracking-wider text-destructive">
+                      Memoria della caduta
+                    </p>
+
+                    <p className="font-script text-sm italic leading-relaxed text-ink-faded">
+                      {deathDescription?.trim()
+                        ? deathDescription
+                        : "La cronaca della sua fine non è ancora stata tramandata."}
+                    </p>
+
+                    {diedAt && (
+                      <p className="mt-2 text-xs font-script italic text-ink-faded">
+                        Caduto il{" "}
+                        {new Date(diedAt).toLocaleDateString("it-IT", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
+
+            {canManageDestiny && (
+              <div className="parchment-panel p-4">
+                <h3 className="mb-3 flex items-center gap-2 font-heading text-lg">
+                  <Skull className="h-4 w-4 text-destructive" />
+                  Destino del personaggio
+                </h3>
+
+                <div className="space-y-4">
+                  <label className="flex items-center gap-2 text-sm font-heading">
+                    <input
+                      type="checkbox"
+                      checked={isDead}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setIsDead(checked);
+                        if (!checked) {
+                          setDeathDescription("");
+                          setDiedAt("");
+                        }
+                      }}
+                      className="h-4 w-4 accent-current"
+                    />
+                    Segna come morto
+                  </label>
+
+                  {isDead && (
+                    <>
+                      <div>
+                        <Label htmlFor="diedAt" className="font-heading">
+                          Data della morte
+                        </Label>
+                        <Input
+                          id="diedAt"
+                          type="date"
+                          value={diedAt}
+                          onChange={(e) => setDiedAt(e.target.value)}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="deathDescription" className="font-heading">
+                          Descrizione della morte
+                        </Label>
+                        <Textarea
+                          id="deathDescription"
+                          value={deathDescription}
+                          onChange={(e) => setDeathDescription(e.target.value)}
+                          rows={5}
+                          placeholder="Racconta come il personaggio è caduto: battaglia, sacrificio, tradimento, ultima impresa..."
+                          className="font-script"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <div className="flex justify-end border-t border-border/40 pt-3">
+                    <Button
+                      size="sm"
+                      onClick={saveDestiny}
+                      disabled={destinySaving}
+                      className="font-heading"
+                      variant={isDead ? "destructive" : "default"}
+                    >
+                      {destinySaving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Save className="mr-1 h-4 w-4" /> Salva destino
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <DiceRollerDock
               campaignId={character.campaign_id}
@@ -671,7 +861,7 @@ const CharacterDetail = () => {
                     </>
                   )}
 
-                  <div className="mt-3">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {isOwner ? (
                       <Badge variant="outline" className="text-xs">
                         Tuo
@@ -681,6 +871,12 @@ const CharacterDetail = () => {
                         {ownerProfile.display_name}
                       </Badge>
                     ) : null}
+
+                    {isDead && (
+                      <Badge variant="destructive" className="text-xs">
+                        Caduto
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
