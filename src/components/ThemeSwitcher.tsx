@@ -1,10 +1,16 @@
 import { Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuColorRadioItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ACCENT_OPTIONS, STYLE_OPTIONS, useTheme } from "@/hooks/useTheme";
-import { cn } from "@/lib/utils";
 
 export const ThemeSwitcher = () => {
   const { style, accent, setStyle, setAccent } = useTheme();
@@ -16,41 +22,36 @@ export const ThemeSwitcher = () => {
           <Palette className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="font-heading text-xs uppercase tracking-wider">Stile</DropdownMenuLabel>
-        <div className="px-2 pb-2 grid grid-cols-3 gap-1">
+
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuLabel className="font-heading text-xs uppercase tracking-wider">
+          Stile
+        </DropdownMenuLabel>
+
+        <DropdownMenuRadioGroup value={style} onValueChange={setStyle}>
           {STYLE_OPTIONS.map((s) => (
-            <button
-              key={s.value}
-              onClick={() => setStyle(s.value)}
-              className={cn(
-                "rounded-md border px-2 py-1.5 text-xs font-heading transition-colors",
-                style === s.value
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border hover:bg-accent",
-              )}
-            >
+            <DropdownMenuRadioItem key={s.value} value={s.value} className="font-heading">
               {s.label}
-            </button>
+            </DropdownMenuRadioItem>
           ))}
-        </div>
+        </DropdownMenuRadioGroup>
+
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="font-heading text-xs uppercase tracking-wider">Colore</DropdownMenuLabel>
-        <div className="px-2 pb-2 flex flex-wrap gap-2">
+
+        <DropdownMenuLabel className="font-heading text-xs uppercase tracking-wider">
+          Colore
+        </DropdownMenuLabel>
+
+        <DropdownMenuRadioGroup value={accent} onValueChange={setAccent}>
           {ACCENT_OPTIONS.map((a) => (
-            <button
+            <DropdownMenuColorRadioItem
               key={a.value}
-              onClick={() => setAccent(a.value)}
-              title={a.label}
-              aria-label={a.label}
-              className={cn(
-                "h-7 w-7 rounded-full border-2 transition-transform",
-                accent === a.value ? "border-foreground scale-110" : "border-transparent hover:scale-105",
-              )}
-              style={{ background: a.preview }}
+              value={a.value}
+              color={a.preview}
+              label={a.label}
             />
           ))}
-        </div>
+        </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
