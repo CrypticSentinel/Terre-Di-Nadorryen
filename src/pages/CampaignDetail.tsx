@@ -421,8 +421,13 @@ const CampaignDetail = () => {
     );
   }
 
-  const visibleCharacters = characters.filter((c) => !c.is_dead);
-  const cemeteryCharacters = characters.filter((c) => c.is_dead);
+  const visibleCharacters = characters.filter(
+    (c) => !c.is_dead && (isAdmin || isActingAsNarrator || isNarrator || c.owner_id === user?.id)
+  );
+
+  const cemeteryCharacters = characters.filter(
+    (c) => !!c.is_dead
+  );
 
   const availableProfiles = allProfiles.filter(
     (p) => !members.some((m) => m.user_id === p.id)

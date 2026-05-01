@@ -193,7 +193,7 @@ const CharacterDetail = () => {
   const [noteSubmitting, setNoteSubmitting] = useState(false);
 
   const isOwner = !!character && !!user && character.owner_id === user.id;
-  const canView = isOwner || isAdmin || isActingAsNarrator;
+  const canView = isOwner || isAdmin || isActingAsNarrator || !!character?.is_dead;
   const canEdit = canView;
   const canAssignCharacter = canEdit && (isAdmin || isActingAsNarrator);
   const canEditBackground = canView;
@@ -237,7 +237,7 @@ const CharacterDetail = () => {
 
     const isAllowed =
       !!user &&
-      (isAdmin || isActingAsNarrator || ch.owner_id === user.id || !!ch.is_dead);
+      (isAdmin || isActingAsNarrator || ch.ownerid === user.id || !!ch.is_dead);
 
     if (!isAllowed) {
       toast.error("Non puoi visualizzare questa scheda");
