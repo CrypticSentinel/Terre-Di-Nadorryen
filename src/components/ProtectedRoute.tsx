@@ -1,8 +1,14 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import type { ReactNode } from "react";
 
-export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+interface Props {
+  /** Optional children for legacy usage; if absent renders <Outlet />. */
+  children?: ReactNode;
+}
+
+export const ProtectedRoute = ({ children }: Props) => {
   const { user, loading, isApproved, approvalStatus } = useAuth();
 
   if (loading) {
@@ -15,10 +21,9 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) return <Navigate to="/auth" replace />;
 
-  // Se l'utente non è ancora approvato, redirigi alla pagina di attesa
   if (approvalStatus && !isApproved) {
     return <Navigate to="/pending-approval" replace />;
   }
 
-  return <>{children}</>;
+  return <>{children ?? <Outlet />}</>;
 };
