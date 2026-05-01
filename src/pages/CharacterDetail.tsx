@@ -78,6 +78,12 @@ interface AuditEntry {
   created_at: string;
 }
 
+interface CampaignMember {
+  id: string;
+  user_id: string;
+  role: "narratore" | "giocatore";
+}
+
 const OSGDR_FIELD_ID = "__osgdr_sheet__";
 const LABEL_OVERRIDES_FIELD_ID = "__label_overrides__";
 const BACKGROUND_FIELD_ID = "__background__";
@@ -152,6 +158,7 @@ const CharacterDetail = () => {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [character, setCharacter] = useState<Character | null>(null);
+  const [members, setMembers] = useState<CampaignMember[]>([]);
   const [ownerProfile, setOwnerProfile] = useState<{ display_name: string } | null>(null);
   const [rulesetName, setRulesetName] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -192,12 +199,34 @@ const CharacterDetail = () => {
   const [noteDate, setNoteDate] = useState("");
   const [noteSubmitting, setNoteSubmitting] = useState(false);
 
-  const isOwner = !!character && !!user && character.owner_id === user.id;
-  const canView = isOwner || isAdmin || isActingAsNarrator || !!character?.is_dead;
-  const canEdit = isOwner || isAdmin || isActingAsNarrator;
-  const canAssignCharacter = canEdit && (isAdmin || isActingAsNarrator);
-  const canEditBackground = canEdit;
-  const canManageDestiny = isAdmin || isActingAsNarrator;
+  const myMembership = members.find((m) => m.user_id === user?.id);
+  const isNarrator = myMembership?.role === "narratore";
+  const canManageAllCharacters = isAdmin || isActingAsNarrator || isNarrator;
+
+  const getCharacterAccess = (ch: Character | null) => {
+    const isOwner = !!ch && !!user && ch.owner_id === user.id;
+    const canView =
+      !!ch && (canManageAllCharacters || isOwner || !!ch.is_dead);
+    const canEdit =
+      !!ch && (canManageAllCharacters || isOwner);
+    const canAssignCharacter =
+      !!ch && canManageAllCharacters;
+    const canEditBackground =
+      !!ch && canEdit;
+    const canManageDestiny =
+      !!ch && canManageAllCharacters;
+
+    return {
+      isOwner,
+      canView,
+      canEdit,
+      canAssignCharacter,
+      canEditBackground,
+      canManageDestiny,
+    };
+  };
+
+  const access = getCharacterAccess(character);
   const useOsgdrForm = isOpenSourceGdr(rulesetName);
 
   const visibleFields = fields.filter(
@@ -235,9 +264,22 @@ const CharacterDetail = () => {
 
     if (!Array.isArray(ch.custom_fields)) ch.custom_fields = [];
 
+    const { data: memberRows } = await supabase
+      .from("campaign_members")
+      .select("id, user_id, role")
+      .eq("campaign_id", ch.campaign_id);
+
+    const normalizedMembers = ((memberRows ?? []) as CampaignMember[]);
+    setMembers(normalizedMembers);
+
+    const currentMembership = normalizedMembers.find((m) => m.user_id === user?.id);
+    const currentIsNarrator = currentMembership?.role === "narratore";
+    const currentCanManageAllCharacters =
+      isAdmin || isActingAsNarrator || currentIsNarrator;
+
     const isAllowed =
       !!user &&
-      (isAdmin || isActingAsNarrator || ch.owner_id === user.id || !!ch.is_dead);
+      (currentCanManageAllCharacters || ch.owner_id === user.id || !!ch.is_dead);
 
     if (!isAllowed) {
       toast.error("Non puoi visualizzare questa scheda");
@@ -310,8 +352,8 @@ const CharacterDetail = () => {
 
   const persistLabelOverride = async (key: string, override: LabelOverride | undefined) => {
     if (!character) return;
-    const next = { ...labelOverrides };
 
+    const next = { ...labelOverrides };
     if (!override || (override.text === undefined && override.size === undefined)) {
       delete next[key];
     } else {
@@ -424,7 +466,7 @@ const CharacterDetail = () => {
   };
 
   const handleSave = async () => {
-    if (!character) return;
+    if (!character || !access.canEdit) return;
     setSaving(true);
 
     const snap = dbSnapshotRef.current;
@@ -432,7 +474,7 @@ const CharacterDetail = () => {
     finalFields = packLabelOverrides(finalFields, labelOverrides);
     finalFields = packBackground(finalFields, background);
 
-    const nextOwnerId = canAssignCharacter
+    const nextOwnerId = access.canAssignCharacter
       ? assignedUserId ?? character.owner_id
       : character.owner_id;
 
@@ -443,7 +485,7 @@ const CharacterDetail = () => {
       owner_id: nextOwnerId,
     };
 
-    if (canManageDestiny) {
+    if (access.canManageDestiny) {
       payload.is_dead = isDead;
       payload.death_description = isDead ? deathDescription || null : null;
       payload.died_at = isDead ? diedAt || null : null;
@@ -456,8 +498,9 @@ const CharacterDetail = () => {
 
     setSaving(false);
 
-    if (error) toast.error(error.message);
-    else {
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success("Scheda salvata");
 
       if (snap) {
@@ -475,7 +518,7 @@ const CharacterDetail = () => {
   };
 
   const saveBackground = async () => {
-    if (!character) return;
+    if (!character || !access.canEditBackground) return;
     setBgSaving(true);
 
     const prev = dbSnapshotRef.current?.background ?? "";
@@ -488,8 +531,9 @@ const CharacterDetail = () => {
 
     setBgSaving(false);
 
-    if (error) toast.error(error.message);
-    else {
+    if (error) {
+      toast.error(error.message);
+    } else {
       setFields(finalFields);
       toast.success("Background salvato");
 
@@ -505,7 +549,7 @@ const CharacterDetail = () => {
   };
 
   const saveDestiny = async () => {
-    if (!character || !canManageDestiny) return;
+    if (!character || !access.canManageDestiny) return;
     setDestinySaving(true);
 
     const snap = dbSnapshotRef.current;
@@ -554,7 +598,7 @@ const CharacterDetail = () => {
 
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !character || !user) return;
+    if (!file || !character || !user || !access.canEdit) return;
 
     setUploading(true);
     const ext = file.name.split(".").pop();
@@ -583,20 +627,22 @@ const CharacterDetail = () => {
 
     setUploading(false);
 
-    if (updErr) toast.error(updErr.message);
-    else {
+    if (updErr) {
+      toast.error(updErr.message);
+    } else {
       toast.success("Immagine aggiornata");
       await load();
     }
   };
 
   const handleDelete = async () => {
-    if (!character || !confirm("Eliminare questa scheda?")) return;
+    if (!character || !access.canEdit || !confirm("Eliminare questa scheda?")) return;
 
     const { error } = await supabase.from("characters").delete().eq("id", character.id);
 
-    if (error) toast.error(error.message);
-    else {
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success("Scheda eliminata");
       navigate(`/campaigns/${character.campaign_id}`);
     }
@@ -604,7 +650,7 @@ const CharacterDetail = () => {
 
   const submitNote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !character) return;
+    if (!user || !character || !access.canView) return;
 
     setNoteSubmitting(true);
 
@@ -618,8 +664,9 @@ const CharacterDetail = () => {
 
     setNoteSubmitting(false);
 
-    if (error) toast.error(error.message);
-    else {
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success("Annotazione aggiunta al diario");
       setNoteOpen(false);
       setNoteTitle("");
@@ -634,8 +681,9 @@ const CharacterDetail = () => {
 
     const { error } = await supabase.from("session_notes").delete().eq("id", id);
 
-    if (error) toast.error(error.message);
-    else {
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success("Annotazione rimossa");
       await load();
     }
@@ -651,6 +699,10 @@ const CharacterDetail = () => {
     );
   }
 
+  if (!access.canView) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen">
       <main className="container py-8 md:py-12">
@@ -664,7 +716,7 @@ const CharacterDetail = () => {
         <div className="mb-8">
           <h1 className="mb-2 flex items-center gap-3 font-display text-4xl gold-text">
             <ScrollText className="h-8 w-8" />
-            {canEdit ? name || "Scheda personaggio" : character.name}
+            {access.canEdit ? name || "Scheda personaggio" : character.name}
           </h1>
           <p className="font-script italic text-ink-faded">
             Cronaca, dettagli e memoria viva del personaggio
@@ -673,7 +725,7 @@ const CharacterDetail = () => {
 
         <div className="parchment-panel mb-8 flex flex-wrap items-center gap-2 p-3 text-sm font-script italic text-ink-faded">
           <ShieldCheck className="h-4 w-4 text-primary" />
-          {isOwner
+          {access.isOwner
             ? "Questa scheda appartiene a te."
             : ownerProfile
             ? `Scheda assegnata a ${ownerProfile.display_name}.`
@@ -696,7 +748,7 @@ const CharacterDetail = () => {
                   </div>
                 )}
 
-                {canEdit && (
+                {access.canEdit && (
                   <button
                     onClick={() => fileRef.current?.click()}
                     disabled={uploading}
@@ -755,7 +807,7 @@ const CharacterDetail = () => {
               )}
             </div>
 
-            {canManageDestiny && (
+            {access.canManageDestiny && (
               <div className="parchment-panel p-4">
                 <h3 className="mb-3 flex items-center gap-2 font-heading text-lg">
                   <Skull className="h-4 w-4 text-destructive" />
@@ -842,7 +894,7 @@ const CharacterDetail = () => {
             <div className="parchment-panel p-5 md:p-6">
               <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0 flex-1">
-                  {canEdit ? (
+                  {access.canEdit ? (
                     <>
                       <Input
                         value={name}
@@ -868,7 +920,7 @@ const CharacterDetail = () => {
                   )}
 
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {isOwner ? (
+                    {access.isOwner ? (
                       <Badge variant="outline" className="text-xs">
                         Tuo
                       </Badge>
@@ -886,7 +938,7 @@ const CharacterDetail = () => {
                   </div>
                 </div>
 
-                {canEdit && (
+                {access.canEdit && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -934,7 +986,7 @@ const CharacterDetail = () => {
                       <OpenSourceGdrSheet
                         value={osgdrSheet}
                         onChange={setOsgdrSheet}
-                        canEdit={!!canEdit}
+                        canEdit={!!access.canEdit}
                         labelOverrides={labelOverrides}
                         canCustomizeLabels={isAdmin}
                         onLabelOverrideChange={persistLabelOverride}
@@ -942,7 +994,7 @@ const CharacterDetail = () => {
                         onAssignedUserIdChange={setAssignedUserId}
                       />
 
-                      {canEdit && (
+                      {access.canEdit && (
                         <div className="flex justify-end border-t border-border/40 pt-3">
                           <Button
                             size="sm"
@@ -966,7 +1018,7 @@ const CharacterDetail = () => {
                       {visibleFields.length === 0 && (
                         <div className="parchment-panel p-8 text-center">
                           <p className="font-script italic text-ink-faded">
-                            {canEdit
+                            {access.canEdit
                               ? "Nessun campo. Aggiungi caratteristiche, abilità, equipaggiamento o altri dettagli."
                               : "Scheda vuota."}
                           </p>
@@ -979,7 +1031,7 @@ const CharacterDetail = () => {
                             key={f.id}
                             className="rounded border border-border/60 bg-parchment-deep/20 p-3"
                           >
-                            {canEdit ? (
+                            {access.canEdit ? (
                               <>
                                 <div className="mb-1 flex items-center gap-1">
                                   <Input
@@ -1044,7 +1096,7 @@ const CharacterDetail = () => {
                         ))}
                       </div>
 
-                      {canEdit && (
+                      {access.canEdit && (
                         <div className="flex flex-col gap-2 border-t border-border/40 pt-3 sm:flex-row sm:items-center">
                           <Button
                             variant="outline"
@@ -1158,6 +1210,7 @@ const CharacterDetail = () => {
                                   : new Date(n.created_at).toLocaleDateString("it-IT")}
                               </p>
                             </div>
+
                             {n.author_id === user?.id && (
                               <button
                                 onClick={() => deleteNote(n.id)}
@@ -1168,6 +1221,7 @@ const CharacterDetail = () => {
                               </button>
                             )}
                           </div>
+
                           <p className="drop-cap whitespace-pre-wrap font-script leading-relaxed text-ink">
                             {n.content}
                           </p>
@@ -1178,7 +1232,7 @@ const CharacterDetail = () => {
                 </TabsContent>
 
                 <TabsContent value="background" className="mt-5 space-y-3">
-                  {canEditBackground ? (
+                  {access.canEditBackground ? (
                     <>
                       <Textarea
                         value={background}
@@ -1250,9 +1304,11 @@ const CharacterDetail = () => {
                                 })}
                               </div>
                             </div>
+
                             <div className="mt-1 text-xs font-script italic text-ink-faded">
                               {entry.user_display_name ?? "Utente sconosciuto"}
                             </div>
+
                             {changes.length > 1 && (
                               <ul className="mt-2 list-inside list-disc space-y-0.5 font-script text-sm">
                                 {changes.map((c, i) => (
