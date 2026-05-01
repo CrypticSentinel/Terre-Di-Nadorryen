@@ -169,6 +169,17 @@ export const DiceRoller = ({
     };
   }, [campaignId, user?.id]);
 
+  useEffect(() => {
+    if (!onClose) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   const updateGroup = (id: string, patch: Partial<DiceGroup>) =>
     setGroups((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
 
@@ -559,40 +570,63 @@ interface DockProps {
 export const DiceRollerDock = (props: DockProps) => {
   const [open, setOpen] = useState(false);
 
+  const closeDock = () => setOpen(false);
+  const openDock = () => setOpen(true);
+
   return (
     <>
-      {!open && (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="fixed bottom-4 left-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
-          aria-label="Apri tiri di dado"
-        >
-          <Dices className="h-6 w-6" />
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={openDock}
+        className={cn(
+          "fixed bottom-4 left-4 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-primary-foreground shadow-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-xl",
+          open && "pointer-events-none opacity-0"
+        )}
+        aria-label="Apri tiri di dado"
+      >
+        <Dices className="h-5 w-5" />
+        <span className="font-heading text-sm">Tiri di dado</span>
+      </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur-sm">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <div className="flex items-center gap-2">
-              <Dices className="h-5 w-5 text-primary" />
-              <span className="font-heading text-lg">Tiri di dado</span>
+        <div className="fixed inset-0 z-50">
+          <button
+            type="button"
+            aria-label="Chiudi pannello tiri di dado"
+            className="absolute inset-0 h-full w-full bg-black/45 backdrop-blur-[2px]"
+            onClick={closeDock}
+          />
+
+          <div className="absolute inset-x-3 bottom-3 top-16 sm:inset-x-auto sm:bottom-4 sm:left-4 sm:top-auto sm:w-[28rem]">
+            <div className="flex h-full max-h-[calc(100vh-5rem)] flex-col overflow-hidden rounded-2xl border border-border/60 bg-background/95 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Dices className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-heading text-base leading-none">Tiri di dado</p>
+                    <p className="mt-1 font-script text-xs italic text-ink-faded">
+                      Pannello rapido della campagna
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeDock}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full text-ink-faded transition-colors hover:bg-muted hover:text-foreground"
+                  aria-label="Chiudi"
+                  title="Chiudi"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4">
+                <DiceRoller {...props} variant="embedded" onClose={closeDock} />
+              </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-md p-2 text-ink-faded transition-colors hover:text-foreground"
-              aria-label="Chiudi"
-              title="Chiudi"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4">
-            <DiceRoller {...props} variant="embedded" />
           </div>
         </div>
       )}
