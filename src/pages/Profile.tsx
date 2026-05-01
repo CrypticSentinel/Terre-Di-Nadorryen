@@ -114,67 +114,75 @@ export default function Profile() {
   };
 
   const saveEmail = async () => {
-    setError(null);
-    setMessage(null);
-    setSavingEmail(true);
+  setError(null);
+  setMessage(null);
+  setSavingEmail(true);
 
-    try {
-      const email = form.getValues("email").trim();
+  try {
+    const email = form.getValues("email").trim();
 
-      const { error } = await supabase.auth.updateUser({
-        email,
-      });
+    const { error } = await supabase.auth.updateUser({
+      email,
+    });
 
-      if (error) {
-        setError(error.message);
-        return;
-      }
-
-      setMessage("Richiesta di cambio e-mail inviata. Controlla la posta per confermare.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore imprevisto durante il salvataggio dell’e-mail.");
-    } finally {
-      setSavingEmail(false);
+    if (error) {
+      setError(error.message);
+      return;
     }
-  };
+
+    setMessage("Richiesta di cambio e-mail inviata. Controlla la posta per confermare.");
+  } catch (err) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Errore imprevisto durante il salvataggio dell’e-mail."
+    );
+  } finally {
+    setSavingEmail(false);
+  }
+};
 
   const savePassword = async () => {
-    setError(null);
-    setMessage(null);
-    setSavingPassword(true);
+  setError(null);
+  setMessage(null);
+  setSavingPassword(true);
 
-    try {
-      const newPassword = form.getValues("newPassword")?.trim() || "";
-      const confirmPassword = form.getValues("confirmPassword")?.trim() || "";
+  try {
+    const newPassword = form.getValues("newPassword")?.trim() || "";
+    const confirmPassword = form.getValues("confirmPassword")?.trim() || "";
 
-      if (newPassword.length < 8) {
-        setError("La nuova password deve contenere almeno 8 caratteri.");
-        return;
-      }
-
-      if (newPassword !== confirmPassword) {
-        setError("La conferma password non corrisponde.");
-        return;
-      }
-
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) {
-        setError(error.message);
-        return;
-      }
-
-      form.setValue("newPassword", "");
-      form.setValue("confirmPassword", "");
-      setMessage("Password aggiornata con successo.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore imprevisto durante il salvataggio della password.");
-    } finally {
-      setSavingPassword(false);
+    if (newPassword.length < 8) {
+      setError("La nuova password deve contenere almeno 8 caratteri.");
+      return;
     }
-  };
+
+    if (newPassword !== confirmPassword) {
+      setError("La conferma password non corrisponde.");
+      return;
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    form.setValue("newPassword", "");
+    form.setValue("confirmPassword", "");
+    setMessage("Password aggiornata con successo.");
+  } catch (err) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Errore imprevisto durante il salvataggio della password."
+    );
+  } finally {
+    setSavingPassword(false);
+  }
+};
 
   return (
     <div className="container max-w-3xl py-8 space-y-6">
@@ -217,7 +225,7 @@ export default function Profile() {
                   <FormItem>
                     <FormLabel>Nome</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Inserisci il tuo nome" />
+                      <Input {...field} placeholder="" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
