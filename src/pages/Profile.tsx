@@ -30,7 +30,7 @@ export default function Profile() {
   const [savingPassword, setSavingPassword] = useState(false);
 
   const initialValues = useMemo<ProfileValues>(() => ({
-    name: String(user?.user_metadata?.full_name || user?.user_metadata?.name || ""),
+    name: "",
     email: String(user?.email || ""),
     currentPassword: "",
     newPassword: "",
@@ -46,15 +46,40 @@ export default function Profile() {
     form.reset(initialValues);
   }, [form, initialValues]);
 
+  useEffect(() => {
+    const loadDisplayName = async () => {
+      if (!user?.id) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!error && data?.display_name) {
+        form.setValue("name", data.display_name);
+      }
+    };
+
+    loadDisplayName();
+  }, [user, form]);
+
   const saveName = async () => {
     setError(null);
     setMessage(null);
     setSavingName(true);
 
     const name = form.getValues("name").trim();
-    const { error } = await supabase.auth.updateUser({
-      data: { full_name: name },
+    const { error } = await supabase.auth.update({
+      data: { full_name: name, display_name: name },
     });
+
+    if (!error && user?.id) {
+      await supabase
+        .from("profiles")
+        .update({ display_name: name })
+        .eq("id", user.id);
+    }
 
     setSavingName(false);
 
@@ -72,7 +97,9 @@ export default function Profile() {
     setSavingEmail(true);
 
     const email = form.getValues("email").trim();
-    const { error } = await supabase.auth.updateUser({ email });
+    const { error } = await supabase.auth.update({
+      email,
+    });
 
     setSavingEmail(false);
 
@@ -104,7 +131,9 @@ export default function Profile() {
       return;
     }
 
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const { error } = await supabase.auth.update({
+      password: newPassword,
+    });
 
     setSavingPassword(false);
 
