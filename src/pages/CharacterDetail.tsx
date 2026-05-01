@@ -194,9 +194,9 @@ const CharacterDetail = () => {
 
   const isOwner = !!character && !!user && character.owner_id === user.id;
   const canView = isOwner || isAdmin || isActingAsNarrator || !!character?.is_dead;
-  const canEdit = canView;
+  const canEdit = isOwner || isAdmin || isActingAsNarrator;
   const canAssignCharacter = canEdit && (isAdmin || isActingAsNarrator);
-  const canEditBackground = canView;
+  const canEditBackground = canEdit;
   const canManageDestiny = isAdmin || isActingAsNarrator;
   const useOsgdrForm = isOpenSourceGdr(rulesetName);
 
@@ -237,7 +237,7 @@ const CharacterDetail = () => {
 
     const isAllowed =
       !!user &&
-      (isAdmin || isActingAsNarrator || ch.ownerid === user.id || !!ch.is_dead);
+      (isAdmin || isActingAsNarrator || ch.owner_id === user.id || !!ch.is_dead);
 
     if (!isAllowed) {
       toast.error("Non puoi visualizzare questa scheda");
@@ -436,17 +436,22 @@ const CharacterDetail = () => {
       ? assignedUserId ?? character.owner_id
       : character.owner_id;
 
+    const payload: Record<string, any> = {
+      name,
+      concept: concept || null,
+      custom_fields: finalFields as any,
+      owner_id: nextOwnerId,
+    };
+
+    if (canManageDestiny) {
+      payload.is_dead = isDead;
+      payload.death_description = isDead ? deathDescription || null : null;
+      payload.died_at = isDead ? diedAt || null : null;
+    }
+
     const { error } = await supabase
       .from("characters")
-      .update({
-        name,
-        concept: concept || null,
-        custom_fields: finalFields as any,
-        owner_id: nextOwnerId,
-        is_dead: isDead,
-        death_description: isDead ? deathDescription || null : null,
-        died_at: isDead ? diedAt || null : null,
-      })
+      .update(payload)
       .eq("id", character.id);
 
     setSaving(false);
@@ -985,6 +990,7 @@ const CharacterDetail = () => {
                                   <button
                                     onClick={() => removeField(f.id)}
                                     className="text-destructive"
+                                    type="button"
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </button>
@@ -1156,6 +1162,7 @@ const CharacterDetail = () => {
                               <button
                                 onClick={() => deleteNote(n.id)}
                                 className="text-destructive"
+                                type="button"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
