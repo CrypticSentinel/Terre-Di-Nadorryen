@@ -100,6 +100,16 @@ export const SiteHeader = () => {
                   </Button>
                 </Link>
 
+                <Link to="/profile">
+                  <Button variant="ghost" size="sm" className="font-heading">
+                    <UserIcon className="mr-2 h-4 w-4" />
+                    <EditableUiText
+                      textKey="nav.profile"
+                      defaultText="Profilo"
+                    />
+                  </Button>
+                </Link>
+
                 {isAdmin && (
                   <Link to="/admin" className="relative">
                     <Button variant="ghost" size="sm" className="font-heading">
@@ -178,6 +188,19 @@ export const SiteHeader = () => {
                       <EditableUiText
                         textKey="nav.campaigns"
                         defaultText="Le campagne"
+                      />
+                    </Button>
+                  </Link>
+
+                  <Link to="/profile" onClick={closeMobileMenu}>
+                    <Button
+                      variant="ghost"
+                      className="h-11 w-full justify-start font-heading"
+                    >
+                      <UserIcon className="mr-2 h-4 w-4" />
+                      <EditableUiText
+                        textKey="nav.profile"
+                        defaultText="Profilo"
                       />
                     </Button>
                   </Link>
