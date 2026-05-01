@@ -241,17 +241,17 @@ const CharacterDetail = () => {
     setLoading(true);
 
     const [c, n] = await Promise.all([
-      supabase
-        .from("characters")
-        .select("*, campaigns(ruleset_id, rulesets(name))")
-        .eq("id", characterId)
-        .maybeSingle(),
-      supabase
-        .from("session_notes")
-        .select("*")
-        .eq("character_id", characterId)
-        .order("created_at", { ascending: false }),
-    ]);
+  supabase
+    .from("characters")
+    .select("*")
+    .eq("id", characterId)
+    .maybeSingle(),
+  supabase
+    .from("session_notes")
+    .select("*")
+    .eq("character_id", characterId)
+    .order("created_at", { ascending: false }),
+]);
 
     if (c.error || !c.data) {
       toast.error("Personaggio non trovato");
@@ -289,7 +289,13 @@ const CharacterDetail = () => {
 
     setCharacter(ch);
     setAssignedUserId(ch.owner_id);
-    setRulesetName(raw?.campaigns?.rulesets?.name ?? null);
+    const { data: campaignRow } = await supabase
+      .from("campaigns")
+      .select("ruleset_id, rulesets(name)")
+      .eq("id", ch.campaign_id)
+      .maybeSingle();
+
+    setRulesetName((campaignRow as any)?.rulesets?.name ?? null);
     setName(ch.name);
     setConcept(ch.concept ?? "");
     setFields(ch.custom_fields);
