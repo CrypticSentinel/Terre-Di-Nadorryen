@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -294,6 +296,13 @@ export type Database = {
             foreignKeyName: "session_notes_character_id_fkey"
             columns: ["character_id"]
             isOneToOne: false
+            referencedRelation: "character_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_notes_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
             referencedRelation: "characters"
             referencedColumns: ["id"]
           },
@@ -348,16 +357,24 @@ export type Database = {
     Views: {
       character_cards: {
         Row: {
-          id: string | null
           campaign_id: string | null
-          owner_id: string | null
-          name: string | null
-          short_description: string | null
+          id: string | null
           image_url: string | null
-          owner_display_name: string | null
           label: string | null
+          name: string | null
+          owner_display_name: string | null
+          owner_id: string | null
+          short_description: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "characters_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
@@ -368,14 +385,14 @@ export type Database = {
       get_campaign_character_cards: {
         Args: { _campaign_id: string }
         Returns: {
-          id: string
           campaign_id: string
-          owner_id: string
-          name: string
-          short_description: string | null
-          image_url: string | null
-          owner_display_name: string | null
+          id: string
+          image_url: string
           label: string
+          name: string
+          owner_display_name: string
+          owner_id: string
+          short_description: string
         }[]
       }
       has_role: {
