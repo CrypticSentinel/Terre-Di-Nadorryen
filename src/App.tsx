@@ -7,6 +7,8 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { UiTextProvider } from "@/hooks/useUiText";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AppShell } from "@/components/AppShell";
+
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Campaigns from "./pages/Campaigns";
@@ -26,25 +28,30 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-         <ThemeProvider>
-          <UiTextProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
-            <Route path="/campaigns/:campaignId" element={<ProtectedRoute><CampaignDetail /></ProtectedRoute>} />
-            <Route path="/characters/:characterId" element={<ProtectedRoute><CharacterDetail /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>}/>
-            <Route path="/pending-approval" element={<PendingApproval />} />
-            {/* Legacy redirects */}
-            <Route path="/groups" element={<Navigate to="/campaigns" replace />} />
-            <Route path="/groups/:groupId" element={<Navigate to="/campaigns" replace />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          </UiTextProvider>
-         </ThemeProvider>
+          <ThemeProvider>
+            <UiTextProvider>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/pending-approval" element={<PendingApproval />} />
+
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<AppShell />}>
+                    <Route path="/campaigns" element={<Campaigns />} />
+                    <Route path="/campaigns/:campaignId" element={<CampaignDetail />} />
+                    <Route path="/characters/:characterId" element={<CharacterDetail />} />
+                    <Route path="/admin" element={<Admin />} />
+                    <Route path="/profile" element={<Profile />} />
+                  </Route>
+                </Route>
+
+                <Route path="/groups" element={<Navigate to="/campaigns" replace />} />
+                <Route path="/groups/:groupId" element={<Navigate to="/campaigns" replace />} />
+
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </UiTextProvider>
+          </ThemeProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
