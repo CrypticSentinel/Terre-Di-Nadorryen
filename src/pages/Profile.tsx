@@ -14,7 +14,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 const profileSchema = z.object({
   name: z.string().trim().min(2, "Il nome deve contenere almeno 2 caratteri."),
   email: z.string().trim().email("Inserisci un indirizzo e-mail valido."),
-  currentPassword: z.string().optional(),
   newPassword: z.string().optional(),
   confirmPassword: z.string().optional(),
 });
@@ -23,8 +22,10 @@ type ProfileValues = z.infer<typeof profileSchema>;
 
 export default function Profile() {
   const { user } = useAuth();
+
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
   const [savingName, setSavingName] = useState(false);
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
@@ -33,11 +34,10 @@ export default function Profile() {
     () => ({
       name: "",
       email: String(user?.email || ""),
-      currentPassword: "",
       newPassword: "",
       confirmPassword: "",
     }),
-    [user],
+    [user]
   );
 
   const form = useForm<ProfileValues>({
@@ -50,7 +50,7 @@ export default function Profile() {
   }, [form, initialValues]);
 
   useEffect(() => {
-    const loadDisplayName = async () => {
+    const loadProfile = async () => {
       if (!user?.id) return;
 
       const { data, error } = await supabase
@@ -59,76 +59,83 @@ export default function Profile() {
         .eq("id", user.id)
         .maybeSingle();
 
-      if (!error && data?.display_name) {
-        form.setValue("name", data.display_name);
+      if (error) {
+        setError(error.message);
+        return;
       }
+
+      form.setValue("name", data?.display_name ?? "");
     };
 
-    loadDisplayName();
+    loadProfile();
   }, [user, form]);
 
- const saveName = async () => {
-  setError(null);
-  setMessage(null);
-  setSavingName(true);
+  const saveName = async () => {
+    setError(null);
+    setMessage(null);
+    setSavingName(true);
 
-  try {
-    const name = form.getValues("name").trim();
+    try {
+      if (!user?.id) {
+        setError("Utente non autenticato.");
+        return;
+      }
 
-    if (!user?.id) {
-      setError("Utente non autenticato.");
-      return;
+      const name = form.getValues("name").trim();
+
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
+          full_name: name,
+          display_name: name,
+        },
+      });
+
+      if (authError) {
+        setError(authError.message);
+        return;
+      }
+
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ display_name: name })
+        .eq("id", user.id);
+
+      if (profileError) {
+        setError(profileError.message);
+        return;
+      }
+
+      setMessage("Nome aggiornato con successo.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore imprevisto durante il salvataggio del nome.");
+    } finally {
+      setSavingName(false);
     }
-
-    const { error: authError } = await supabase.auth.update({
-      data: {
-        full_name: name,
-        display_name: name,
-      },
-    });
-
-    if (authError) {
-      setError(authError.message);
-      return;
-    }
-
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({ display_name: name })
-      .eq("id", user.id);
-
-    if (profileError) {
-      setError(profileError.message);
-      return;
-    }
-
-    setMessage("Nome aggiornato con successo.");
-  } catch (err) {
-    setError(err instanceof Error ? err.message : "Errore imprevisto durante l'aggiornamento del nome.");
-  } finally {
-    setSavingName(false);
-  }
-};
+  };
 
   const saveEmail = async () => {
     setError(null);
     setMessage(null);
     setSavingEmail(true);
 
-    const email = form.getValues("email").trim();
+    try {
+      const email = form.getValues("email").trim();
 
-    const { error } = await supabase.auth.update({
-      email,
-    });
+      const { error } = await supabase.auth.updateUser({
+        email,
+      });
 
-    setSavingEmail(false);
+      if (error) {
+        setError(error.message);
+        return;
+      }
 
-    if (error) {
-      setError(error.message);
-      return;
+      setMessage("Richiesta di cambio e-mail inviata. Controlla la posta per confermare.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore imprevisto durante il salvataggio dell’e-mail.");
+    } finally {
+      setSavingEmail(false);
     }
-
-    setMessage("Richiesta di cambio e-mail inviata. Controlla la posta per confermare.");
   };
 
   const savePassword = async () => {
@@ -136,36 +143,37 @@ export default function Profile() {
     setMessage(null);
     setSavingPassword(true);
 
-    const newPassword = form.getValues("newPassword")?.trim() || "";
-    const confirmPassword = form.getValues("confirmPassword")?.trim() || "";
+    try {
+      const newPassword = form.getValues("newPassword")?.trim() || "";
+      const confirmPassword = form.getValues("confirmPassword")?.trim() || "";
 
-    if (newPassword.length < 8) {
+      if (newPassword.length < 8) {
+        setError("La nuova password deve contenere almeno 8 caratteri.");
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        setError("La conferma password non corrisponde.");
+        return;
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      form.setValue("newPassword", "");
+      form.setValue("confirmPassword", "");
+      setMessage("Password aggiornata con successo.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore imprevisto durante il salvataggio della password.");
+    } finally {
       setSavingPassword(false);
-      setError("La nuova password deve contenere almeno 8 caratteri.");
-      return;
     }
-
-    if (newPassword !== confirmPassword) {
-      setSavingPassword(false);
-      setError("La conferma password non corrisponde.");
-      return;
-    }
-
-    const { error } = await supabase.auth.update({
-      password: newPassword,
-    });
-
-    setSavingPassword(false);
-
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
-    form.setValue("currentPassword", "");
-    form.setValue("newPassword", "");
-    form.setValue("confirmPassword", "");
-    setMessage("Password aggiornata con successo.");
   };
 
   return (
