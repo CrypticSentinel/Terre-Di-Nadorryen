@@ -90,29 +90,29 @@ export const SiteHeader = () => {
               <>
                 <RoleSwitcher />
 
-                <Link to="/campaigns">
-                  <Button variant="ghost" size="sm" className="font-heading">
+                <Button asChild variant="ghost" size="sm" className="font-heading">
+                  <Link to="/campaigns">
                     <UserIcon className="mr-2 h-4 w-4" />
                     <EditableUiText
                       textKey="nav.campaigns"
                       defaultText="Le campagne"
                     />
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
 
-                <Link to="/profile">
-                  <Button variant="ghost" size="sm" className="font-heading">
+                <Button asChild variant="ghost" size="sm" className="font-heading">
+                  <Link to="/profile">
                     <UserIcon className="mr-2 h-4 w-4" />
                     <EditableUiText
                       textKey="nav.profile"
                       defaultText="Profilo"
                     />
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
 
                 {isAdmin && (
-                  <Link to="/admin" className="relative">
-                    <Button variant="ghost" size="sm" className="font-heading">
+                  <Button asChild variant="ghost" size="sm" className="font-heading">
+                    <Link to="/admin" className="relative">
                       <ShieldCheck className="mr-2 h-4 w-4" />
                       <EditableUiText textKey="nav.admin" defaultText="Admin" />
                       {pendingCount > 0 && (
@@ -123,8 +123,8 @@ export const SiteHeader = () => {
                           {pendingCount}
                         </Badge>
                       )}
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                 )}
 
                 <Button
@@ -138,14 +138,14 @@ export const SiteHeader = () => {
                 </Button>
               </>
             ) : (
-              <Link to="/auth">
-                <Button variant="default" size="sm" className="font-heading">
+              <Button asChild variant="default" size="sm" className="font-heading">
+                <Link to="/auth">
                   <EditableUiText
                     textKey="nav.signin"
                     defaultText="Entra nella sala"
                   />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             )}
           </div>
 
@@ -179,38 +179,41 @@ export const SiteHeader = () => {
                     <RoleSwitcher />
                   </div>
 
-                  <Link to="/campaigns" onClick={closeMobileMenu}>
-                    <Button
-                      variant="ghost"
-                      className="h-11 w-full justify-start font-heading"
-                    >
+                  <Button
+                    asChild
+                    variant="ghost"
+                    className="h-11 w-full justify-start font-heading"
+                  >
+                    <Link to="/campaigns" onClick={closeMobileMenu}>
                       <UserIcon className="mr-2 h-4 w-4" />
                       <EditableUiText
                         textKey="nav.campaigns"
                         defaultText="Le campagne"
                       />
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
 
-                  <Link to="/profile" onClick={closeMobileMenu}>
-                    <Button
-                      variant="ghost"
-                      className="h-11 w-full justify-start font-heading"
-                    >
+                  <Button
+                    asChild
+                    variant="ghost"
+                    className="h-11 w-full justify-start font-heading"
+                  >
+                    <Link to="/profile" onClick={closeMobileMenu}>
                       <UserIcon className="mr-2 h-4 w-4" />
                       <EditableUiText
                         textKey="nav.profile"
                         defaultText="Profilo"
                       />
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
 
                   {isAdmin && (
-                    <Link to="/admin" onClick={closeMobileMenu}>
-                      <Button
-                        variant="ghost"
-                        className="h-11 w-full justify-start font-heading"
-                      >
+                    <Button
+                      asChild
+                      variant="ghost"
+                      className="h-11 w-full justify-start font-heading"
+                    >
+                      <Link to="/admin" onClick={closeMobileMenu} className="relative">
                         <ShieldCheck className="mr-2 h-4 w-4" />
                         <EditableUiText
                           textKey="nav.admin"
@@ -224,8 +227,8 @@ export const SiteHeader = () => {
                             {pendingCount}
                           </Badge>
                         )}
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                   )}
 
                   <Button
@@ -241,17 +244,14 @@ export const SiteHeader = () => {
                   </Button>
                 </>
               ) : (
-                <Link to="/auth" onClick={closeMobileMenu}>
-                  <Button
-                    variant="default"
-                    className="h-11 w-full font-heading"
-                  >
+                <Button asChild variant="default" className="h-11 w-full font-heading">
+                  <Link to="/auth" onClick={closeMobileMenu}>
                     <EditableUiText
                       textKey="nav.signin"
                       defaultText="Entra nella sala"
                     />
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               )}
             </div>
           </nav>
