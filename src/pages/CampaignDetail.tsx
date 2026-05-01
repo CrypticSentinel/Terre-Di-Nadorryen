@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -177,10 +176,7 @@ const CampaignDetail = () => {
     }
 
     if (isAdmin) {
-      const all = await supabase
-        .from("profiles")
-        .select("id, display_name, avatar_url");
-
+      const all = await supabase.from("profiles").select("id, display_name, avatar_url");
       setAllProfiles((all.data ?? []) as ProfileLite[]);
     } else {
       setAllProfiles([]);
@@ -404,7 +400,6 @@ const CampaignDetail = () => {
   if (loading || !campaign) {
     return (
       <div className="min-h-screen">
-        <SiteHeader />
         <div className="flex justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -420,26 +415,25 @@ const CampaignDetail = () => {
 
   return (
     <div className="min-h-screen">
-      <SiteHeader />
       <main className="container py-8">
         <Link
           to="/campaigns"
-          className="inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary mb-4"
+          className="mb-4 inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary"
         >
           <ArrowLeft className="h-4 w-4" /> Tutte le campagne
         </Link>
 
-        <div className="parchment-panel p-6 md:p-8 mb-8">
+        <div className="parchment-panel mb-8 p-6 md:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-wider font-heading text-primary/80 mb-1">
+              <p className="mb-1 text-xs uppercase tracking-wider font-heading text-primary/80">
                 {campaign.ruleset?.name}
               </p>
-              <h1 className="font-display text-3xl md:text-4xl gold-text mb-2">
+              <h1 className="gold-text mb-2 font-display text-3xl md:text-4xl">
                 {campaign.name}
               </h1>
               {campaign.description && (
-                <p className="font-script italic text-ink-faded max-w-2xl">
+                <p className="max-w-2xl font-script italic text-ink-faded">
                   {campaign.description}
                 </p>
               )}
@@ -448,7 +442,7 @@ const CampaignDetail = () => {
             {isAdmin && (
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="sm" onClick={openEditCampaign}>
-                  <Pencil className="h-4 w-4 mr-1" /> Modifica
+                  <Pencil className="mr-1 h-4 w-4" /> Modifica
                 </Button>
                 <Button
                   variant="ghost"
@@ -456,7 +450,7 @@ const CampaignDetail = () => {
                   onClick={deleteCampaign}
                   className="text-destructive"
                 >
-                  <Trash2 className="h-4 w-4 mr-1" /> Elimina
+                  <Trash2 className="mr-1 h-4 w-4" /> Elimina
                 </Button>
               </div>
             )}
@@ -467,8 +461,8 @@ const CampaignDetail = () => {
           </div>
 
           <div className="flex flex-wrap items-start gap-4">
-            <div className="flex-1 min-w-[240px]">
-              <div className="flex items-center justify-between mb-2">
+            <div className="min-w-[240px] flex-1">
+              <div className="mb-2 flex items-center justify-between">
                 <Label className="text-xs font-heading uppercase tracking-wider text-ink-faded">
                   Membri
                 </Label>
@@ -476,8 +470,8 @@ const CampaignDetail = () => {
                 {isAdmin && (
                   <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
                     <DialogTrigger asChild>
-                      <Button size="sm" variant="outline" className="font-heading h-7">
-                        <UserPlus className="h-3.5 w-3.5 mr-1" /> Aggiungi
+                      <Button size="sm" variant="outline" className="h-7 font-heading">
+                        <UserPlus className="mr-1 h-3.5 w-3.5" /> Aggiungi
                       </Button>
                     </DialogTrigger>
 
@@ -544,7 +538,7 @@ const CampaignDetail = () => {
 
               <div className="flex flex-wrap gap-2">
                 {members.length === 0 && (
-                  <span className="font-script italic text-ink-faded text-sm">
+                  <span className="text-sm font-script italic text-ink-faded">
                     Nessun membro ancora.
                   </span>
                 )}
@@ -552,7 +546,7 @@ const CampaignDetail = () => {
                 {members.map((m) => (
                   <div
                     key={m.id}
-                    className="flex items-center gap-2 bg-parchment-deep/30 rounded-full pl-1 pr-2 py-1 border border-border/60"
+                    className="flex items-center gap-2 rounded-full border border-border/60 bg-parchment-deep/30 py-1 pl-1 pr-2"
                   >
                     <Avatar className="h-6 w-6">
                       <AvatarImage src={m.profile?.avatar_url ?? undefined} />
@@ -572,7 +566,7 @@ const CampaignDetail = () => {
                     {isAdmin && m.role === "giocatore" && !narrator && (
                       <button
                         onClick={() => promoteToNarrator(m.id)}
-                        className="text-primary/70 hover:text-primary ml-1"
+                        className="ml-1 text-primary/70 hover:text-primary"
                         aria-label="Promuovi a Narratore"
                         title="Promuovi a Narratore"
                       >
@@ -583,7 +577,7 @@ const CampaignDetail = () => {
                     {isAdmin && m.role === "narratore" && (
                       <button
                         onClick={() => demoteNarrator(m.id)}
-                        className="text-ink-faded hover:text-ink ml-1"
+                        className="ml-1 text-ink-faded hover:text-ink"
                         aria-label="Rimuovi ruolo Narratore"
                         title="Rimuovi ruolo Narratore"
                       >
@@ -594,7 +588,7 @@ const CampaignDetail = () => {
                     {isAdmin && (
                       <button
                         onClick={() => removeMember(m.id)}
-                        className="text-destructive/70 hover:text-destructive ml-1"
+                        className="ml-1 text-destructive/70 hover:text-destructive"
                         aria-label="Rimuovi"
                       >
                         <Trash2 className="h-3 w-3" />
@@ -616,19 +610,19 @@ const CampaignDetail = () => {
           )}
         </div>
 
-        <div className="flex items-center justify-between mb-5">
+        <div className="mb-5 flex items-center justify-between">
           <h2 className="font-heading text-2xl">Schede della campagna</h2>
 
           {((myMembership && !isNarrator) || isAdmin) &&
             (useOsgdr && isActingAsPlayer ? (
               <Button className="font-heading" onClick={() => setWizardOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" /> Nuovo eroe
+                <Plus className="mr-2 h-4 w-4" /> Nuovo eroe
               </Button>
             ) : (
               <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                 <DialogTrigger asChild>
                   <Button className="font-heading">
-                    <Plus className="h-4 w-4 mr-2" /> Nuovo eroe
+                    <Plus className="mr-2 h-4 w-4" /> Nuovo eroe
                   </Button>
                 </DialogTrigger>
 
@@ -681,11 +675,11 @@ const CampaignDetail = () => {
 
         {visibleCharacters.length === 0 ? (
           <div className="parchment-panel p-10 text-center">
-            <ScrollText className="h-12 w-12 text-primary/60 mx-auto mb-3" />
+            <ScrollText className="mx-auto mb-3 h-12 w-12 text-primary/60" />
             <p className="font-script italic text-ink-faded">Nessuna scheda ancora.</p>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {visibleCharacters.map((c) => {
               const canDelete = c.owner_id === user?.id || isAdmin;
               const canOpenCharacter =
@@ -708,31 +702,31 @@ const CampaignDetail = () => {
                         deleteCharacter(c.id, c.name);
                       }}
                       title="Elimina scheda"
-                      className="absolute top-2 right-2 z-10 p-1.5 rounded-md bg-ink/50 text-destructive opacity-0 group-hover:opacity-100 hover:bg-ink/70 transition-opacity"
+                      className="absolute right-2 top-2 z-10 rounded-md bg-ink/50 p-1.5 text-destructive opacity-0 transition-opacity group-hover:opacity-100 hover:bg-ink/70"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}
 
                   {!canOpenCharacter && (
-                    <div className="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-md bg-ink/60 px-2 py-1 text-[11px] text-primary-foreground">
+                    <div className="absolute left-2 top-2 z-10 flex items-center gap-1 rounded-md bg-ink/60 px-2 py-1 text-[11px] text-primary-foreground">
                       <Lock className="h-3 w-3" />
                       <span>Solo visibile</span>
                     </div>
                   )}
 
-                  <div className="aspect-[4/3] bg-gradient-ember/20 relative overflow-hidden">
+                  <div className="relative aspect-[4/3] overflow-hidden bg-gradient-ember/20">
                     {c.image_url ? (
                       <img
                         src={c.image_url}
                         alt={c.name}
-                        className={`w-full h-full object-cover transition-transform duration-500 ${
+                        className={`h-full w-full object-cover transition-transform duration-500 ${
                           canOpenCharacter ? "group-hover:scale-105" : ""
                         }`}
                         loading="lazy"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-parchment-deep to-parchment-shadow">
+                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-parchment-deep to-parchment-shadow">
                         <ScrollText className="h-16 w-16 text-primary/40" />
                       </div>
                     )}
@@ -748,7 +742,7 @@ const CampaignDetail = () => {
                     </h3>
 
                     {c.concept && (
-                      <p className="font-script italic text-sm text-ink-faded line-clamp-1">
+                      <p className="line-clamp-1 font-script text-sm italic text-ink-faded">
                         {c.concept}
                       </p>
                     )}
@@ -758,7 +752,7 @@ const CampaignDetail = () => {
                     </Badge>
 
                     {!canOpenCharacter && (
-                      <p className="mt-2 text-xs font-script italic text-ink-faded">
+                      <p className="mt-2 font-script text-xs italic text-ink-faded">
                         Puoi vedere nome, descrizione e ritratto, ma non aprire la scheda.
                       </p>
                     )}
@@ -769,7 +763,7 @@ const CampaignDetail = () => {
               return (
                 <article
                   key={c.id}
-                  className={`parchment-panel overflow-hidden transition-shadow group relative ${
+                  className={`parchment-panel relative overflow-hidden transition-shadow group ${
                     canOpenCharacter ? "hover:shadow-glow" : ""
                   }`}
                 >
