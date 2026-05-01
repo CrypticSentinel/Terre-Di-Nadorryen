@@ -174,7 +174,6 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
       coins: { ...base.coins },
       weapons: [],
       armors: [],
-      damageLog: [],
       skills: [],
     };
   }
