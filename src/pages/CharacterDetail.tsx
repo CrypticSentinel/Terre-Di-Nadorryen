@@ -27,6 +27,7 @@ import {
   Save,
   BookOpen,
   History,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenSourceGdr } from "@/lib/rulesets";
@@ -564,17 +565,36 @@ const CharacterDetail = () => {
 
   return (
     <div className="min-h-screen">
-      <main className="container py-4 sm:py-6 lg:py-8">
+      <main className="container py-8 md:py-12">
         <Link
           to={`/campaigns/${character.campaign_id}`}
-          className="mb-4 inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary"
+          className="mb-6 inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary"
         >
           <ArrowLeft className="h-4 w-4" /> Torna alla campagna
         </Link>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-6">
-          <aside className="order-1 space-y-4 lg:order-none lg:space-y-5 lg:self-start">
-            <div className="parchment-panel p-3 sm:p-4">
+        <div className="mb-8">
+          <h1 className="mb-2 flex items-center gap-3 font-display text-4xl gold-text">
+            <ScrollText className="h-8 w-8" />
+            {canEdit ? name || "Scheda personaggio" : character.name}
+          </h1>
+          <p className="font-script italic text-ink-faded">
+            Cronaca, dettagli e memoria viva del personaggio
+          </p>
+        </div>
+
+        <div className="parchment-panel mb-8 flex flex-wrap items-center gap-2 p-3 text-sm font-script italic text-ink-faded">
+          <ShieldCheck className="h-4 w-4 text-primary" />
+          {isOwner
+            ? "Questa scheda appartiene a te."
+            : ownerProfile
+            ? `Scheda assegnata a ${ownerProfile.display_name}.`
+            : "Scheda condivisa della campagna."}
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
+          <aside className="space-y-5 lg:self-start">
+            <div className="parchment-panel p-4">
               <div className="group relative mx-auto aspect-[3/4] w-full max-w-[240px] overflow-hidden rounded bg-gradient-to-br from-parchment-deep to-parchment-shadow">
                 {character.image_url ? (
                   <img
@@ -622,10 +642,10 @@ const CharacterDetail = () => {
             />
           </aside>
 
-          <div className="space-y-4 lg:space-y-5">
-            <div className="parchment-panel p-4 sm:p-5 lg:p-6">
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex-1">
+          <div className="space-y-5">
+            <div className="parchment-panel p-5 md:p-6">
+              <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 flex-1">
                   {canEdit ? (
                     <>
                       <Input
@@ -642,16 +662,16 @@ const CharacterDetail = () => {
                     </>
                   ) : (
                     <>
-                      <h1 className="font-display text-2xl gold-text sm:text-3xl">
+                      <h2 className="font-display text-2xl gold-text sm:text-3xl">
                         {character.name}
-                      </h1>
+                      </h2>
                       {character.concept && (
                         <p className="font-script italic text-ink-faded">{character.concept}</p>
                       )}
                     </>
                   )}
 
-                  <div className="mt-2">
+                  <div className="mt-3">
                     {isOwner ? (
                       <Badge variant="outline" className="text-xs">
                         Tuo
@@ -669,7 +689,7 @@ const CharacterDetail = () => {
                     variant="ghost"
                     size="sm"
                     onClick={handleDelete}
-                    className="shrink-0 self-start text-destructive sm:self-auto"
+                    className="shrink-0 self-start text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -695,16 +715,15 @@ const CharacterDetail = () => {
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="sheet" className="mt-4 space-y-4">
+                <TabsContent value="sheet" className="mt-5 space-y-4">
                   {useOsgdrForm ? (
                     <>
-                      <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="parchment-panel border border-border/50 bg-parchment-deep/20 p-3">
                         <p className="font-script text-xs italic text-ink-faded">
                           Scheda <strong>Open Source GDR</strong>
                           {isAdmin && (
                             <span className="ml-2 not-italic text-primary">
-                              · Admin: passa il mouse sulle etichette per modificarne testo e
-                              dimensione.
+                              · Admin: passa il mouse sulle etichette per modificarne testo e dimensione.
                             </span>
                           )}
                         </p>
@@ -743,18 +762,20 @@ const CharacterDetail = () => {
                   ) : (
                     <>
                       {visibleFields.length === 0 && (
-                        <p className="py-6 text-center font-script italic text-ink-faded">
-                          {canEdit
-                            ? "Nessun campo. Aggiungi caratteristiche, abilità, equipaggiamento, incantesimi..."
-                            : "Scheda vuota."}
-                        </p>
+                        <div className="parchment-panel p-8 text-center">
+                          <p className="font-script italic text-ink-faded">
+                            {canEdit
+                              ? "Nessun campo. Aggiungi caratteristiche, abilità, equipaggiamento o altri dettagli."
+                              : "Scheda vuota."}
+                          </p>
+                        </div>
                       )}
 
                       <div className="grid gap-3 sm:grid-cols-2">
                         {visibleFields.map((f) => (
                           <div
                             key={f.id}
-                            className="group rounded border border-border/60 bg-parchment-deep/20 p-3"
+                            className="rounded border border-border/60 bg-parchment-deep/20 p-3"
                           >
                             {canEdit ? (
                               <>
@@ -766,7 +787,7 @@ const CharacterDetail = () => {
                                   />
                                   <button
                                     onClick={() => removeField(f.id)}
-                                    className="text-destructive opacity-0 transition-opacity group-hover:opacity-100"
+                                    className="text-destructive"
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </button>
@@ -850,7 +871,7 @@ const CharacterDetail = () => {
                   )}
                 </TabsContent>
 
-                <TabsContent value="diary" className="mt-4 space-y-4">
+                <TabsContent value="diary" className="mt-5 space-y-4">
                   <div className="flex justify-end">
                     <Dialog open={noteOpen} onOpenChange={setNoteOpen}>
                       <DialogTrigger asChild>
@@ -909,9 +930,11 @@ const CharacterDetail = () => {
                   </div>
 
                   {notes.length === 0 ? (
-                    <p className="py-6 text-center font-script italic text-ink-faded">
-                      Nessuna pagina ancora scritta nel diario.
-                    </p>
+                    <div className="parchment-panel p-8 text-center">
+                      <p className="font-script italic text-ink-faded">
+                        Nessuna pagina ancora scritta nel diario.
+                      </p>
+                    </div>
                   ) : (
                     <div className="space-y-4">
                       {notes.map((n) => (
@@ -950,7 +973,7 @@ const CharacterDetail = () => {
                   )}
                 </TabsContent>
 
-                <TabsContent value="background" className="mt-4 space-y-3">
+                <TabsContent value="background" className="mt-5 space-y-3">
                   {canEditBackground ? (
                     <>
                       <Textarea
@@ -978,21 +1001,27 @@ const CharacterDetail = () => {
                       </div>
                     </>
                   ) : background.trim() ? (
-                    <p className="drop-cap whitespace-pre-wrap font-script leading-relaxed text-ink">
-                      {background}
-                    </p>
+                    <div className="rounded border border-border/60 bg-parchment-deep/20 p-4">
+                      <p className="drop-cap whitespace-pre-wrap font-script leading-relaxed text-ink">
+                        {background}
+                      </p>
+                    </div>
                   ) : (
-                    <p className="py-6 text-center font-script italic text-ink-faded">
-                      Nessun background scritto.
-                    </p>
+                    <div className="parchment-panel p-8 text-center">
+                      <p className="font-script italic text-ink-faded">
+                        Nessun background scritto.
+                      </p>
+                    </div>
                   )}
                 </TabsContent>
 
-                <TabsContent value="audit" className="mt-4 space-y-3">
+                <TabsContent value="audit" className="mt-5 space-y-3">
                   {auditLog.length === 0 ? (
-                    <p className="py-6 text-center font-script italic text-ink-faded">
-                      Nessuna modifica registrata.
-                    </p>
+                    <div className="parchment-panel p-8 text-center">
+                      <p className="font-script italic text-ink-faded">
+                        Nessuna modifica registrata.
+                      </p>
+                    </div>
                   ) : (
                     <ul className="space-y-2">
                       {auditLog.map((entry) => {
