@@ -48,6 +48,9 @@ interface Character {
   image_url: string | null;
   owner_display_name?: string | null;
   label?: string | null;
+  is_dead?: boolean;
+  death_description?: string | null;
+  died_at?: string | null;
 }
 
 interface CharacterCardRow {
@@ -59,6 +62,9 @@ interface CharacterCardRow {
   image_url: string | null;
   owner_display_name: string | null;
   label: string;
+  is_dead?: boolean;
+  death_description?: string | null;
+  died_at?: string | null;
 }
 
 interface Member {
@@ -170,6 +176,9 @@ const CampaignDetail = () => {
         image_url: c.image_url,
         owner_display_name: c.owner_display_name,
         label: c.label,
+        is_dead: c.is_dead ?? false,
+        death_description: c.death_description ?? null,
+        died_at: c.died_at ?? null,
       }));
 
       setCharacters(mapped);
@@ -202,6 +211,9 @@ const CampaignDetail = () => {
         concept: concept || null,
         campaign_id: campaignId,
         owner_id: user.id,
+        is_dead: false,
+        death_description: null,
+        died_at: null,
       })
       .select()
       .single();
@@ -243,6 +255,9 @@ const CampaignDetail = () => {
         campaign_id: campaignId,
         owner_id: user.id,
         custom_fields: customFields as any,
+        is_dead: false,
+        death_description: null,
+        died_at: null,
       })
       .select()
       .single();
@@ -747,9 +762,17 @@ const CampaignDetail = () => {
                       </p>
                     )}
 
-                    <Badge variant="outline" className="mt-2 text-xs">
-                      {c.owner_id === user?.id ? "Tuo" : ownerName}
-                    </Badge>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {c.owner_id === user?.id ? "Tuo" : ownerName}
+                      </Badge>
+
+                      {c.is_dead && (
+                        <Badge variant="destructive" className="text-xs">
+                          Caduto
+                        </Badge>
+                      )}
+                    </div>
 
                     {!canOpenCharacter && (
                       <p className="mt-2 font-script text-xs italic text-ink-faded">
