@@ -122,13 +122,32 @@ export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
   skills: [],
 };
 
+// === FUNZIONI DI ORDINAMENTO ALFABETICO ===
+const sortAlphabetically = (items: string[]): string[] =>
+  [...items].sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
+
+const sortSkillsAlphabetically = (skills: OsgdrSkill[]): OsgdrSkill[] =>
+  [...skills].sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base" }));
+
+const normalizeAndSortItems = (items: string[]): string[] =>
+  sortAlphabetically(
+    items
+      .map((item) => item.trim())
+      .filter(Boolean)
+  );
+
 export function normalizeOsgdrSheet(input: any): OsgdrSheet {
   const base = EMPTY_OSGDR_SHEET;
   if (!input || typeof input !== "object") {
     return {
       ...base,
       ferite: { ...base.ferite },
-      equipment: { ...base.equipment },
+      equipment: Object.fromEntries(
+        Object.entries(base.equipment).map(([key, value]) => [
+          key,
+          normalizeAndSortItems(value),
+        ])
+      ) as Record<EquipmentKey, string[]>,
       abilities: { ...base.abilities },
       magic: { ...base.magic },
       coins: { ...base.coins },
@@ -159,7 +178,7 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
   if (input.equipment) {
     for (const s of EQUIPMENT_SECTIONS) {
       const v = input.equipment[s.key];
-      equipment[s.key] = Array.isArray(v) ? v.map(String) : [];
+      equipment[s.key] = normalizeAndSortItems(Array.isArray(v) ? v.map(String) : []);
     }
   }
 
@@ -179,7 +198,7 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
     coins,
     ferite,
     equipment,
-    skills,
+    skills: sortSkillsAlphabetically(skills),
   };
 }
 
@@ -271,31 +290,60 @@ export const OpenSourceGdrSheet = ({
   const setEquipItem = (sec: EquipmentKey, idx: number, txt: string) => {
     const arr = [...(value.equipment[sec] ?? [])];
     arr[idx] = txt;
-    onChange({ ...value, equipment: { ...value.equipment, [sec]: arr } });
+    onChange({ 
+      ...value, 
+      equipment: { 
+        ...value.equipment, 
+        [sec]: normalizeAndSortItems(arr) 
+      } 
+    });
   };
 
   const addEquipItem = (sec: EquipmentKey) => {
     const arr = [...(value.equipment[sec] ?? []), ""];
-    onChange({ ...value, equipment: { ...value.equipment, [sec]: arr } });
+    onChange({ 
+      ...value, 
+      equipment: { 
+        ...value.equipment, 
+        [sec]: normalizeAndSortItems(arr) 
+      } 
+    });
   };
 
   const removeEquipItem = (sec: EquipmentKey, idx: number) => {
     const arr = [...(value.equipment[sec] ?? [])];
     arr.splice(idx, 1);
-    onChange({ ...value, equipment: { ...value.equipment, [sec]: arr } });
+    onChange({ 
+      ...value, 
+      equipment: { 
+        ...value.equipment, 
+        [sec]: normalizeAndSortItems(arr) 
+      } 
+    });
   };
 
   const addSkill = () =>
     onChange({
       ...value,
-      skills: [...value.skills, { id: crypto.randomUUID(), name: "Nuova abilità", grade: 1 }],
+      skills: sortSkillsAlphabetically([
+        ...value.skills, 
+        { id: crypto.randomUUID(), name: "Nuova abilità", grade: 1 }
+      ]),
     });
 
   const updateSkill = (id: string, patch: Partial<OsgdrSkill>) =>
-    onChange({ ...value, skills: value.skills.map((s) => (s.id === id ? { ...s, ...patch } : s)) });
+    onChange({ 
+      ...value, 
+      skills: sortSkillsAlphabetically(
+        value.skills.map((s) => (s.id === id ? { ...s, ...patch } : s))
+      ) 
+    });
 
   const removeSkill = (id: string) =>
-    onChange({ ...value, skills: value.skills.filter((s) => s.id !== id) });
+    onChange({ 
+      ...value, 
+      skills: sortSkillsAlphabetically(value.skills.filter((s) => s.id !== id)) 
+    });
 
   const renderText = (val: string | number) => (
     <span className="font-script whitespace-pre-wrap">{val || "—"}</span>
@@ -343,18 +391,16 @@ export const OpenSourceGdrSheet = ({
         )}
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {(
-            [
-              ["razza", "Razza"],
-              ["provenienza", "Provenienza"],
-              ["eta", "Età"],
-              ["altezza", "Altezza"],
-              ["peso", "Peso"],
-              ["carnagione", "Carnagione"],
-              ["capelli", "Capelli"],
-              ["occhi", "Occhi"],
-            ] as const
-          ).map(([k, label]) => (
+          {([
+            ["razza", "Razza"],
+            ["provenienza", "Provenienza"],
+            ["eta", "Età"],
+            ["altezza", "Altezza"],
+            ["peso", "Peso"],
+            ["carnagione", "Carnagione"],
+            ["capelli", "Capelli"],
+            ["occhi", "Occhi"],
+          ] as const).map(([k, label]) => (
             <div key={k} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
               {lbl(
                 `field.${k}`,
@@ -434,15 +480,13 @@ export const OpenSourceGdrSheet = ({
         </p>
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-          {(
-            [
-              ["iniziativa", "Iniziativa"],
-              ["penalita", "Penalità"],
-              ["fortuna", "Fortuna"],
-              ["fatica", "Fatica"],
-              ["pe", "PE"],
-            ] as const
-          ).map(([k, label]) => {
+          {([
+            ["iniziativa", "Iniziativa"],
+            ["penalita", "Penalità"],
+            ["fortuna", "Fortuna"],
+            ["fatica", "Fatica"],
+            ["pe", "PE"],
+          ] as const).map(([k, label]) => {
             const autoIniziativa =
               abilityModifier(value.abilities.des ?? 0) + abilityModifier(value.abilities.pro ?? 0);
             const isInit = k === "iniziativa";
@@ -571,7 +615,7 @@ export const OpenSourceGdrSheet = ({
           <p className="text-sm font-script italic text-ink-faded">Nessuna abilità appresa.</p>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
-            {value.skills.map((s) => (
+            {sortSkillsAlphabetically(value.skills).map((s) => (
               <div
                 key={s.id}
                 className="flex items-center gap-2 rounded border border-border/60 bg-parchment-deep/20 p-2"
@@ -648,7 +692,7 @@ export const OpenSourceGdrSheet = ({
         {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
         <div className="grid gap-3 sm:grid-cols-2">
           {EQUIPMENT_SECTIONS.map((sec) => {
-            const items = value.equipment[sec.key] ?? [];
+            const items = sortAlphabetically(value.equipment[sec.key] ?? []);
             return (
               <div
                 key={sec.key}
