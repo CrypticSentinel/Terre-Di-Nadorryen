@@ -273,10 +273,12 @@ export const OpenSourceGdrSheet = ({
     arr[idx] = txt;
     onChange({ ...value, equipment: { ...value.equipment, [sec]: arr } });
   };
+
   const addEquipItem = (sec: EquipmentKey) => {
     const arr = [...(value.equipment[sec] ?? []), ""];
     onChange({ ...value, equipment: { ...value.equipment, [sec]: arr } });
   };
+
   const removeEquipItem = (sec: EquipmentKey, idx: number) => {
     const arr = [...(value.equipment[sec] ?? [])];
     arr.splice(idx, 1);
@@ -288,8 +290,10 @@ export const OpenSourceGdrSheet = ({
       ...value,
       skills: [...value.skills, { id: crypto.randomUUID(), name: "Nuova abilità", grade: 1 }],
     });
+
   const updateSkill = (id: string, patch: Partial<OsgdrSkill>) =>
     onChange({ ...value, skills: value.skills.map((s) => (s.id === id ? { ...s, ...patch } : s)) });
+
   const removeSkill = (id: string) =>
     onChange({ ...value, skills: value.skills.filter((s) => s.id !== id) });
 
@@ -355,7 +359,7 @@ export const OpenSourceGdrSheet = ({
               {lbl(
                 `field.${k}`,
                 label,
-                "font-heading text-xs uppercase tracking-wider text-ink-faded",
+                "font-heading text-xs uppercase tracking-wider text-ink-faded mb-1 block",
                 "label",
               )}
               {canEdit ? (
@@ -365,7 +369,9 @@ export const OpenSourceGdrSheet = ({
                   className="h-9 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
                 />
               ) : (
-                renderText((value as any)[k])
+                <div className="font-script whitespace-pre-wrap text-ink">
+                  {renderText((value as any)[k])}
+                </div>
               )}
             </div>
           ))}
