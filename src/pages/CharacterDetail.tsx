@@ -484,7 +484,7 @@ const CharacterDetail = () => {
       ? assignedUserId ?? character.owner_id
       : character.owner_id;
 
-    const payload: Record<string, any> = {
+    const payload: any = {
       name,
       concept: concept || null,
       custom_fields: finalFields as any,
