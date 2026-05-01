@@ -34,7 +34,6 @@ import {
   ShieldCheck,
   Pencil,
   Lock,
-  Skull,
 } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenSourceGdr } from "@/lib/rulesets";
@@ -195,7 +194,7 @@ const CampaignDetail = () => {
 
   useEffect(() => {
     load();
-  }, [campaignId, isAdmin]);
+  }, [campaignId, isAdmin, isActingAsNarrator]);
 
   const handleCreateChar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -425,9 +424,7 @@ const CampaignDetail = () => {
     (c) => !c.is_dead && (isAdmin || isActingAsNarrator || isNarrator || c.owner_id === user?.id)
   );
 
-  const cemeteryCharacters = characters.filter(
-    (c) => !!c.is_dead
-  );
+  const cemeteryCharacters = characters.filter((c) => !!c.is_dead);
 
   const availableProfiles = allProfiles.filter(
     (p) => !members.some((m) => m.user_id === p.id)
