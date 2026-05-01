@@ -1021,7 +1021,7 @@ const CharacterDetail = () => {
                               </div>
                             </div>
                             <div className="mt-1 text-xs font-script italic text-ink-faded">
-                              di {entry.user_display_name ?? "Utente sconosciuto"}
+                             {entry.user_display_name ?? "Utente sconosciuto"}
                             </div>
                             {changes.length > 1 && (
                               <ul className="mt-2 list-inside list-disc space-y-0.5 font-script text-sm">
