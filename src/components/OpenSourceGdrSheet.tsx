@@ -32,6 +32,19 @@ const BODY_PARTS = [
   "Piede SX",
 ] as const;
 
+const NATURAL_ARMOR_BY_PART: Record<string, number> = {
+  "Testa": 3,
+  "Torace": 4,
+  "Braccio DX": 3,
+  "Braccio SX": 3,
+  "Mano DX": 2,
+  "Mano SX": 2,
+  "Gamba DX": 3,
+  "Gamba SX": 3,
+  "Piede DX": 2,
+  "Piede SX": 2,
+};
+
 const EQUIPMENT_SECTIONS = [
   { key: "pozioni", label: "Pozioni" },
   { key: "cibo", label: "Cibo" },
@@ -92,6 +105,12 @@ export interface OsgdrArmor {
   notes: string;
 }
 
+export interface OsgdrBodyPartState {
+  naturalArmor: number;
+  armor: string;
+  wounds: string;
+}
+
 export interface OsgdrSheet {
   razza: string;
   provenienza: string;
@@ -109,7 +128,7 @@ export interface OsgdrSheet {
   pe: number;
   magic: Record<MagicSchool, number>;
   coins: Record<CoinKey, number>;
-  ferite: Record<string, string>;
+  ferite: Record<string, OsgdrBodyPartState>;
   equipment: Record<EquipmentKey, OsgdrEquipmentItem[]>;
   weapons: OsgdrWeapon[];
   armors: OsgdrArmor[];
@@ -134,7 +153,16 @@ export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
   pe: 0,
   magic: Object.fromEntries(MAGIC_SCHOOLS.map((s) => [s, 0])) as Record<MagicSchool, number>,
   coins: Object.fromEntries(COIN_TYPES.map((c) => [c.key, 0])) as Record<CoinKey, number>,
-  ferite: Object.fromEntries(BODY_PARTS.map((p) => [p, ""])) as Record<string, string>,
+    ferite: Object.fromEntries(
+    BODY_PARTS.map((p) => [
+      p,
+      {
+                naturalArmor: NATURAL_ARMOR_BY_PART[p] ?? 0,
+        armor: "",
+        wounds: "",
+      },
+    ])
+  ) as Record<string, OsgdrBodyPartState>,
   equipment: Object.fromEntries(
   EQUIPMENT_SECTIONS.map((s) => [s.key, [] as OsgdrEquipmentItem[]])
   ) as Record<EquipmentKey, OsgdrEquipmentItem[]>,
@@ -179,7 +207,19 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
   }
 
   const abilities = { ...base.abilities, ...(input.abilities ?? {}) };
-  const ferite = { ...base.ferite, ...(input.ferite ?? {}) };
+    const ferite: Record<string, OsgdrBodyPartState> = { ...base.ferite };
+  if (input.ferite && typeof input.ferite === "object") {
+    for (const part of BODY_PARTS) {
+      const raw = input.ferite[part];
+      if (raw && typeof raw === "object") {
+        ferite[part] = {
+          naturalArmor: Number(raw.naturalArmor ?? base.ferite[part].naturalArmor) || 0,
+          armor: String(raw.armor ?? ""),
+          wounds: String(raw.wounds ?? ""),
+        };
+      }
+    }
+  }
 
   const magic: Record<MagicSchool, number> = { ...base.magic };
   if (input.magic && typeof input.magic === "object") {
@@ -345,8 +385,23 @@ export const OpenSourceGdrSheet = ({
     onChange({ ...value, coins: { ...value.coins, [key]: n } });
   };
 
-  const setFerita = (part: string, txt: string) =>
-    onChange({ ...value, ferite: { ...value.ferite, [part]: txt } });
+    const setFeritaField = (
+    part: string,
+    field: keyof OsgdrBodyPartState,
+    nextValue: string
+  ) =>
+    onChange({
+      ...value,
+      ferite: {
+                  ...(value.ferite[part] ?? {
+            naturalArmor: NATURAL_ARMOR_BY_PART[part] ?? 0,
+            armor: "",
+            wounds: "",
+          }),
+          [field]: field === "naturalArmor" ? Number(nextValue) || 0 : nextValue,
+        },
+      },
+    });
 
   const setEquipItem = (sec: EquipmentKey, id: string, txt: string) => {
     const arr = (value.equipment[sec] ?? []).map((item) =>
@@ -783,29 +838,72 @@ export const OpenSourceGdrSheet = ({
         )}
       </section>
 
-      <section className="space-y-3">
+            <section className="space-y-3">
         {lbl("section.ferite", "Ferite & Stato del corpo", "font-display text-xl gold-text", "h3")}
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {BODY_PARTS.map((p) => (
-            <div key={p} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
-              {lbl(
-                `ferita.${p}`,
-                p,
-                "font-heading text-xs uppercase tracking-wider text-ink-faded",
-                "label",
-              )}
-              {canEdit ? (
-                <Input
-                  value={value.ferite[p] ?? ""}
-                  onChange={(e) => setFerita(p, e.target.value)}
-                  placeholder="Stato / ferita..."
-                  className="h-9 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
-                />
-              ) : (
-                renderText(value.ferite[p])
-              )}
-            </div>
-          ))}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {BODY_PARTS.map((p) => {
+            const partState = value.ferite[p] ?? {
+              naturalArmor: 0,
+              armor: "",
+              wounds: "",
+            };
+
+            return (
+              <div key={p} className="rounded border border-border/60 bg-parchment-deep/20 p-3 space-y-3">
+                {lbl(
+                  `ferita.${p}`,
+                  p,
+                  "font-heading text-xs uppercase tracking-wider text-ink-faded",
+                  "label",
+                )}
+
+                <div className="space-y-2">
+                  <div>
+                    <Label className="font-heading text-[11px] uppercase tracking-wider text-ink-faded">
+                      Assorbimento naturale
+                    </Label>
+                    <Input
+                      value={partState.naturalArmor ?? 0}
+                      readOnly
+                      className="h-9 border-0 bg-transparent px-0 font-display text-primary focus-visible:ring-0"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="font-heading text-[11px] uppercase tracking-wider text-ink-faded">
+                      Armatura
+                    </Label>
+                    {canEdit ? (
+                      <Input
+                        value={partState.armor ?? ""}
+                        onChange={(e) => setFeritaField(p, "armor", e.target.value)}
+                        placeholder="Valore armatura..."
+                        className="h-9 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
+                      />
+                    ) : (
+                      renderText(partState.armor)
+                    )}
+                  </div>
+
+                  <div>
+                    <Label className="font-heading text-[11px] uppercase tracking-wider text-ink-faded">
+                      Ferite
+                    </Label>
+                    {canEdit ? (
+                      <Input
+                        value={partState.wounds ?? ""}
+                        onChange={(e) => setFeritaField(p, "wounds", e.target.value)}
+                        placeholder="Ferite / stato..."
+                        className="h-9 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
+                      />
+                    ) : (
+                      renderText(partState.wounds)
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
