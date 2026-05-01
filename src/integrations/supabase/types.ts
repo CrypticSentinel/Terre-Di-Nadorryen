@@ -117,8 +117,11 @@ export type Database = {
           concept: string | null
           created_at: string
           custom_fields: Json
+          death_description: string | null
+          died_at: string | null
           id: string
           image_url: string | null
+          is_dead: boolean
           name: string
           owner_id: string
           updated_at: string
@@ -128,8 +131,11 @@ export type Database = {
           concept?: string | null
           created_at?: string
           custom_fields?: Json
+          death_description?: string | null
+          died_at?: string | null
           id?: string
           image_url?: string | null
+          is_dead?: boolean
           name: string
           owner_id: string
           updated_at?: string
@@ -139,8 +145,11 @@ export type Database = {
           concept?: string | null
           created_at?: string
           custom_fields?: Json
+          death_description?: string | null
+          died_at?: string | null
           id?: string
           image_url?: string | null
+          is_dead?: boolean
           name?: string
           owner_id?: string
           updated_at?: string
@@ -386,8 +395,11 @@ export type Database = {
         Args: { _campaign_id: string }
         Returns: {
           campaign_id: string
+          death_description: string
+          died_at: string
           id: string
           image_url: string
+          is_dead: boolean
           label: string
           name: string
           owner_display_name: string
