@@ -294,39 +294,39 @@ export const OpenSourceGdrSheet = ({
     onChange({ ...value, ferite: { ...value.ferite, [part]: txt } });
 
   const setEquipItem = (sec: EquipmentKey, idx: number, txt: string) => {
-    const arr = [...(value.equipment[sec] ?? [])];
-    arr[idx] = txt;
-    onChange({ 
-      ...value, 
-      equipment: { 
-        ...value.equipment, 
-        [sec]: normalizeAndSortItems(arr) 
-      } 
-    });
-  };
+  const arr = [...(value.equipment[sec] ?? [])];
+  arr[idx] = txt;
+  onChange({
+    ...value,
+    equipment: {
+      ...value.equipment,
+      [sec]: normalizeAndSortItems(arr),
+    },
+  });
+};
 
-  const addEquipItem = (sec: EquipmentKey) => {
-    const arr = [...(value.equipment[sec] ?? []), ""];
-    onChange({ 
-      ...value, 
-      equipment: { 
-        ...value.equipment, 
-        [sec]: normalizeAndSortItems(arr) 
-      } 
-    });
-  };
+const addEquipItem = (sec: EquipmentKey) => {
+  const arr = [...(value.equipment[sec] ?? []), ""];
+  onChange({
+    ...value,
+    equipment: {
+      ...value.equipment,
+      [sec]: arr,
+    },
+  });
+};
 
-  const removeEquipItem = (sec: EquipmentKey, idx: number) => {
-    const arr = [...(value.equipment[sec] ?? [])];
-    arr.splice(idx, 1);
-    onChange({ 
-      ...value, 
-      equipment: { 
-        ...value.equipment, 
-        [sec]: normalizeAndSortItems(arr) 
-      } 
-    });
-  };
+const removeEquipItem = (sec: EquipmentKey, idx: number) => {
+  const arr = [...(value.equipment[sec] ?? [])];
+  arr.splice(idx, 1);
+  onChange({
+    ...value,
+    equipment: {
+      ...value.equipment,
+      [sec]: normalizeAndSortItems(arr),
+    },
+  });
+};
 
   const addSkill = () =>
     onChange({
@@ -698,7 +698,7 @@ export const OpenSourceGdrSheet = ({
         {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
         <div className="grid gap-3 sm:grid-cols-2">
           {EQUIPMENT_SECTIONS.map((sec) => {
-            const items = sortAlphabetically(value.equipment[sec.key] ?? []);
+            const items = normalizeAndSortItems(value.equipment[sec.key] ?? []);
             return (
               <div
                 key={sec.key}
