@@ -376,7 +376,7 @@ export const OpenSourceGdrSheet = ({
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           {lbl("section.caratteristiche", "Caratteristiche", "font-display text-xl gold-text", "h3")}
           <p className="font-script text-xs italic text-ink-faded">
-            Totale punti distribuiti: <strong>{totalPoints}</strong> · base 48 + 5d4 + 1d6
+            Totale punti distribuiti: <strong>{totalPoints}</strong>
           </p>
         </div>
 
