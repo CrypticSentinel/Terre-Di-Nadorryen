@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, BookOpen, Loader2, Scroll, ShieldCheck, Pencil, ExternalLink } from "lucide-react";
+import { Plus, BookOpen, Loader2, Scroll, ShieldCheck, Pencil, ExternalLink, Skull, Crown, Users } from "lucide-react";
 import { toast } from "sonner";
 
 interface Ruleset {
@@ -39,9 +39,23 @@ interface Campaign {
   ruleset?: { name: string };
 }
 
+interface Character {
+  id: string;
+  campaign_id: string;
+  owner_id: string;
+  name: string;
+  concept: string | null;
+  image_url: string | null;
+  created_at: string;
+  is_dead: boolean;
+  death_description: string | null;
+  died_at: string | null;
+}
+
 const Campaigns = () => {
   const { user, isAdmin } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
   const [rulesets, setRulesets] = useState<Ruleset[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,7 +79,7 @@ const Campaigns = () => {
   const load = async () => {
     setLoading(true);
 
-    const [c, r] = await Promise.all([
+    const [c, r, p] = await Promise.all([
       supabase
         .from("campaigns")
         .select("id, name, description, ruleset_id, ruleset:rulesets(name)")
@@ -74,6 +88,12 @@ const Campaigns = () => {
         .from("rulesets")
         .select("id, name, description, external_url")
         .order("name"),
+      supabase
+        .from("characters")
+        .select(
+          "id, campaign_id, owner_id, name, concept, image_url, created_at, is_dead, death_description, died_at"
+        )
+        .order("created_at", { ascending: true }),
     ]);
 
     if (c.error) toast.error("Impossibile caricare le campagne");
@@ -81,6 +101,9 @@ const Campaigns = () => {
 
     if (r.error) toast.error("Impossibile caricare i regolamenti");
     else setRulesets((r.data ?? []) as Ruleset[]);
+
+    if (p.error) toast.error("Impossibile caricare i personaggi");
+    else setCharacters((p.data ?? []) as Character[]);
 
     setLoading(false);
   };
@@ -172,6 +195,20 @@ const Campaigns = () => {
       load();
     }
   };
+
+  const aliveByCampaign = useMemo(() => {
+    return campaigns.reduce<Record<string, Character[]>>((acc, campaign) => {
+      acc[campaign.id] = characters.filter((c) => c.campaign_id === campaign.id && !c.is_dead);
+      return acc;
+    }, {});
+  }, [campaigns, characters]);
+
+  const deadByCampaign = useMemo(() => {
+    return campaigns.reduce<Record<string, Character[]>>((acc, campaign) => {
+      acc[campaign.id] = characters.filter((c) => c.campaign_id === campaign.id && c.is_dead);
+      return acc;
+    }, {});
+  }, [campaigns, characters]);
 
   return (
     <div className="min-h-screen">
@@ -333,33 +370,124 @@ const Campaigns = () => {
             </p>
           </div>
         ) : (
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-8">
             {campaigns.map((c) => (
-              <Link key={c.id} to={`/campaigns/${c.id}`}>
-                <article className="parchment-panel group h-full p-6 transition-shadow hover:shadow-glow">
-                  <h3 className="mb-1 font-heading text-xl transition-colors group-hover:text-primary">
-                    {c.name}
-                  </h3>
+              <section key={c.id} className="space-y-4">
+                <Link to={`/campaigns/${c.id}`}>
+                  <article className="parchment-panel group h-full p-6 transition-shadow hover:shadow-glow">
+                    <h3 className="mb-1 font-heading text-xl transition-colors group-hover:text-primary">
+                      {c.name}
+                    </h3>
 
-                  <p className="mb-3 text-xs font-heading uppercase tracking-wider text-primary/80">
-                    {c.ruleset?.name ?? "—"}
-                  </p>
-
-                  {c.description && (
-                    <p className="line-clamp-3 font-script text-sm text-ink-faded">
-                      {c.description}
+                    <p className="mb-3 text-xs font-heading uppercase tracking-wider text-primary/80">
+                      {c.ruleset?.name ?? "—"}
                     </p>
-                  )}
 
-                  <div className="ornament-divider my-3">
-                    <span>✦</span>
+                    {c.description && (
+                      <p className="line-clamp-3 font-script text-sm text-ink-faded">
+                        {c.description}
+                      </p>
+                    )}
+
+                    <div className="ornament-divider my-3">
+                      <span>✦</span>
+                    </div>
+
+                    <div className="flex items-center gap-1 text-sm font-script text-ink-faded">
+                      <BookOpen className="h-4 w-4" /> Apri la cronaca
+                    </div>
+                  </article>
+                </Link>
+
+                <div className="grid gap-5 lg:grid-cols-2">
+                  <div className="parchment-panel p-5">
+                    <h4 className="mb-3 flex items-center gap-2 font-heading text-lg">
+                      <Users className="h-4 w-4 text-primary" />
+                      Eroi ancora in cammino
+                    </h4>
+
+                    {aliveByCampaign[c.id]?.length ? (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {aliveByCampaign[c.id].map((character) => (
+                          <Link key={character.id} to={`/characters/${character.id}`} className="group">
+                            <div className="rounded border border-border/60 bg-parchment-deep/20 p-3 transition hover:-translate-y-0.5">
+                              <div className="mb-2 aspect-[3/4] overflow-hidden rounded bg-gradient-to-br from-parchment-deep to-parchment-shadow">
+                                {character.image_url ? (
+                                  <img
+                                    src={character.image_url}
+                                    alt={character.name}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center">
+                                    <Scroll className="h-10 w-10 text-primary/40" />
+                                  </div>
+                                )}
+                              </div>
+                              <h5 className="font-heading text-base">{character.name}</h5>
+                              {character.concept && (
+                                <p className="font-script text-xs italic text-ink-faded">
+                                  {character.concept}
+                                </p>
+                              )}
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="font-script italic text-ink-faded">
+                        Nessun personaggio attivo in questa campagna.
+                      </p>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-1 text-sm font-script text-ink-faded">
-                    <BookOpen className="h-4 w-4" /> Apri la cronaca
+                  <div className="parchment-panel p-5">
+                    <h4 className="mb-3 flex items-center gap-2 font-heading text-lg">
+                      <Skull className="h-4 w-4 text-destructive" />
+                      Cimitero
+                    </h4>
+
+                    {deadByCampaign[c.id]?.length ? (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {deadByCampaign[c.id].map((character) => (
+                          <Link key={character.id} to={`/characters/${character.id}`} className="group">
+                            <div className="rounded border border-destructive/20 bg-parchment-deep/20 p-3 transition hover:-translate-y-0.5">
+                              <div className="mb-2 aspect-[3/4] overflow-hidden rounded bg-gradient-to-br from-parchment-deep to-parchment-shadow">
+                                {character.image_url ? (
+                                  <img
+                                    src={character.image_url}
+                                    alt={character.name}
+                                    className="h-full w-full object-cover grayscale"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center">
+                                    <Skull className="h-10 w-10 text-destructive/40" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="mb-1 flex items-center justify-between gap-2">
+                                <h5 className="font-heading text-base">{character.name}</h5>
+                                <Badge variant="destructive" className="text-[10px]">
+                                  Caduto
+                                </Badge>
+                              </div>
+                              <p className="line-clamp-3 font-script text-xs italic text-ink-faded">
+                                {character.death_description?.trim()
+                                  ? character.death_description
+                                  : "La sua fine non è ancora stata trascritta."}
+                              </p>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="font-script italic text-ink-faded">
+                        Nessun personaggio è ancora stato affidato al Cimitero.
+                      </p>
+                    )}
                   </div>
-                </article>
-              </Link>
+                </div>
+              </section>
             ))}
           </div>
         )}
