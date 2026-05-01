@@ -39,8 +39,6 @@ const EQUIPMENT_SECTIONS = [
   { key: "varie", label: "Varie ed eventuali" },
   { key: "oggetti", label: "Oggetti" },
   { key: "materiali", label: "Materiali" },
-  { key: "armi", label: "Armi" },
-  { key: "armature", label: "Armature" },
 ] as const;
 
 const MAGIC_SCHOOLS = [
@@ -78,6 +76,30 @@ export interface OsgdrEquipmentItem {
   text: string;
 }
 
+export interface OsgdrWeapon {
+  id: string;
+  name: string;
+  damage: string;
+  range: string;
+  notes: string;
+}
+
+export interface OsgdrArmor {
+  id: string;
+  name: string;
+  protection: string;
+  location: string;
+  notes: string;
+}
+
+export interface OsgdrDamageEntry {
+  id: string;
+  source: string;
+  amount: string;
+  target: string;
+  notes: string;
+}
+
 export interface OsgdrSheet {
   razza: string;
   provenienza: string;
@@ -97,6 +119,9 @@ export interface OsgdrSheet {
   coins: Record<CoinKey, number>;
   ferite: Record<string, string>;
   equipment: Record<EquipmentKey, OsgdrEquipmentItem[]>;
+  weapons: OsgdrWeapon[];
+  armors: OsgdrArmor[];
+  damageLog: OsgdrDamageEntry[];
   note: string;
   skills: OsgdrSkill[];
 }
@@ -120,8 +145,11 @@ export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
   coins: Object.fromEntries(COIN_TYPES.map((c) => [c.key, 0])) as Record<CoinKey, number>,
   ferite: Object.fromEntries(BODY_PARTS.map((p) => [p, ""])) as Record<string, string>,
   equipment: Object.fromEntries(
-    EQUIPMENT_SECTIONS.map((s) => [s.key, [] as OsgdrEquipmentItem[]])
+  EQUIPMENT_SECTIONS.map((s) => [s.key, [] as OsgdrEquipmentItem[]])
   ) as Record<EquipmentKey, OsgdrEquipmentItem[]>,
+  weapons: [],
+  armors: [],
+  damageLog: [],
   note: "",
   skills: [],
 };
@@ -154,6 +182,9 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
       abilities: { ...base.abilities },
       magic: { ...base.magic },
       coins: { ...base.coins },
+      weapons: [],
+      armors: [],
+      damageLog: [],
       skills: [],
     };
   }
@@ -209,7 +240,37 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
       }))
     : [];
 
-  return {
+    const weapons: OsgdrWeapon[] = Array.isArray(input.weapons)
+    ? input.weapons.map((w: any) => ({
+        id: String(w?.id ?? crypto.randomUUID()),
+        name: String(w?.name ?? ""),
+        damage: String(w?.damage ?? ""),
+        range: String(w?.range ?? ""),
+        notes: String(w?.notes ?? ""),
+      }))
+    : [];
+
+  const armors: OsgdrArmor[] = Array.isArray(input.armors)
+    ? input.armors.map((a: any) => ({
+        id: String(a?.id ?? crypto.randomUUID()),
+        name: String(a?.name ?? ""),
+        protection: String(a?.protection ?? ""),
+        location: String(a?.location ?? ""),
+        notes: String(a?.notes ?? ""),
+      }))
+    : [];
+
+  const damageLog: OsgdrDamageEntry[] = Array.isArray(input.damageLog)
+    ? input.damageLog.map((d: any) => ({
+        id: String(d?.id ?? crypto.randomUUID()),
+        source: String(d?.source ?? ""),
+        amount: String(d?.amount ?? ""),
+        target: String(d?.target ?? ""),
+        notes: String(d?.notes ?? ""),
+      }))
+    : [];
+  
+    return {
     ...base,
     ...input,
     abilities,
@@ -217,6 +278,9 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
     coins,
     ferite,
     equipment,
+    weapons,
+    armors,
+    damageLog,
     skills: sortSkillsAlphabetically(skills),
   };
 }
@@ -346,6 +410,87 @@ export const OpenSourceGdrSheet = ({
       },
     });
   };
+
+    const addWeapon = () =>
+    onChange({
+      ...value,
+      weapons: [
+        ...(value.weapons ?? []),
+        {
+          id: crypto.randomUUID(),
+          name: "",
+          damage: "",
+          range: "",
+          notes: "",
+        },
+      ],
+    });
+
+  const updateWeapon = (id: string, patch: Partial<OsgdrWeapon>) =>
+    onChange({
+      ...value,
+      weapons: (value.weapons ?? []).map((w) => (w.id === id ? { ...w, ...patch } : w)),
+    });
+
+  const removeWeapon = (id: string) =>
+    onChange({
+      ...value,
+      weapons: (value.weapons ?? []).filter((w) => w.id !== id),
+    });
+
+  const addArmor = () =>
+    onChange({
+      ...value,
+      armors: [
+        ...(value.armors ?? []),
+        {
+          id: crypto.randomUUID(),
+          name: "",
+          protection: "",
+          location: "",
+          notes: "",
+        },
+      ],
+    });
+
+  const updateArmor = (id: string, patch: Partial<OsgdrArmor>) =>
+    onChange({
+      ...value,
+      armors: (value.armors ?? []).map((a) => (a.id === id ? { ...a, ...patch } : a)),
+    });
+
+  const removeArmor = (id: string) =>
+    onChange({
+      ...value,
+      armors: (value.armors ?? []).filter((a) => a.id !== id),
+    });
+
+  const addDamageEntry = () =>
+    onChange({
+      ...value,
+      damageLog: [
+        ...(value.damageLog ?? []),
+        {
+          id: crypto.randomUUID(),
+          source: "",
+          amount: "",
+          target: "",
+          notes: "",
+        },
+      ],
+    });
+
+  const updateDamageEntry = (id: string, patch: Partial<OsgdrDamageEntry>) =>
+    onChange({
+      ...value,
+      damageLog: (value.damageLog ?? []).map((d) => (d.id === id ? { ...d, ...patch } : d)),
+    });
+
+  const removeDamageEntry = (id: string) =>
+    onChange({
+      ...value,
+      damageLog: (value.damageLog ?? []).filter((d) => d.id !== id),
+    });
 
   const addSkill = () =>
     onChange({
@@ -713,7 +858,7 @@ export const OpenSourceGdrSheet = ({
         </div>
       </section>
 
-      <section className="space-y-3">
+            <section className="space-y-3">
         {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
         <div className="grid gap-3 sm:grid-cols-2">
           {EQUIPMENT_SECTIONS.map((sec) => {
@@ -774,6 +919,204 @@ export const OpenSourceGdrSheet = ({
             );
           })}
         </div>
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          {lbl("section.weapons", "Armi", "font-display text-xl gold-text", "h3")}
+          {canEdit && (
+            <Button variant="outline" size="sm" onClick={addWeapon} className="font-heading">
+              <Plus className="mr-1 h-4 w-4" /> Aggiungi
+            </Button>
+          )}
+        </div>
+
+        {(!value.weapons || value.weapons.length === 0) ? (
+          <p className="text-sm font-script italic text-ink-faded">Nessuna arma inserita.</p>
+        ) : (
+          <div className="space-y-2">
+            {value.weapons.map((w) => (
+              <div key={w.id} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
+                {canEdit ? (
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    <Input
+                      value={w.name}
+                      onChange={(e) => updateWeapon(w.id, { name: e.target.value })}
+                      placeholder="Nome arma"
+                      className="font-script"
+                    />
+                    <Input
+                      value={w.damage}
+                      onChange={(e) => updateWeapon(w.id, { damage: e.target.value })}
+                      placeholder="Danno es. 1d6+2"
+                      className="font-script"
+                    />
+                    <Input
+                      value={w.range}
+                      onChange={(e) => updateWeapon(w.id, { range: e.target.value })}
+                      placeholder="Gittata / tipo"
+                      className="font-script"
+                    />
+                    <div className="flex gap-2">
+                      <Input
+                        value={w.notes}
+                        onChange={(e) => updateWeapon(w.id, { notes: e.target.value })}
+                        placeholder="Note"
+                        className="font-script"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeWeapon(w.id)}
+                        className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
+                        aria-label="Rimuovi arma"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1 font-script">
+                    <div><strong className="font-heading text-ink">{w.name || "—"}</strong></div>
+                    <div className="text-sm text-ink-faded">Danno: {w.damage || "—"} · Gittata: {w.range || "—"}</div>
+                    {w.notes && <div className="text-sm text-ink-faded">{w.notes}</div>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          {lbl("section.armors", "Armature", "font-display text-xl gold-text", "h3")}
+          {canEdit && (
+            <Button variant="outline" size="sm" onClick={addArmor} className="font-heading">
+              <Plus className="mr-1 h-4 w-4" /> Aggiungi
+            </Button>
+          )}
+        </div>
+
+        {(!value.armors || value.armors.length === 0) ? (
+          <p className="text-sm font-script italic text-ink-faded">Nessuna armatura inserita.</p>
+        ) : (
+          <div className="space-y-2">
+            {value.armors.map((a) => (
+              <div key={a.id} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
+                {canEdit ? (
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    <Input
+                      value={a.name}
+                      onChange={(e) => updateArmor(a.id, { name: e.target.value })}
+                      placeholder="Nome armatura"
+                      className="font-script"
+                    />
+                    <Input
+                      value={a.protection}
+                      onChange={(e) => updateArmor(a.id, { protection: e.target.value })}
+                      placeholder="Protezione"
+                      className="font-script"
+                    />
+                    <Input
+                      value={a.location}
+                      onChange={(e) => updateArmor(a.id, { location: e.target.value })}
+                      placeholder="Parte del corpo"
+                      className="font-script"
+                    />
+                    <div className="flex gap-2">
+                      <Input
+                        value={a.notes}
+                        onChange={(e) => updateArmor(a.id, { notes: e.target.value })}
+                        placeholder="Note"
+                        className="font-script"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeArmor(a.id)}
+                        className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
+                        aria-label="Rimuovi armatura"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1 font-script">
+                    <div><strong className="font-heading text-ink">{a.name || "—"}</strong></div>
+                    <div className="text-sm text-ink-faded">Protezione: {a.protection || "—"} · Zona: {a.location || "—"}</div>
+                    {a.notes && <div className="text-sm text-ink-faded">{a.notes}</div>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          {lbl("section.damage", "Danni", "font-display text-xl gold-text", "h3")}
+          {canEdit && (
+            <Button variant="outline" size="sm" onClick={addDamageEntry} className="font-heading">
+              <Plus className="mr-1 h-4 w-4" /> Aggiungi
+            </Button>
+          )}
+        </div>
+
+        {(!value.damageLog || value.damageLog.length === 0) ? (
+          <p className="text-sm font-script italic text-ink-faded">Nessun danno registrato.</p>
+        ) : (
+          <div className="space-y-2">
+            {value.damageLog.map((d) => (
+              <div key={d.id} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
+                {canEdit ? (
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    <Input
+                      value={d.source}
+                      onChange={(e) => updateDamageEntry(d.id, { source: e.target.value })}
+                      placeholder="Fonte es. Spada lunga"
+                      className="font-script"
+                    />
+                    <Input
+                      value={d.amount}
+                      onChange={(e) => updateDamageEntry(d.id, { amount: e.target.value })}
+                      placeholder="Danno es. 7"
+                      className="font-script"
+                    />
+                    <Input
+                      value={d.target}
+                      onChange={(e) => updateDamageEntry(d.id, { target: e.target.value })}
+                      placeholder="Bersaglio / zona"
+                      className="font-script"
+                    />
+                    <div className="flex gap-2">
+                      <Input
+                        value={d.notes}
+                        onChange={(e) => updateDamageEntry(d.id, { notes: e.target.value })}
+                        placeholder="Note"
+                        className="font-script"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeDamageEntry(d.id)}
+                        className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
+                        aria-label="Rimuovi danno"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1 font-script">
+                    <div><strong className="font-heading text-ink">{d.source || "—"}</strong></div>
+                    <div className="text-sm text-ink-faded">Danno: {d.amount || "—"} · Bersaglio: {d.target || "—"}</div>
+                    {d.notes && <div className="text-sm text-ink-faded">{d.notes}</div>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="space-y-3">
