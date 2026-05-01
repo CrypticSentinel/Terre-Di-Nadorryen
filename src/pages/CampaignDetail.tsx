@@ -698,7 +698,11 @@ const CampaignDetail = () => {
             {visibleCharacters.map((c) => {
               const canDelete = c.owner_id === user?.id || isAdmin;
               const canOpenCharacter =
-                isAdmin || isActingAsNarrator || isNarrator || c.owner_id === user?.id;
+                isAdmin ||
+                isActingAsNarrator ||
+                isNarrator ||
+                c.owner_id === user?.id ||
+                !!c.is_dead;
 
               const ownerName =
                 c.owner_display_name ??
