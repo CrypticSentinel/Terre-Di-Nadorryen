@@ -34,6 +34,7 @@ import {
   ShieldCheck,
   Pencil,
   Lock,
+  Skull,
 } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenSourceGdr } from "@/lib/rulesets";
@@ -127,11 +128,9 @@ const CampaignDetail = () => {
         .select("id, name, description, ruleset_id, ruleset:rulesets(name)")
         .eq("id", campaignId)
         .maybeSingle(),
-
       supabase.rpc("get_campaign_character_cards", {
         _campaign_id: campaignId,
       }),
-
       supabase
         .from("campaign_members")
         .select("id, user_id, role")
@@ -422,7 +421,8 @@ const CampaignDetail = () => {
     );
   }
 
-  const visibleCharacters = characters;
+  const visibleCharacters = characters.filter((c) => !c.is_dead);
+  const cemeteryCharacters = characters.filter((c) => c.is_dead);
 
   const availableProfiles = allProfiles.filter(
     (p) => !members.some((m) => m.user_id === p.id)
@@ -766,12 +766,6 @@ const CampaignDetail = () => {
                       <Badge variant="outline" className="text-xs">
                         {c.owner_id === user?.id ? "Tuo" : ownerName}
                       </Badge>
-
-                      {c.is_dead && (
-                        <Badge variant="destructive" className="text-xs">
-                          Caduto
-                        </Badge>
-                      )}
                     </div>
 
                     {!canOpenCharacter && (
@@ -801,6 +795,86 @@ const CampaignDetail = () => {
               );
             })}
           </div>
+        )}
+
+        {cemeteryCharacters.length > 0 && (
+          <section className="mt-10">
+            <div className="mb-4 flex items-center gap-2">
+              <h2 className="font-heading text-2xl">Cimitero</h2>
+              <Badge variant="destructive" className="font-heading">
+                {cemeteryCharacters.length}
+              </Badge>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {cemeteryCharacters.map((c) => {
+                const ownerName =
+                  c.owner_display_name ??
+                  members.find((m) => m.user_id === c.owner_id)?.profile?.display_name ??
+                  allProfiles.find((p) => p.id === c.owner_id)?.display_name ??
+                  "Giocatore";
+
+                return (
+                  <article
+                    key={c.id}
+                    className="parchment-panel overflow-hidden border border-destructive/30 bg-destructive/5"
+                  >
+                    <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-parchment-deep to-parchment-shadow">
+                      {c.image_url ? (
+                        <img
+                          src={c.image_url}
+                          alt={c.name}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <ScrollText className="h-16 w-16 text-destructive/40" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-4">
+                      <div className="mb-2 flex items-center gap-2">
+                        <h3 className="font-heading text-lg">{c.name}</h3>
+                        <Badge variant="destructive" className="text-xs">
+                          Caduto
+                        </Badge>
+                      </div>
+
+                      {c.concept && (
+                        <p className="font-script text-sm italic text-ink-faded">{c.concept}</p>
+                      )}
+
+                      <Badge variant="outline" className="mt-2 text-xs">
+                        {c.owner_id === user?.id ? "Tuo" : ownerName}
+                      </Badge>
+
+                      {(c.death_description || c.died_at) && (
+                        <div className="mt-3 rounded border border-destructive/20 bg-background/60 p-3">
+                          {c.died_at && (
+                            <p className="text-xs font-script italic text-ink-faded">
+                              Caduto il{" "}
+                              {new Date(c.died_at).toLocaleDateString("it-IT", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              })}
+                            </p>
+                          )}
+                          {c.death_description && (
+                            <p className="mt-1 font-script text-sm italic text-ink">
+                              {c.death_description}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
         )}
 
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
