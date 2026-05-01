@@ -91,7 +91,7 @@ export interface OsgdrSheet {
   magic: Record<MagicSchool, number>;
   coins: Record<CoinKey, number>;
   ferite: Record<string, string>;
-  equipment: Record<EquipmentKey, string[]>;
+  equipment: Record<EquipmentKey, EquipmentItem[]>;
   note: string;
   skills: OsgdrSkill[];
 }
@@ -728,7 +728,7 @@ const removeEquipItem = (sec: EquipmentKey, idx: number) => {
                 )}
 
                 {items.map((it, idx) => (
-                  <div key={idx} className="group flex items-center gap-1">
+                  <div key={it.id} className="group flex items-center gap-1">
                     {canEdit ? (
                       <>
                         <Input
