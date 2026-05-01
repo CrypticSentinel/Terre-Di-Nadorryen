@@ -117,6 +117,14 @@ const CampaignDetail = () => {
   const isNarrator = myMembership?.role === "narratore";
   const narrator = members.find((m) => m.role === "narratore");
 
+  const canManageAllCharacters = isAdmin || isActingAsNarrator || isNarrator;
+
+  const canAccessCharacter = (character: Character): boolean => {
+    if (canManageAllCharacters) return true;
+    if (!user) return false;
+    return character.owner_id === user.id || !!character.is_dead;
+  };
+
   const load = async () => {
     if (!campaignId) return;
     setLoading(true);
@@ -420,13 +428,7 @@ const CampaignDetail = () => {
     );
   }
 
-    const canManageAllCharacters = isAdmin || isActingAsNarrator || isNarrator;
-
-  const visibleCharacters = characters.filter((c) => {
-    if (c.is_dead) return false;
-    return canManageAllCharacters || c.owner_id === user?.id;
-  });
-
+  const visibleCharacters = characters.filter((c) => !c.is_dead);
   const cemeteryCharacters = characters.filter((c) => !!c.is_dead);
 
   const availableProfiles = allProfiles.filter(
@@ -702,8 +704,7 @@ const CampaignDetail = () => {
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {visibleCharacters.map((c) => {
               const canDelete = c.owner_id === user?.id || isAdmin;
-              const canOpenCharacter =
-  canManageAllCharacters || c.owner_id === user?.id;
+              const canOpenCharacter = canAccessCharacter(c);
 
               const ownerName =
                 c.owner_display_name ??
@@ -813,17 +814,16 @@ const CampaignDetail = () => {
 
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {cemeteryCharacters.map((c) => {
+                const canOpenCharacter = canAccessCharacter(c);
+
                 const ownerName =
                   c.owner_display_name ??
                   members.find((m) => m.user_id === c.owner_id)?.profile?.display_name ??
                   allProfiles.find((p) => p.id === c.owner_id)?.display_name ??
                   "Giocatore";
 
-                return (
-                  <article
-                    key={c.id}
-                    className="parchment-panel overflow-hidden border border-destructive/30 bg-destructive/5"
-                  >
+                const cemeteryCardBody = (
+                  <>
                     <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-parchment-deep to-parchment-shadow">
                       {c.image_url ? (
                         <img
@@ -875,6 +875,23 @@ const CampaignDetail = () => {
                         </div>
                       )}
                     </div>
+                  </>
+                );
+
+                return (
+                  <article
+                    key={c.id}
+                    className={`parchment-panel overflow-hidden border border-destructive/30 bg-destructive/5 transition-shadow group ${
+                      canOpenCharacter ? "hover:shadow-glow" : ""
+                    }`}
+                  >
+                    {canOpenCharacter ? (
+                      <Link to={`/characters/${c.id}`} className="block">
+                        {cemeteryCardBody}
+                      </Link>
+                    ) : (
+                      <div className="block cursor-default">{cemeteryCardBody}</div>
+                    )}
                   </article>
                 );
               })}
