@@ -92,7 +92,8 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
   const [magic, setMagic] = useState<Record<string, number>>(getInitialMagic());
 
   const [skills, setSkills] = useState<OsgdrSkill[]>([]);
-  const [coins, setCoins] = useState<Record<string, number>>(getInitialCoins());
+    const [coins, setCoins] = useState<Record<string, number>>(getInitialCoins());
+  const [silverRolled, setSilverRolled] = useState(false);
 
   const visibleSteps = useMemo(() => {
     const steps: WizardStep[] = ["anagrafica", "caratteristiche", "usa-magia"];
@@ -169,6 +170,7 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
     setMagic(getInitialMagic());
     setSkills([]);
     setCoins(getInitialCoins());
+    setSilverRolled(false);
   };
 
   const handleCancel = () => {
@@ -291,9 +293,11 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
     setMagic(next);
   };
 
-  const rollSilverCoins = () => {
+    const rollSilverCoins = () => {
+    if (silverRolled) return;
     const silver = 1 + Math.floor(Math.random() * 100);
     setCoins({ oro: 0, argento: silver, rame: 0 });
+    setSilverRolled(true);
   };
 
   const addSkill = () => {
@@ -825,15 +829,16 @@ export const OsgdrCharacterWizard = ({ open, onCancel, onComplete, submitting }:
               </p>
 
               <div className="flex items-center gap-3 flex-wrap">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={rollSilverCoins}
-                  className="font-heading"
-                >
-                  <Dices className="h-4 w-4 mr-2" />
-                  Tira 1d100
-                </Button>
+                              <Button
+                type="button"
+                variant="outline"
+                onClick={rollSilverCoins}
+                className="font-heading"
+                disabled={silverRolled}
+              >
+                <Dices className="h-4 w-4 mr-2" />
+                {silverRolled ? "1d100 tirato" : "Tira 1d100"}
+              </Button>
 
                 <span className="font-script italic text-xs text-ink-faded">
                   Il valore viene assegnato automaticamente e non può essere modificato manualmente.
