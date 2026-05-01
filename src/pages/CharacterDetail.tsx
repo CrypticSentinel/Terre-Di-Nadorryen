@@ -889,11 +889,13 @@ const CharacterDetail = () => {
               </div>
             )}
 
-            <DiceRollerDock
-              campaignId={character.campaign_id}
-              characterId={character.id}
-              characterName={character.name}
-            />
+            <div className="lg:sticky lg:top-6">
+              <DiceRollerDock
+                campaignId={character.campaign_id}
+                characterId={character.id}
+                characterName={character.name}
+              />
+            </div>
           </aside>
 
           <div className="space-y-5">
