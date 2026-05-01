@@ -179,9 +179,6 @@ export default function Profile() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nome</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Inserisci il tuo nome" />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
