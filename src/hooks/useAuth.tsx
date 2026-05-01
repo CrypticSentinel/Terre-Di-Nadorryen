@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
-import { Session, User } from "@supabase/supabase-js";
+import { createContext, useContext, useEffect, useState, type ReactNode, useCallback } from "react";
+import type { AuthSession, AuthUser } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
 export type AppRole = "admin" | "narratore" | "giocatore";
@@ -8,8 +8,8 @@ export type ApprovalStatus = "pending" | "approved" | "rejected";
 const ACTIVE_ROLE_STORAGE_KEY = "tdn:active-role";
 
 interface AuthContextValue {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
+  session: AuthSession | null;
   loading: boolean;
   /** Tutti i ruoli effettivi assegnati all'utente */
   roles: AppRole[];
@@ -58,8 +58,8 @@ function pickDefaultActive(rs: AppRole[]): AppRole | null {
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [activeRole, setActiveRoleState] = useState<AppRole | null>(null);
