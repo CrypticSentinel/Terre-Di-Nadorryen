@@ -661,7 +661,7 @@ const CharacterDetail = () => {
                       </Badge>
                     ) : ownerProfile ? (
                       <Badge variant="outline" className="text-xs">
-                        Di {ownerProfile.display_name}
+                       {ownerProfile.display_name}
                       </Badge>
                     ) : null}
                   </div>
