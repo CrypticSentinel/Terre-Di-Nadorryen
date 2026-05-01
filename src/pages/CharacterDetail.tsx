@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { SiteHeader } from "@/components/SiteHeader";
 import { DiceRollerDock } from "@/components/DiceRoller";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -556,7 +555,6 @@ const CharacterDetail = () => {
   if (loading || !character) {
     return (
       <div className="min-h-screen">
-        <SiteHeader />
         <div className="flex justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -566,7 +564,6 @@ const CharacterDetail = () => {
 
   return (
     <div className="min-h-screen">
-      <SiteHeader />
       <main className="container py-4 sm:py-6 lg:py-8">
         <Link
           to={`/campaigns/${character.campaign_id}`}
@@ -661,7 +658,7 @@ const CharacterDetail = () => {
                       </Badge>
                     ) : ownerProfile ? (
                       <Badge variant="outline" className="text-xs">
-                       {ownerProfile.display_name}
+                        {ownerProfile.display_name}
                       </Badge>
                     ) : null}
                   </div>
@@ -672,7 +669,7 @@ const CharacterDetail = () => {
                     variant="ghost"
                     size="sm"
                     onClick={handleDelete}
-                    className="self-start shrink-0 text-destructive sm:self-auto"
+                    className="shrink-0 self-start text-destructive sm:self-auto"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -944,7 +941,7 @@ const CharacterDetail = () => {
                               </button>
                             )}
                           </div>
-                          <p className="drop-cap font-script whitespace-pre-wrap leading-relaxed text-ink">
+                          <p className="drop-cap whitespace-pre-wrap font-script leading-relaxed text-ink">
                             {n.content}
                           </p>
                         </article>
@@ -981,7 +978,7 @@ const CharacterDetail = () => {
                       </div>
                     </>
                   ) : background.trim() ? (
-                    <p className="drop-cap font-script whitespace-pre-wrap leading-relaxed text-ink">
+                    <p className="drop-cap whitespace-pre-wrap font-script leading-relaxed text-ink">
                       {background}
                     </p>
                   ) : (
@@ -1021,7 +1018,7 @@ const CharacterDetail = () => {
                               </div>
                             </div>
                             <div className="mt-1 text-xs font-script italic text-ink-faded">
-                             {entry.user_display_name ?? "Utente sconosciuto"}
+                              {entry.user_display_name ?? "Utente sconosciuto"}
                             </div>
                             {changes.length > 1 && (
                               <ul className="mt-2 list-inside list-disc space-y-0.5 font-script text-sm">
