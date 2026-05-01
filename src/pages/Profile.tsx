@@ -11,17 +11,40 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
-const profileSchema = z.object({
-  name: z.string().trim().min(2, "Il nome deve contenere almeno 2 caratteri."),
-  newPassword: z.string().optional(),
-  confirmPassword: z.string().optional(),
-});
+const profileSchema = z
+  .object({
+    name: z.string().trim().min(2, "Il nome deve contenere almeno 2 caratteri."),
+    newPassword: z.string().optional(),
+    confirmPassword: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      const hasPassword = (data.newPassword?.trim().length ?? 0) > 0 || (data.confirmPassword?.trim().length ?? 0) > 0;
+      if (!hasPassword) return true;
+      return (data.newPassword?.trim().length ?? 0) >= 8;
+    },
+    {
+      path: ["newPassword"],
+      message: "La nuova password deve contenere almeno 8 caratteri.",
+    }
+  )
+  .refine(
+    (data) => {
+      const newPassword = data.newPassword?.trim() || "";
+      const confirmPassword = data.confirmPassword?.trim() || "";
+      if (!newPassword && !confirmPassword) return true;
+      return newPassword === confirmPassword;
+    },
+    {
+      path: ["confirmPassword"],
+      message: "La conferma password non corrisponde.",
+    }
+  );
 
 type ProfileValues = z.infer<typeof profileSchema>;
 
 export default function Profile() {
   const { user } = useAuth();
-
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savingName, setSavingName] = useState(false);
@@ -39,6 +62,7 @@ export default function Profile() {
   const form = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: initialValues,
+    mode: "onSubmit",
   });
 
   useEffect(() => {
@@ -103,8 +127,18 @@ export default function Profile() {
     setSavingPassword(true);
 
     try {
+      if (!user?.id) {
+        setError("Utente non autenticato.");
+        return;
+      }
+
       const newPassword = form.getValues("newPassword")?.trim() || "";
       const confirmPassword = form.getValues("confirmPassword")?.trim() || "";
+
+      if (!newPassword) {
+        setError("Inserisci una nuova password.");
+        return;
+      }
 
       if (newPassword.length < 8) {
         setError("La nuova password deve contenere almeno 8 caratteri.");
@@ -116,7 +150,18 @@ export default function Profile() {
         return;
       }
 
-      setError("La modifica password va gestita con il flusso auth del progetto.");
+      const { error: authError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (authError) {
+        setError(authError.message);
+        return;
+      }
+
+      form.setValue("newPassword", "");
+      form.setValue("confirmPassword", "");
+      setMessage("Password aggiornata con successo.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore imprevisto durante il salvataggio della password.");
     } finally {
