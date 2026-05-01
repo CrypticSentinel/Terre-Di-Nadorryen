@@ -73,6 +73,11 @@ export interface OsgdrSkill {
   grade: number;
 }
 
+export interface OsgdrEquipmentItem {
+  id: string;
+  text: string;
+}
+
 export interface OsgdrSheet {
   razza: string;
   provenienza: string;
@@ -91,7 +96,7 @@ export interface OsgdrSheet {
   magic: Record<MagicSchool, number>;
   coins: Record<CoinKey, number>;
   ferite: Record<string, string>;
-  equipment: Record<EquipmentKey, string[]>;
+  equipment: Record<EquipmentKey, OsgdrEquipmentItem[]>;
   note: string;
   skills: OsgdrSkill[];
 }
@@ -114,32 +119,29 @@ export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
   magic: Object.fromEntries(MAGIC_SCHOOLS.map((s) => [s, 0])) as Record<MagicSchool, number>,
   coins: Object.fromEntries(COIN_TYPES.map((c) => [c.key, 0])) as Record<CoinKey, number>,
   ferite: Object.fromEntries(BODY_PARTS.map((p) => [p, ""])) as Record<string, string>,
-  equipment: Object.fromEntries(EQUIPMENT_SECTIONS.map((s) => [s.key, [] as string[]])) as Record<
-    EquipmentKey,
-    string[]
-  >,
+  equipment: Object.fromEntries(
+    EQUIPMENT_SECTIONS.map((s) => [s.key, [] as OsgdrEquipmentItem[]])
+  ) as Record<EquipmentKey, OsgdrEquipmentItem[]>,
   note: "",
   skills: [],
 };
 
-// === FUNZIONI DI ORDINAMENTO ALFABETICO ===
-const sortAlphabetically = (items: string[]): string[] =>
-  [...items].sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
-
 const sortSkillsAlphabetically = (skills: OsgdrSkill[]): OsgdrSkill[] =>
   [...skills].sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base" }));
 
-const normalizeAndSortItems = (items: string[]): string[] => {
-  const normalized = items.map((item) => item ?? "");
+const sortEquipmentAlphabetically = (items: OsgdrEquipmentItem[]): OsgdrEquipmentItem[] => {
+  const normalized = items.map((item) => ({
+    ...item,
+    text: item.text ?? "",
+  }));
 
   const filled = normalized
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0)
-    .sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
+    .filter((item) => item.text.trim().length > 0)
+    .sort((a, b) => a.text.localeCompare(b.text, "it", { sensitivity: "base" }));
 
-  const emptyCount = normalized.filter((item) => item.trim().length === 0).length;
+  const empty = normalized.filter((item) => item.text.trim().length === 0);
 
-  return [...filled, ...Array(emptyCount).fill("")];
+  return [...filled, ...empty];
 };
 
 export function normalizeOsgdrSheet(input: any): OsgdrSheet {
@@ -148,12 +150,7 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
     return {
       ...base,
       ferite: { ...base.ferite },
-      equipment: Object.fromEntries(
-        Object.entries(base.equipment).map(([key, value]) => [
-          key,
-          normalizeAndSortItems(value),
-        ])
-      ) as Record<EquipmentKey, string[]>,
+      equipment: { ...base.equipment },
       abilities: { ...base.abilities },
       magic: { ...base.magic },
       coins: { ...base.coins },
@@ -180,11 +177,27 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
     }
   }
 
-  const equipment: Record<EquipmentKey, string[]> = { ...base.equipment };
+  const equipment: Record<EquipmentKey, OsgdrEquipmentItem[]> = { ...base.equipment };
   if (input.equipment) {
     for (const s of EQUIPMENT_SECTIONS) {
-      const v = input.equipment[s.key];
-      equipment[s.key] = normalizeAndSortItems(Array.isArray(v) ? v.map(String) : []);
+      const raw = input.equipment[s.key];
+
+      if (Array.isArray(raw)) {
+        equipment[s.key] = sortEquipmentAlphabetically(
+          raw.map((item: any) => {
+            if (typeof item === "string") {
+              return { id: crypto.randomUUID(), text: item };
+            }
+
+            return {
+              id: String(item?.id ?? crypto.randomUUID()),
+              text: String(item?.text ?? ""),
+            };
+          })
+        );
+      } else {
+        equipment[s.key] = [];
+      }
     }
   }
 
@@ -293,62 +306,68 @@ export const OpenSourceGdrSheet = ({
   const setFerita = (part: string, txt: string) =>
     onChange({ ...value, ferite: { ...value.ferite, [part]: txt } });
 
-  const setEquipItem = (sec: EquipmentKey, idx: number, txt: string) => {
-  const arr = [...(value.equipment[sec] ?? [])];
-  arr[idx] = txt;
-  onChange({
-    ...value,
-    equipment: {
-      ...value.equipment,
-      [sec]: normalizeAndSortItems(arr),
-    },
-  });
-};
+  const setEquipItem = (sec: EquipmentKey, id: string, txt: string) => {
+    const arr = (value.equipment[sec] ?? []).map((item) =>
+      item.id === id ? { ...item, text: txt } : item
+    );
 
-const addEquipItem = (sec: EquipmentKey) => {
-  const arr = [...(value.equipment[sec] ?? []), ""];
-  onChange({
-    ...value,
-    equipment: {
-      ...value.equipment,
-      [sec]: arr,
-    },
-  });
-};
+    onChange({
+      ...value,
+      equipment: {
+        ...value.equipment,
+        [sec]: sortEquipmentAlphabetically(arr),
+      },
+    });
+  };
 
-const removeEquipItem = (sec: EquipmentKey, idx: number) => {
-  const arr = [...(value.equipment[sec] ?? [])];
-  arr.splice(idx, 1);
-  onChange({
-    ...value,
-    equipment: {
-      ...value.equipment,
-      [sec]: normalizeAndSortItems(arr),
-    },
-  });
-};
+  const addEquipItem = (sec: EquipmentKey) => {
+    const arr = [
+      ...(value.equipment[sec] ?? []),
+      { id: crypto.randomUUID(), text: "" },
+    ];
+
+    onChange({
+      ...value,
+      equipment: {
+        ...value.equipment,
+        [sec]: arr,
+      },
+    });
+  };
+
+  const removeEquipItem = (sec: EquipmentKey, id: string) => {
+    const arr = (value.equipment[sec] ?? []).filter((item) => item.id !== id);
+
+    onChange({
+      ...value,
+      equipment: {
+        ...value.equipment,
+        [sec]: sortEquipmentAlphabetically(arr),
+      },
+    });
+  };
 
   const addSkill = () =>
     onChange({
       ...value,
       skills: sortSkillsAlphabetically([
-        ...value.skills, 
-        { id: crypto.randomUUID(), name: "Nuova abilità", grade: 1 }
+        ...value.skills,
+        { id: crypto.randomUUID(), name: "Nuova abilità", grade: 1 },
       ]),
     });
 
   const updateSkill = (id: string, patch: Partial<OsgdrSkill>) =>
-    onChange({ 
-      ...value, 
+    onChange({
+      ...value,
       skills: sortSkillsAlphabetically(
         value.skills.map((s) => (s.id === id ? { ...s, ...patch } : s))
-      ) 
+      ),
     });
 
   const removeSkill = (id: string) =>
-    onChange({ 
-      ...value, 
-      skills: sortSkillsAlphabetically(value.skills.filter((s) => s.id !== id)) 
+    onChange({
+      ...value,
+      skills: sortSkillsAlphabetically(value.skills.filter((s) => s.id !== id)),
     });
 
   const renderText = (val: string | number) => (
@@ -698,7 +717,8 @@ const removeEquipItem = (sec: EquipmentKey, idx: number) => {
         {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
         <div className="grid gap-3 sm:grid-cols-2">
           {EQUIPMENT_SECTIONS.map((sec) => {
-            const items = normalizeAndSortItems(value.equipment[sec.key] ?? []);
+            const items = sortEquipmentAlphabetically(value.equipment[sec.key] ?? []);
+
             return (
               <div
                 key={sec.key}
@@ -727,18 +747,18 @@ const removeEquipItem = (sec: EquipmentKey, idx: number) => {
                   <p className="text-xs font-script italic text-ink-faded">—</p>
                 )}
 
-                {items.map((it, idx) => (
-                  <div key={idx} className="group flex items-center gap-1">
+                {items.map((it) => (
+                  <div key={it.id} className="group flex items-center gap-1">
                     {canEdit ? (
                       <>
                         <Input
-                          value={it}
-                          onChange={(e) => setEquipItem(sec.key, idx, e.target.value)}
+                          value={it.text}
+                          onChange={(e) => setEquipItem(sec.key, it.id, e.target.value)}
                           className="h-9 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
                         />
                         <button
                           type="button"
-                          onClick={() => removeEquipItem(sec.key, idx)}
+                          onClick={() => removeEquipItem(sec.key, it.id)}
                           className={`${iconButtonClass} text-destructive opacity-90 hover:bg-destructive/10`}
                           aria-label={`Rimuovi item da ${sec.label}`}
                         >
@@ -746,7 +766,7 @@ const removeEquipItem = (sec: EquipmentKey, idx: number) => {
                         </button>
                       </>
                     ) : (
-                      <span className="font-script">• {it}</span>
+                      <span className="font-script">• {it.text}</span>
                     )}
                   </div>
                 ))}
