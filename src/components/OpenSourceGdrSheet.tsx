@@ -755,17 +755,19 @@ export const OpenSourceGdrSheet = ({
       )}
 
       {isInit ? (
-        <div
-          className="font-display text-primary"
-          style={{ fontSize: "22px" }}
-          title="Calcolata automaticamente: Mod. DES + Mod. PRO"
-        >
-          {formatModifier(autoIniziativa)}
-        </div>
-        <div className="mt-1 font-script text-xs text-ink-faded">
-            L'<strong>Iniziativa</strong> è calcolata automaticamente come <em>Mod. Destrezza + Mod. Prontezza</em>.
-        </div>
-      ) : isWoundPenalty ? (
+  <>
+    <div
+      className="font-display text-primary"
+      style={{ fontSize: "22px" }}
+      title="Calcolata automaticamente: Mod. DES + Mod. PRO"
+    >
+      {formatModifier(autoIniziativa)}
+    </div>
+    <div className="mt-1 font-script text-xs text-ink-faded">
+      Calcolata automaticamente da Mod. Destrezza + Mod. Prontezza
+    </div>
+  </>
+) : isWoundPenalty ? (
         <>
           <div className="font-display text-primary" style={{ fontSize: "22px" }}>
             {formatModifier(woundPenalty)}
