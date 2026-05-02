@@ -106,7 +106,7 @@ export interface OsgdrArmor {
 }
 
 export interface OsgdrBodyPartState {
-  wounds: string;
+  wounds: number;
 }
 
 export interface OsgdrSheet {
@@ -155,7 +155,7 @@ export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
     BODY_PARTS.map((p) => [
       p,
       {
-        wounds: "",
+        wounds: 0,
       },
     ])
   ) as Record<string, OsgdrBodyPartState>,
@@ -209,8 +209,8 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
       const raw = input.ferite[part];
       if (raw && typeof raw === "object") {
         ferite[part] = {
-          wounds: String(raw.wounds ?? ""),
-        };
+  wounds: Math.max(0, Number(raw.wounds) || 0),
+};
       }
     }
   }
@@ -375,6 +375,25 @@ export const OpenSourceGdrSheet = ({
 
     return totals;
   }, [value.armors]);
+
+  const woundPenalty = useMemo(() => {
+  let worstPenalty = 0;
+
+  for (const part of BODY_PARTS) {
+    const raw = Number(value.ferite?.[part]?.wounds ?? 0) || 0;
+    const threshold = NATURAL_ARMOR_BY_PART[part] ?? 0;
+
+    if (raw >= threshold * 2) {
+      worstPenalty = Math.min(worstPenalty, -5);
+    } else if (raw >= threshold) {
+      worstPenalty = Math.min(worstPenalty, -5);
+    } else if (raw >= 2) {
+      worstPenalty = Math.min(worstPenalty, -2);
+    }
+  }
+
+  return worstPenalty;
+}, [value.ferite]);
   
   const set = <K extends keyof OsgdrSheet>(k: K, v: OsgdrSheet[K]) => onChange({ ...value, [k]: v });
 
@@ -393,23 +412,16 @@ export const OpenSourceGdrSheet = ({
     onChange({ ...value, coins: { ...value.coins, [key]: n } });
   };
 
-        const setFeritaField = (
-    part: string,
-    field: keyof OsgdrBodyPartState,
-    nextValue: string
-  ) =>
-    onChange({
-      ...value,
-      ferite: {
-        ...value.ferite,
-        [part]: {
-          ...(value.ferite[part] ?? {
-            wounds: "",
-          }),
-          [field]: nextValue,
-        },
+        const setFeritaValue = (part: string, nextValue: string) =>
+  onChange({
+    ...value,
+    ferite: {
+      ...value.ferite,
+      [part]: {
+        wounds: Math.max(0, Math.abs(Number(nextValue) || 0)),
       },
-    });
+    },
+  });
 
   const setEquipItem = (sec: EquipmentKey, id: string, txt: string) => {
     const arr = (value.equipment[sec] ?? []).map((item) =>
@@ -666,7 +678,7 @@ export const OpenSourceGdrSheet = ({
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           {([
             ["iniziativa", "Iniziativa"],
-            ["penalita", "Penalità"],
+            ["penalita", "Penalità aggiuntive"],
             ["fortuna", "Fortuna"],
             ["fatica", "Fatica"],
             ["pe", "PE"],
@@ -710,6 +722,17 @@ export const OpenSourceGdrSheet = ({
             );
           })}
         </div>
+        <div className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center">
+  <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">
+    Penalità ferite
+  </Label>
+  <div className="font-display text-primary" style={{ fontSize: "22px" }}>
+    {formatModifier(woundPenalty)}
+  </div>
+  <div className="mt-1 font-script text-xs text-ink-faded">
+    Calcolata automaticamente dalle ferite inserite
+  </div>
+</div>
       </section>
 
       <section className="space-y-3">
@@ -851,8 +874,8 @@ export const OpenSourceGdrSheet = ({
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {BODY_PARTS.map((p) => {
             const partState = value.ferite[p] ?? {
-              wounds: "",
-            };
+  wounds: 0,
+};
 
             const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
             const totalNaturalArmor =
@@ -896,15 +919,17 @@ export const OpenSourceGdrSheet = ({
                       Ferite
                     </Label>
                     {canEdit ? (
-                      <Input
-                        value={partState.wounds ?? ""}
-                        onChange={(e) => setFeritaField(p, "wounds", e.target.value)}
-                        placeholder="Ferite / stato..."
-                        className="h-9 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
-                      />
-                    ) : (
-                      renderText(partState.wounds)
-                    )}
+  <Input
+    type="text"
+    inputMode="numeric"
+    value={partState.wounds > 0 ? `-${partState.wounds}` : ""}
+    onChange={(e) => setFeritaValue(p, e.target.value)}
+    placeholder="-0"
+    className="h-9 border-0 bg-transparent px-0 font-display text-primary focus-visible:ring-0"
+  />
+) : (
+  renderText(partState.wounds > 0 ? `-${partState.wounds}` : "—")
+)}
                   </div>
                 </div>
               </div>
