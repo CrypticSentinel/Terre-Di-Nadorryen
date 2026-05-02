@@ -909,29 +909,22 @@ export const OpenSourceGdrSheet = ({
     );
 
     const hitLocations = {
-      Alta: [
-        { location: "Testa", roll: "1 - 6", key: "Testa" },
-        { location: "Collo", roll: "7 - 10", key: "Collo" },
-        { location: "Spalla SX", roll: "12 - 25", key: "Spalla SX" },
-        { location: "Spalla DX", roll: "26 - 40", key: "Spalla DX" },
-        { location: "Braccio SX", roll: "41 - 50", key: "Braccio SX" },
-        { location: "Braccio DX", roll: "51 - 60", key: "Braccio DX" },
-        { location: "Mano SX", roll: "61 - 65", key: "Mano SX" },
-        { location: "Mano DX", roll: "66 - 70", key: "Mano DX" },
-        { location: "Torace", roll: "72 - 100", key: "Torace" },
-      ],
-      Bassa: [
-        { location: "Piede SX", roll: "1 - 6", key: "Piede SX" },
-        { location: "Piede DX", roll: "7 - 10", key: "Piede DX" },
-        { location: "Gamba SX", roll: "12 - 25", key: "Gamba SX" },
-        { location: "Gamba DX", roll: "26 - 40", key: "Gamba DX" },
-        { location: "Stinco SX", roll: "41 - 50", key: "Stinco SX" },
-        { location: "Stinco DX", roll: "51 - 60", key: "Stinco DX" },
-        { location: "Ginocchio SX", roll: "61 - 65", key: "Ginocchio SX" },
-        { location: "Ginocchio DX", roll: "66 - 70", key: "Ginocchio DX" },
-        { location: "Addome", roll: "72 - 100", key: "Addome" },
-      ],
-    } as const;
+  Alta: [
+    { location: "Testa", roll: "1 - 10", key: "Testa" },
+    { location: "Braccio SX", roll: "11 - 20", key: "Braccio SX" },
+    { location: "Braccio DX", roll: "21 - 30", key: "Braccio DX" },
+    { location: "Mano SX", roll: "31 - 35", key: "Mano SX" },
+    { location: "Mano DX", roll: "36 - 40", key: "Mano DX" },
+    { location: "Torace", roll: "41 - 100", key: "Torace" },
+  ],
+  Bassa: [
+    { location: "Piede SX", roll: "1 - 5", key: "Piede SX" },
+    { location: "Piede DX", roll: "6 - 10", key: "Piede DX" },
+    { location: "Gamba SX", roll: "11 - 35", key: "Gamba SX" },
+    { location: "Gamba DX", roll: "36 - 60", key: "Gamba DX" },
+    { location: "Torace", roll: "61 - 100", key: "Torace" },
+  ],
+} as const;
 
     const getSeverityStyles = (severity: WoundSeverity) => {
       if (severity === "light") {
