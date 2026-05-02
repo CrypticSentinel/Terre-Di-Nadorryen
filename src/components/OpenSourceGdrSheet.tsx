@@ -1798,11 +1798,7 @@ const fantasyZones = [
   <p className="text-xs font-script italic text-ink-faded">
     Calcolo rapido della difficoltà degli incantesimi.
   </p>
-</div>        
-        <p className="font-script text-xs italic text-ink-faded">
-          Punteggio per ciascuna delle dieci scuole di magia libera.
-        </p>
-
+</div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           {MAGIC_SCHOOLS.map((school) => {
             const grade = value.magic[school] ?? 0;
