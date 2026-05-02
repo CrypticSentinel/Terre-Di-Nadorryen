@@ -1,1284 +1,1398 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { DiceRollerDock } from "@/components/DiceRoller";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Coins, Plus, Trash2 } from "lucide-react";
-import { abilityModifier, formatModifier, magicBaseDamage } from "@/lib/rulesets";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Loader2,
+  Camera,
+  BookMarked,
+  ScrollText,
+  Save,
+  BookOpen,
+  History,
+  ShieldCheck,
+  Skull,
+  Coins,
+} from "lucide-react";
+import { toast } from "sonner";
+import { isOpenSourceGdr } from "@/lib/rulesets";
+import {
+  OpenSourceGdrSheet,
+  EMPTY_OSGDR_SHEET,
+  normalizeOsgdrSheet,
+  type OsgdrSheet,
+} from "@/components/OpenSourceGdrSheet";
 import { EditableLabel, type LabelOverride } from "@/components/EditableLabel";
+import { Badge } from "@/components/ui/badge";
 
-const ABILITIES = [
-  { key: "for", label: "FOR", full: "Forza" },
-  { key: "des", label: "DES", full: "Destrezza" },
-  { key: "cos", label: "COS", full: "Costituzione" },
-  { key: "vol", label: "VOL", full: "VolontÃ " },
-  { key: "pro", label: "PRO", full: "Prontezza" },
-  { key: "emp", label: "EMP", full: "Empatia" },
-] as const;
-
-const BODY_PARTS = [
-  "Testa",
-  "Torace",
-  "Braccio DX",
-  "Braccio SX",
-  "Mano DX",
-  "Mano SX",
-  "Gamba DX",
-  "Gamba SX",
-  "Piede DX",
-  "Piede SX",
-] as const;
-
-const natural_soglia: Record<string, number> = {
-  Testa: 3,
-  Torace: 5,
-  "Braccio DX": 4,
-  "Braccio SX": 4,
-  "Mano DX": 3,
-  "Mano SX": 3,
-  "Gamba DX": 4,
-  "Gamba SX": 4,
-  "Piede DX": 3,
-  "Piede SX": 3,
-};
-
-const EQUIPMENT_SECTIONS = [
-  { key: "pozioni", label: "Pozioni" },
-  { key: "cibo", label: "Cibo" },
-  { key: "pergamene", label: "Pergamene" },
-  { key: "varie", label: "Varie ed eventuali" },
-  { key: "oggetti", label: "Oggetti" },
-  { key: "materiali", label: "Materiali" },
-] as const;
-
-const MAGIC_SCHOOLS = [
-  "Acqua",
-  "Fuoco",
-  "Aria",
-  "Terra",
-  "Vita",
-  "Morte",
-  "Spirito",
-  "Materia",
-  "Mente",
-  "Corpo",
-] as const;
-
-const COIN_TYPES = [
-  { key: "oro", label: "Oro" },
-  { key: "argento", label: "Argento" },
-  { key: "rame", label: "Rame" },
-] as const;
-
-export type Ability = (typeof ABILITIES)[number]["key"];
-export type EquipmentKey = (typeof EQUIPMENT_SECTIONS)[number]["key"];
-export type MagicSchool = (typeof MAGIC_SCHOOLS)[number];
-export type CoinKey = (typeof COIN_TYPES)[number]["key"];
-
-export interface OsgdrSkill {
+interface CustomField {
   id: string;
+  label: string;
+  value: string;
+}
+
+interface Character {
+  id: string;
+  campaign_id: string;
+  owner_id: string;
   name: string;
-  grade: number;
+  concept: string | null;
+  image_url: string | null;
+  custom_fields: CustomField[];
+  is_dead: boolean;
+  death_description: string | null;
+  died_at: string | null;
 }
 
-export interface OsgdrEquipmentItem {
+interface Note {
   id: string;
-  text: string;
+  title: string;
+  content: string;
+  session_date: string | null;
+  author_id: string;
+  created_at: string;
 }
 
-export interface OsgdrWeapon {
+interface AuditEntry {
   id: string;
-  name: string;
-  damage: string;
-  range: string;
-  notes: string;
+  user_id: string;
+  user_display_name: string | null;
+  summary: string;
+  details: any;
+  created_at: string;
 }
 
-export interface OsgdrArmor {
+interface CampaignMember {
   id: string;
-  name: string;
-  protection: number;
-  location: string;
-  notes: string;
+  user_id: string;
+  role: "narratore" | "giocatore";
 }
 
-export interface OsgdrBodyPartState {
-  wounds: number;
-}
+const OSGDR_FIELD_ID = "__osgdr_sheet__";
+const LABEL_OVERRIDES_FIELD_ID = "__label_overrides__";
+const BACKGROUND_FIELD_ID = "__background__";
 
-export interface OsgdrSheet {
-  razza: string;
-  provenienza: string;
-  eta: string;
-  peso: string;
-  altezza: string;
-  capelli: string;
-  carnagione: string;
-  occhi: string;
-  abilities: Record<Ability, number>;
-  iniziativa: string;
-  penalita: string;
-  fortuna: string;
-  fatica: string;
-  pe: number;
-  magic: Record<MagicSchool, number>;
-  coins: Record<CoinKey, number>;
-  ferite: Record<string, OsgdrBodyPartState>;
-  equipment: Record<EquipmentKey, OsgdrEquipmentItem[]>;
-  weapons: OsgdrWeapon[];
-  armors: OsgdrArmor[];
-  note: string;
-  skills: OsgdrSkill[];
-}
+type LabelOverridesMap = Record<string, LabelOverride>;
 
-export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
-  razza: "",
-  provenienza: "",
-  eta: "",
-  peso: "",
-  altezza: "",
-  capelli: "",
-  carnagione: "",
-  occhi: "",
-  abilities: { for: 8, des: 8, cos: 8, vol: 8, pro: 8, emp: 8 },
-  iniziativa: "",
-  penalita: "",
-  fortuna: "",
-  fatica: "",
-  pe: 0,
-  magic: Object.fromEntries(MAGIC_SCHOOLS.map((s) => [s, 0])) as Record<MagicSchool, number>,
-  coins: Object.fromEntries(COIN_TYPES.map((c) => [c.key, 0])) as Record<CoinKey, number>,
-  ferite: Object.fromEntries(
-    BODY_PARTS.map((p) => [
-      p,
-      {
-        wounds: 0,
-      },
-    ]),
-  ) as Record<string, OsgdrBodyPartState>,
-  equipment: Object.fromEntries(
-    EQUIPMENT_SECTIONS.map((s) => [s.key, [] as OsgdrEquipmentItem[]]),
-  ) as Record<EquipmentKey, OsgdrEquipmentItem[]>,
-  weapons: [],
-  armors: [],
-  note: "",
-  skills: [],
-};
-
-const sortSkillsAlphabetically = (skills: OsgdrSkill[]): OsgdrSkill[] =>
-  [...skills].sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base" }));
-
-const sortEquipmentAlphabetically = (items: OsgdrEquipmentItem[]): OsgdrEquipmentItem[] => {
-  const normalized = items.map((item) => ({
-    ...item,
-    text: item.text ?? "",
-  }));
-
-  const filled = normalized
-    .filter((item) => item.text.trim().length > 0)
-    .sort((a, b) => a.text.localeCompare(b.text, "it", { sensitivity: "base" }));
-
-  const empty = normalized.filter((item) => item.text.trim().length === 0);
-
-  return [...filled, ...empty];
-};
-
-export function normalizeOsgdrSheet(input: any): OsgdrSheet {
-  const base = EMPTY_OSGDR_SHEET;
-
-  if (!input || typeof input !== "object") {
+function extractOsgdrSheet(fields: CustomField[]): OsgdrSheet {
+  const f = fields.find((x) => x.id === OSGDR_FIELD_ID);
+  if (!f)
     return {
-      ...base,
-      ferite: { ...base.ferite },
-      equipment: { ...base.equipment },
-      abilities: { ...base.abilities },
-      magic: { ...base.magic },
-      coins: { ...base.coins },
-      weapons: [],
-      armors: [],
+      ...EMPTY_OSGDR_SHEET,
+      ferite: { ...EMPTY_OSGDR_SHEET.ferite },
+      equipment: { ...EMPTY_OSGDR_SHEET.equipment },
+      abilities: { ...EMPTY_OSGDR_SHEET.abilities },
       skills: [],
     };
+
+  try {
+    return normalizeOsgdrSheet(JSON.parse(f.value));
+  } catch {
+    return normalizeOsgdrSheet({});
   }
-
-  const abilities = { ...base.abilities, ...(input.abilities ?? {}) };
-
-  const ferite: Record<string, OsgdrBodyPartState> = { ...base.ferite };
-  if (input.ferite && typeof input.ferite === "object") {
-    for (const part of BODY_PARTS) {
-      const raw = input.ferite[part];
-      if (raw && typeof raw === "object") {
-        ferite[part] = {
-          wounds: Math.max(0, Number(raw.wounds) || 0),
-        };
-      }
-    }
-  }
-
-  const magic: Record<MagicSchool, number> = { ...base.magic };
-  if (input.magic && typeof input.magic === "object") {
-    for (const s of MAGIC_SCHOOLS) {
-      const v = Number(input.magic[s]);
-      if (Number.isFinite(v)) magic[s] = v;
-    }
-  }
-
-  const coins: Record<CoinKey, number> = { ...base.coins };
-  if (input.coins && typeof input.coins === "object") {
-    for (const c of COIN_TYPES) {
-      const v = Number(input.coins[c.key]);
-      if (Number.isFinite(v)) coins[c.key] = v;
-    }
-  }
-
-  const equipment: Record<EquipmentKey, OsgdrEquipmentItem[]> = { ...base.equipment };
-  if (input.equipment) {
-    for (const s of EQUIPMENT_SECTIONS) {
-      const raw = input.equipment[s.key];
-
-      if (Array.isArray(raw)) {
-        equipment[s.key] = sortEquipmentAlphabetically(
-          raw.map((item: any) => {
-            if (typeof item === "string") {
-              return { id: crypto.randomUUID(), text: item };
-            }
-
-            return {
-              id: String(item?.id ?? crypto.randomUUID()),
-              text: String(item?.text ?? ""),
-            };
-          }),
-        );
-      } else {
-        equipment[s.key] = [];
-      }
-    }
-  }
-
-  const skills: OsgdrSkill[] = Array.isArray(input.skills)
-    ? input.skills.map((sk: any) => ({
-        id: String(sk?.id ?? crypto.randomUUID()),
-        name: String(sk?.name ?? ""),
-        grade: Number(sk?.grade ?? 0),
-      }))
-    : [];
-
-  const weapons: OsgdrWeapon[] = Array.isArray(input.weapons)
-    ? input.weapons.map((w: any) => ({
-        id: String(w?.id ?? crypto.randomUUID()),
-        name: String(w?.name ?? ""),
-        damage: String(w?.damage ?? ""),
-        range: String(w?.range ?? ""),
-        notes: String(w?.notes ?? ""),
-      }))
-    : [];
-
-  const armors: OsgdrArmor[] = Array.isArray(input.armors)
-    ? input.armors.map((a: any) => ({
-        id: String(a?.id ?? crypto.randomUUID()),
-        name: String(a?.name ?? ""),
-        protection: Math.max(0, Number(a?.protection) || 0),
-        location: String(a?.location ?? BODY_PARTS[0] ?? ""),
-        notes: String(a?.notes ?? ""),
-      }))
-    : [];
-
-  return {
-    ...base,
-    ...input,
-    abilities,
-    magic,
-    coins,
-    ferite,
-    equipment,
-    weapons,
-    armors,
-    skills: sortSkillsAlphabetically(skills),
-  };
 }
 
-interface SelectableProfile {
-  id: string;
-  display_name: string;
+function packOsgdrSheet(fields: CustomField[], sheet: OsgdrSheet): CustomField[] {
+  const others = fields.filter((x) => x.id !== OSGDR_FIELD_ID);
+  return [
+    ...others,
+    { id: OSGDR_FIELD_ID, label: "Open Source GDR", value: JSON.stringify(sheet) },
+  ];
 }
 
-interface Props {
-  value: OsgdrSheet;
-  onChange: (next: OsgdrSheet) => void;
-  canEdit: boolean;
-  labelOverrides?: Record<string, LabelOverride>;
-  canCustomizeLabels?: boolean;
-  onLabelOverrideChange?: (key: string, override: LabelOverride | undefined) => void;
-  assignedUserId?: string;
-  onAssignedUserIdChange?: (next: string | undefined) => void;
+function extractBackground(fields: CustomField[]): string {
+  const f = fields.find((x) => x.id === BACKGROUND_FIELD_ID);
+  return f?.value ?? "";
 }
 
-type WoundSeverity = "none" | "light" | "grave" | "lethal";
-
-interface BodyPartPopupState {
-  part: string;
-  damage: number;
-  threshold: number;
-  severity: WoundSeverity;
-  localPenalty: number;
-  totalPenalty: number;
-  title: string;
-  description: string;
+function packBackground(fields: CustomField[], background: string): CustomField[] {
+  const others = fields.filter((x) => x.id !== BACKGROUND_FIELD_ID);
+  if (!background.trim()) return others;
+  return [...others, { id: BACKGROUND_FIELD_ID, label: "Background", value: background }];
 }
 
-const getWoundSeverity = (damage: number, threshold: number): WoundSeverity => {
-  if (damage >= threshold * 2) return "lethal";
-  if (damage >= threshold) return "grave";
-  if (damage >= 2) return "light";
-  return "none";
-};
-
-const getPenaltyFromSeverity = (severity: WoundSeverity): number => {
-  switch (severity) {
-    case "light":
-      return -2;
-    case "grave":
-      return -5;
-    case "lethal":
-      return -5;
-    default:
-      return 0;
+function extractLabelOverrides(fields: CustomField[]): LabelOverridesMap {
+  const f = fields.find((x) => x.id === LABEL_OVERRIDES_FIELD_ID);
+  if (!f) return {};
+  try {
+    const parsed = JSON.parse(f.value);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
   }
-};
+}
 
-const getBodyPartPopupInfo = (
-  part: string,
-  damage: number,
-  threshold: number,
-  severity: WoundSeverity,
-  totalPenalty: number,
-): BodyPartPopupState => {
-  const localPenalty = getPenaltyFromSeverity(severity);
-
-const base = {
-  part,
-  damage,
-  threshold,
-  severity,
-  localPenalty,
-  totalPenalty,
-};
-
-  const isHead = part === "Testa";
-  const isTorso = part === "Torace";
-  const isArm = part === "Braccio DX" || part === "Braccio SX";
-  const isHand = part === "Mano DX" || part === "Mano SX";
-  const isLeg = part === "Gamba DX" || part === "Gamba SX";
-  const isFoot = part === "Piede DX" || part === "Piede SX";
-
-  if (severity === "none") {
-    return {
-      ...base,
-      title: `${part}: nessuna ferita rilevante`,
-      description:
-        "Il danno accumulato non Ã¨ sufficiente a produrre una penalitÃ  o una conseguenza meccanica significativa.",
-    };
-  }
-
-  if (severity === "light") {
-    return {
-      ...base,
-      title: `${part}: ferita leggera`,
-      description:
-        "La parte del corpo Ã¨ ferita ma ancora funzionale. Il personaggio subisce -2 a tutte le azioni dal round successivo.",
-    };
-  }
-
-  if (severity === "grave") {
-    if (isHead) {
-      return {
-        ...base,
-        title: "Testa: ferita grave",
-        description:
-          "Possibile stordimento o perdita di sensi. Il personaggio subisce -5 a tutte le azioni dal round successivo.",
-      };
-    }
-
-    if (isTorso) {
-      return {
-        ...base,
-        title: "Torace: ferita grave",
-        description:
-          "La ferita puÃ² causare difficoltÃ  respiratorie, dolore intenso o emorragie interne. Il personaggio subisce -5 a tutte le azioni dal round successivo.",
-      };
-    }
-
-    if (isArm) {
-      return {
-        ...base,
-        title: `${part}: ferita grave`,
-        description:
-          "L'arto Ã¨ compromesso: il personaggio puÃ² perdere l'uso del braccio o lasciar cadere l'arma. Subisce -5 a tutte le azioni dal round successivo.",
-      };
-    }
-
-    if (isHand) {
-      return {
-        ...base,
-        title: `${part}: ferita grave`,
-        description:
-          "La mano perde precisione e forza: impugnare o manipolare oggetti diventa difficile. Il personaggio subisce -5 a tutte le azioni dal round successivo.",
-      };
-    }
-
-    if (isLeg) {
-      return {
-        ...base,
-        title: `${part}: ferita grave`,
-        description:
-          "La gamba Ã¨ compromessa: il movimento diventa difficile e la caduta Ã¨ possibile. Il personaggio subisce -5 a tutte le azioni dal round successivo.",
-      };
-    }
-
-    if (isFoot) {
-      return {
-        ...base,
-        title: `${part}: ferita grave`,
-        description:
-          "Il piede Ã¨ seriamente colpito: correre o mantenere l'equilibrio diventa difficile. Il personaggio subisce -5 a tutte le azioni dal round successivo.",
-      };
-    }
-  }
-
-  return {
-    ...base,
-    title: `${part}: ferita letale`,
-    description:
-      "La zona Ã¨ devastata. La conseguenza Ã¨ potenzialmente mortale o permanentemente invalidante, a discrezione del Narratore.",
-  };
-};
-
-const iconButtonClass =
-  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors";
-
-export const OpenSourceGdrSheet = ({
-  value,
-  onChange,
-  canEdit,
-  labelOverrides = {},
-  canCustomizeLabels = false,
-  onLabelOverrideChange,
-  assignedUserId,
-  onAssignedUserIdChange,
-}: Props) => {
-  const { user, isAdmin, isActingAsNarrator } = useAuth();
-  const [profiles, setProfiles] = useState<SelectableProfile[]>([]);
-  const [bodyPartPopup, setBodyPartPopup] = useState<BodyPartPopupState | null>(null);
-
-  const canAssignCharacter = canEdit && !!onAssignedUserIdChange && (isAdmin || isActingAsNarrator);
-
-  useEffect(() => {
-    if (!canAssignCharacter) return;
-
-    const loadProfiles = async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, display_name")
-        .eq("approval_status", "approved")
-        .order("display_name", { ascending: true });
-
-      if (!error) {
-        setProfiles((data ?? []) as SelectableProfile[]);
-      }
-    };
-
-    void loadProfiles();
-  }, [canAssignCharacter]);
-
-  useEffect(() => {
-    if (!canAssignCharacter) return;
-    if (assignedUserId) return;
-    if (!user?.id) return;
-
-    onAssignedUserIdChange?.(user.id);
-  }, [canAssignCharacter, assignedUserId, onAssignedUserIdChange, user?.id]);
-
-  const totalPoints = useMemo(
-    () => ABILITIES.reduce((acc, a) => acc + (Number(value.abilities[a.key]) || 0), 0),
-    [value.abilities],
-  );
-
-  const armorByBodyPart = useMemo(() => {
-    const totals: Record<string, number> = Object.fromEntries(
-      BODY_PARTS.map((part) => [part, 0]),
-    ) as Record<string, number>;
-
-    for (const armor of value.armors ?? []) {
-      const location = armor.location;
-      if (!location || !(location in totals)) continue;
-      totals[location] += Math.max(0, Number(armor.protection) || 0);
-    }
-
-    return totals;
-  }, [value.armors]);
-
-  const woundPenalty = useMemo(() => {
-  let totalPenalty = 0;
-
-  for (const part of BODY_PARTS) {
-    const damage = Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0) || 0);
-    const threshold = natural_soglia[part] ?? 0;
-    const severity = getWoundSeverity(damage, threshold);
-    const penalty = getPenaltyFromSeverity(severity);
-
-    totalPenalty += penalty;
-  }
-
-  return totalPenalty;
-}, [value.ferite]);
-
-  const set = <K extends keyof OsgdrSheet>(k: K, v: OsgdrSheet[K]) =>
-    onChange({ ...value, [k]: v });
-
-  const setAbility = (key: Ability, raw: string) => {
-    const n = Math.max(0, Math.min(30, Number(raw) || 0));
-    onChange({ ...value, abilities: { ...value.abilities, [key]: n } });
-  };
-
-  const setMagic = (school: MagicSchool, raw: string) => {
-    const n = Math.max(0, Math.min(99, Number(raw) || 0));
-    onChange({ ...value, magic: { ...value.magic, [school]: n } });
-  };
-
-  const setCoin = (key: CoinKey, raw: string) => {
-    const n = Math.max(0, Number(raw) || 0);
-    onChange({ ...value, coins: { ...value.coins, [key]: n } });
-  };
-
-  const setFeritaValue = (part: string, nextValue: string) => {
-  const damage = Math.max(0, Math.abs(Number(nextValue) || 0));
-  const threshold = natural_soglia[part] ?? 0;
-  const severity = getWoundSeverity(damage, threshold);
-
-  const nextFerite = {
-    ...value.ferite,
-    [part]: {
-      wounds: damage,
+function packLabelOverrides(fields: CustomField[], overrides: LabelOverridesMap): CustomField[] {
+  const others = fields.filter((x) => x.id !== LABEL_OVERRIDES_FIELD_ID);
+  if (Object.keys(overrides).length === 0) return others;
+  return [
+    ...others,
+    {
+      id: LABEL_OVERRIDES_FIELD_ID,
+      label: "Label overrides",
+      value: JSON.stringify(overrides),
     },
+  ];
+}
+
+const CharacterDetail = () => {
+  const { characterId } = useParams<{ characterId: string }>();
+  const { user, isAdmin, isActingAsNarrator } = useAuth();
+  const navigate = useNavigate();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [character, setCharacter] = useState<Character | null>(null);
+  const [members, setMembers] = useState<CampaignMember[]>([]);
+  const [ownerProfile, setOwnerProfile] = useState<{ display_name: string } | null>(null);
+  const [rulesetName, setRulesetName] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [bgSaving, setBgSaving] = useState(false);
+  const [destinySaving, setDestinySaving] = useState(false);
+
+  const [name, setName] = useState("");
+  const [concept, setConcept] = useState("");
+  const [fields, setFields] = useState<CustomField[]>([]);
+  const [osgdrSheet, setOsgdrSheet] = useState<OsgdrSheet>(EMPTY_OSGDR_SHEET);
+  const [labelOverrides, setLabelOverrides] = useState<LabelOverridesMap>({});
+  const [background, setBackground] = useState<string>("");
+  const [assignedUserId, setAssignedUserId] = useState<string | undefined>(undefined);
+
+  const [isDead, setIsDead] = useState(false);
+  const [deathDescription, setDeathDescription] = useState("");
+  const [diedAt, setDiedAt] = useState("");
+
+  const dbSnapshotRef = useRef<{
+    name: string;
+    concept: string;
+    fields: CustomField[];
+    osgdrSheet: OsgdrSheet;
+    background: string;
+    owner_id: string;
+    is_dead: boolean;
+    death_description: string;
+    died_at: string;
+  } | null>(null);
+
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteTitle, setNoteTitle] = useState("");
+  const [noteContent, setNoteContent] = useState("");
+  const [noteDate, setNoteDate] = useState("");
+  const [noteSubmitting, setNoteSubmitting] = useState(false);
+
+  const myMembership = members.find((m) => m.user_id === user?.id);
+  const isNarrator = myMembership?.role === "narratore";
+  const canManageAllCharacters = isAdmin || isActingAsNarrator || isNarrator;
+
+  const getCharacterAccess = (ch: Character | null) => {
+    const isOwner = !!ch && !!user && ch.owner_id === user.id;
+    const canView =
+      !!ch && (canManageAllCharacters || isOwner || !!ch.is_dead);
+    const canEdit =
+      !!ch && (canManageAllCharacters || isOwner);
+    const canAssignCharacter =
+      !!ch && canManageAllCharacters;
+    const canEditBackground =
+      !!ch && canEdit;
+    const canManageDestiny =
+      !!ch && canManageAllCharacters;
+
+    return {
+      isOwner,
+      canView,
+      canEdit,
+      canAssignCharacter,
+      canEditBackground,
+      canManageDestiny,
+    };
   };
 
-  let totalPenalty = 0;
+  const access = getCharacterAccess(character);
+  const useOsgdrForm = isOpenSourceGdr(rulesetName);
 
-  for (const bodyPart of BODY_PARTS) {
-    const bodyDamage = Math.max(0, Number(nextFerite?.[bodyPart]?.wounds ?? 0) || 0);
-    const bodyThreshold = natural_soglia[bodyPart] ?? 0;
-    const bodySeverity = getWoundSeverity(bodyDamage, bodyThreshold);
-    totalPenalty += getPenaltyFromSeverity(bodySeverity);
+  const visibleFields = fields.filter(
+    (f) =>
+      f.id !== OSGDR_FIELD_ID &&
+      f.id !== LABEL_OVERRIDES_FIELD_ID &&
+      f.id !== BACKGROUND_FIELD_ID
+  );
+
+  const load = async () => {
+    if (!characterId) return;
+    setLoading(true);
+
+    const [c, n] = await Promise.all([
+  supabase
+    .from("characters")
+    .select("*")
+    .eq("id", characterId)
+    .maybeSingle(),
+  supabase
+    .from("session_notes")
+    .select("*")
+    .eq("character_id", characterId)
+    .order("created_at", { ascending: false }),
+]);
+
+    if (c.error || !c.data) {
+      toast.error("Personaggio non trovato");
+      navigate("/campaigns");
+      return;
+    }
+
+    const raw = c.data as any;
+    const ch = raw as Character;
+
+    if (!Array.isArray(ch.custom_fields)) ch.custom_fields = [];
+
+    const { data: memberRows } = await supabase
+      .from("campaign_members")
+      .select("id, user_id, role")
+      .eq("campaign_id", ch.campaign_id);
+
+    const normalizedMembers = ((memberRows ?? []) as CampaignMember[]);
+    setMembers(normalizedMembers);
+
+    const currentMembership = normalizedMembers.find((m) => m.user_id === user?.id);
+    const currentIsNarrator = currentMembership?.role === "narratore";
+    const currentCanManageAllCharacters =
+      isAdmin || isActingAsNarrator || currentIsNarrator;
+
+    const isAllowed =
+      !!user &&
+      (currentCanManageAllCharacters || ch.owner_id === user.id || !!ch.is_dead);
+
+    if (!isAllowed) {
+      toast.error("Non puoi visualizzare questa scheda");
+      navigate(`/campaigns/${ch.campaign_id}`);
+      return;
+    }
+
+    setCharacter(ch);
+    setAssignedUserId(ch.owner_id);
+    const { data: campaignRow } = await supabase
+      .from("campaigns")
+      .select("ruleset_id, rulesets(name)")
+      .eq("id", ch.campaign_id)
+      .maybeSingle();
+
+    setRulesetName((campaignRow as any)?.rulesets?.name ?? null);
+    setName(ch.name);
+    setConcept(ch.concept ?? "");
+    setFields(ch.custom_fields);
+    setOsgdrSheet(extractOsgdrSheet(ch.custom_fields));
+    setLabelOverrides(extractLabelOverrides(ch.custom_fields));
+    setBackground(extractBackground(ch.custom_fields));
+    setNotes((n.data ?? []) as Note[]);
+    setIsDead(!!ch.is_dead);
+    setDeathDescription(ch.death_description ?? "");
+    setDiedAt(ch.died_at ? String(ch.died_at).slice(0, 10) : "");
+
+    dbSnapshotRef.current = {
+      name: ch.name,
+      concept: ch.concept ?? "",
+      fields: ch.custom_fields,
+      osgdrSheet: extractOsgdrSheet(ch.custom_fields),
+      background: extractBackground(ch.custom_fields),
+      owner_id: ch.owner_id,
+      is_dead: !!ch.is_dead,
+      death_description: ch.death_description ?? "",
+      died_at: ch.died_at ? String(ch.died_at).slice(0, 10) : "",
+    };
+
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", ch.owner_id)
+      .maybeSingle();
+    setOwnerProfile(prof ?? null);
+
+    const { data: auditRows } = await supabase
+      .from("character_audit_log")
+      .select("id, user_id, user_display_name, summary, details, created_at")
+      .eq("character_id", ch.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setAuditLog((auditRows ?? []) as AuditEntry[]);
+
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    void load();
+  }, [characterId, user?.id, isAdmin, isActingAsNarrator]);
+
+  const addField = () => {
+    setFields((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), label: "Nuovo campo", value: "" },
+    ]);
+  };
+
+  const updateField = (id: string, key: "label" | "value", val: string) => {
+    setFields((prev) => prev.map((f) => (f.id === id ? { ...f, [key]: val } : f)));
+  };
+
+  const removeField = (id: string) => {
+    setFields((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const persistLabelOverride = async (key: string, override: LabelOverride | undefined) => {
+    if (!character) return;
+
+    const next = { ...labelOverrides };
+    if (!override || (override.text === undefined && override.size === undefined)) {
+      delete next[key];
+    } else {
+      next[key] = override;
+    }
+
+    setLabelOverrides(next);
+    const newFields = packLabelOverrides(fields, next);
+    setFields(newFields);
+
+    const { error } = await supabase
+      .from("characters")
+      .update({ custom_fields: newFields as any })
+      .eq("id", character.id);
+
+    if (error) toast.error(error.message);
+    else toast.success("Etichetta aggiornata");
+  };
+
+  const logAudit = async (summary: string, details?: any) => {
+    if (!character || !user) return;
+
+    let userName: string | null = null;
+    try {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      userName = prof?.display_name ?? null;
+    } catch {}
+
+    await supabase.from("character_audit_log").insert({
+      character_id: character.id,
+      user_id: user.id,
+      user_display_name: userName,
+      summary,
+      details: details ?? null,
+    });
+  };
+
+  const buildChangeSummary = (snap: NonNullable<typeof dbSnapshotRef.current>) => {
+    const changes: string[] = [];
+
+    if (snap.name !== name) changes.push(`Nome: "${snap.name}" → "${name}"`);
+    if ((snap.concept ?? "") !== (concept ?? "")) changes.push("Descrizione aggiornata");
+
+    if (snap.owner_id !== (assignedUserId ?? character?.owner_id ?? snap.owner_id)) {
+      changes.push("Proprietario scheda aggiornato");
+    }
+
+    if (snap.is_dead !== isDead) {
+      changes.push(isDead ? "Personaggio segnato come morto" : "Personaggio segnato come vivo");
+    }
+
+    if ((snap.death_description ?? "") !== (deathDescription ?? "")) {
+      changes.push("Descrizione della morte aggiornata");
+    }
+
+    if ((snap.died_at ?? "") !== (diedAt ?? "")) {
+      changes.push("Data di morte aggiornata");
+    }
+
+    if (useOsgdrForm) {
+      const a1 = snap.osgdrSheet;
+      const a2 = osgdrSheet;
+
+      const abilityKeys = Object.keys(a2.abilities ?? {}) as (keyof typeof a2.abilities)[];
+
+      for (const k of abilityKeys) {
+        if ((a1.abilities?.[k] ?? 0) !== (a2.abilities?.[k] ?? 0)) {
+          changes.push(
+            `${String(k).toUpperCase()}: ${a1.abilities?.[k] ?? 0} → ${a2.abilities?.[k] ?? 0}`
+          );
+        }
+      }
+
+      for (const sk of Object.keys(a2.magic ?? {})) {
+        if ((a1.magic as any)?.[sk] !== (a2.magic as any)?.[sk]) {
+          changes.push(
+            `Magia ${sk}: ${(a1.magic as any)?.[sk] ?? 0} → ${(a2.magic as any)?.[sk] ?? 0}`
+          );
+        }
+      }
+
+      if ((a1.note ?? "") !== (a2.note ?? "")) changes.push("Note aggiornate");
+      if ((a1.skills?.length ?? 0) !== (a2.skills?.length ?? 0)) {
+        changes.push(`Abilità: ${a1.skills?.length ?? 0} → ${a2.skills?.length ?? 0}`);
+      }
+    } else {
+      const v1 = snap.fields.filter(
+        (f) =>
+          f.id !== OSGDR_FIELD_ID &&
+          f.id !== LABEL_OVERRIDES_FIELD_ID &&
+          f.id !== BACKGROUND_FIELD_ID
+      );
+      const v2 = fields.filter(
+        (f) =>
+          f.id !== OSGDR_FIELD_ID &&
+          f.id !== LABEL_OVERRIDES_FIELD_ID &&
+          f.id !== BACKGROUND_FIELD_ID
+      );
+
+      if (JSON.stringify(v1) !== JSON.stringify(v2)) {
+        changes.push("Campi liberi modificati");
+      }
+    }
+
+    return changes;
+  };
+
+  const handleSave = async () => {
+    if (!character || !access.canEdit) return;
+    setSaving(true);
+
+    const snap = dbSnapshotRef.current;
+    let finalFields = useOsgdrForm ? packOsgdrSheet(fields, osgdrSheet) : fields;
+    finalFields = packLabelOverrides(finalFields, labelOverrides);
+    finalFields = packBackground(finalFields, background);
+
+    const nextOwnerId = access.canAssignCharacter
+      ? assignedUserId ?? character.owner_id
+      : character.owner_id;
+
+    const payload: any = {
+      name,
+      concept: concept || null,
+      custom_fields: finalFields as any,
+      owner_id: nextOwnerId,
+    };
+
+    if (access.canManageDestiny) {
+      payload.is_dead = isDead;
+      payload.death_description = isDead ? deathDescription || null : null;
+      payload.died_at = isDead ? diedAt || null : null;
+    }
+
+    const { error } = await supabase
+      .from("characters")
+      .update(payload)
+      .eq("id", character.id);
+
+    setSaving(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Scheda salvata");
+
+      if (snap) {
+        const changes = buildChangeSummary(snap);
+        if (changes.length > 0) {
+          await logAudit(
+            changes.length === 1 ? changes[0] : `${changes.length} modifiche alla scheda`,
+            { changes }
+          );
+        }
+      }
+
+      await load();
+    }
+  };
+
+  const saveBackground = async () => {
+    if (!character || !access.canEditBackground) return;
+    setBgSaving(true);
+
+    const prev = dbSnapshotRef.current?.background ?? "";
+    const finalFields = packBackground(fields, background);
+
+    const { error } = await supabase
+      .from("characters")
+      .update({ custom_fields: finalFields as any })
+      .eq("id", character.id);
+
+    setBgSaving(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setFields(finalFields);
+      toast.success("Background salvato");
+
+      if (prev !== background) {
+        await logAudit("Background aggiornato", {
+          length_before: prev.length,
+          length_after: background.length,
+        });
+      }
+
+      await load();
+    }
+  };
+
+    const setSheetCoin = (key: "oro" | "argento" | "rame", raw: string) => {
+    const n = Math.max(0, Number(raw) || 0);
+    setOsgdrSheet((prev) => ({
+      ...prev,
+      coins: {
+        ...prev.coins,
+        [key]: n,
+      },
+    }));
+  };
+
+  const saveDestiny = async () => {
+    if (!character || !access.canManageDestiny) return;
+    setDestinySaving(true);
+
+    const snap = dbSnapshotRef.current;
+
+    const { error } = await supabase
+      .from("characters")
+      .update({
+        is_dead: isDead,
+        death_description: isDead ? deathDescription || null : null,
+        died_at: isDead ? diedAt || null : null,
+      })
+      .eq("id", character.id);
+
+    setDestinySaving(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success("Destino del personaggio aggiornato");
+
+    if (snap) {
+      const changes: string[] = [];
+
+      if (snap.is_dead !== isDead) {
+        changes.push(isDead ? "Personaggio segnato come morto" : "Personaggio segnato come vivo");
+      }
+      if ((snap.death_description ?? "") !== (deathDescription ?? "")) {
+        changes.push("Descrizione della morte aggiornata");
+      }
+      if ((snap.died_at ?? "") !== (diedAt ?? "")) {
+        changes.push("Data di morte aggiornata");
+      }
+
+      if (changes.length > 0) {
+        await logAudit(
+          changes.length === 1 ? changes[0] : "Destino del personaggio aggiornato",
+          { changes }
+        );
+      }
+    }
+
+    await load();
+  };
+
+  const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !character || !user || !access.canEdit) return;
+
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/${character.id}-${Date.now()}.${ext}`;
+
+    const { error: upErr } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true });
+
+    if (upErr) {
+      toast.error(upErr.message);
+      setUploading(false);
+      return;
+    }
+
+    const { data: signed } = await supabase.storage
+      .from("avatars")
+      .createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
+
+    const url = signed?.signedUrl ?? null;
+
+    const { error: updErr } = await supabase
+      .from("characters")
+      .update({ image_url: url })
+      .eq("id", character.id);
+
+    setUploading(false);
+
+    if (updErr) {
+      toast.error(updErr.message);
+    } else {
+      toast.success("Immagine aggiornata");
+      await load();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!character || !access.canEdit || !confirm("Eliminare questa scheda?")) return;
+
+    const { error } = await supabase.from("characters").delete().eq("id", character.id);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Scheda eliminata");
+      navigate(`/campaigns/${character.campaign_id}`);
+    }
+  };
+
+  const submitNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !character || !access.canView) return;
+
+    setNoteSubmitting(true);
+
+    const { error } = await supabase.from("session_notes").insert({
+      character_id: character.id,
+      author_id: user.id,
+      title: noteTitle,
+      content: noteContent,
+      session_date: noteDate || null,
+    });
+
+    setNoteSubmitting(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Annotazione aggiunta al diario");
+      setNoteOpen(false);
+      setNoteTitle("");
+      setNoteContent("");
+      setNoteDate("");
+      await load();
+    }
+  };
+
+  const deleteNote = async (id: string) => {
+    if (!confirm("Eliminare questa annotazione?")) return;
+
+    const { error } = await supabase.from("session_notes").delete().eq("id", id);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Annotazione rimossa");
+      await load();
+    }
+  };
+
+  if (loading || !character) {
+    return (
+      <div className="min-h-screen">
+        <div className="flex justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
   }
 
-  onChange({
-    ...value,
-    ferite: nextFerite,
-  });
-
-  setBodyPartPopup(
-    getBodyPartPopupInfo(part, damage, threshold, severity, totalPenalty)
-  );
-};
-
-  const setEquipItem = (sec: EquipmentKey, id: string, txt: string) => {
-    const arr = (value.equipment[sec] ?? []).map((item) =>
-      item.id === id ? { ...item, text: txt } : item,
-    );
-
-    onChange({
-      ...value,
-      equipment: {
-        ...value.equipment,
-        [sec]: sortEquipmentAlphabetically(arr),
-      },
-    });
-  };
-
-  const addEquipItem = (sec: EquipmentKey) => {
-    const arr = [
-      ...(value.equipment[sec] ?? []),
-      { id: crypto.randomUUID(), text: "" },
-    ];
-
-    onChange({
-      ...value,
-      equipment: {
-        ...value.equipment,
-        [sec]: arr,
-      },
-    });
-  };
-
-  const removeEquipItem = (sec: EquipmentKey, id: string) => {
-    const arr = (value.equipment[sec] ?? []).filter((item) => item.id !== id);
-
-    onChange({
-      ...value,
-      equipment: {
-        ...value.equipment,
-        [sec]: sortEquipmentAlphabetically(arr),
-      },
-    });
-  };
-
-  const addWeapon = () =>
-    onChange({
-      ...value,
-      weapons: [
-        ...(value.weapons ?? []),
-        {
-          id: crypto.randomUUID(),
-          name: "",
-          damage: "",
-          range: "",
-          notes: "",
-        },
-      ],
-    });
-
-  const updateWeapon = (id: string, patch: Partial<OsgdrWeapon>) =>
-    onChange({
-      ...value,
-      weapons: (value.weapons ?? []).map((w) => (w.id === id ? { ...w, ...patch } : w)),
-    });
-
-  const removeWeapon = (id: string) =>
-    onChange({
-      ...value,
-      weapons: (value.weapons ?? []).filter((w) => w.id !== id),
-    });
-
-  const addArmor = () =>
-    onChange({
-      ...value,
-      armors: [
-        ...(value.armors ?? []),
-        {
-          id: crypto.randomUUID(),
-          name: "",
-          protection: 0,
-          location: BODY_PARTS[0],
-          notes: "",
-        },
-      ],
-    });
-
-  const updateArmor = (id: string, patch: Partial<OsgdrArmor>) =>
-    onChange({
-      ...value,
-      armors: (value.armors ?? []).map((a) => (a.id === id ? { ...a, ...patch } : a)),
-    });
-
-  const removeArmor = (id: string) =>
-    onChange({
-      ...value,
-      armors: (value.armors ?? []).filter((a) => a.id !== id),
-    });
-
-  const addSkill = () =>
-    onChange({
-      ...value,
-      skills: sortSkillsAlphabetically([
-        ...value.skills,
-        { id: crypto.randomUUID(), name: "Nuova abilitÃ ", grade: 1 },
-      ]),
-    });
-
-  const updateSkill = (id: string, patch: Partial<OsgdrSkill>) =>
-    onChange({
-      ...value,
-      skills: sortSkillsAlphabetically(
-        value.skills.map((s) => (s.id === id ? { ...s, ...patch } : s)),
-      ),
-    });
-
-  const removeSkill = (id: string) =>
-    onChange({
-      ...value,
-      skills: sortSkillsAlphabetically(value.skills.filter((s) => s.id !== id)),
-    });
-
-  const renderText = (val: string | number) => (
-    <span className="font-script whitespace-pre-wrap">{val || "â€”"}</span>
-  );
-
-  const lbl = (
-    key: string,
-    defaultText: string,
-    className: string,
-    as: "span" | "div" | "label" | "h3" = "span",
-  ) => (
-    <EditableLabel
-      defaultText={defaultText}
-      override={labelOverrides[key]}
-      onChange={(o) => onLabelOverrideChange?.(key, o)}
-      canCustomize={canCustomizeLabels && !!onLabelOverrideChange}
-      className={className}
-      as={as}
-    />
-  );
+  if (!access.canView) {
+    return null;
+  }
 
   return (
-    <div className="osgdr-sheet space-y-5 sm:space-y-6">
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          {lbl("section.caratteristiche", "Caratteristiche", "font-display text-xl gold-text", "h3")}
-          <p className="font-script text-xs italic text-ink-faded">
-            Totale punti distribuiti: <strong>{totalPoints}</strong>
+    <div className="min-h-screen">
+      <main className="container py-8 md:py-12">
+        <Link
+          to={`/campaigns/${character.campaign_id}`}
+          className="mb-6 inline-flex items-center gap-1 text-sm font-script italic text-ink-faded hover:text-primary"
+        >
+          <ArrowLeft className="h-4 w-4" /> Torna alla campagna
+        </Link>
+
+        <div className="mb-8">
+          <h1 className="mb-2 flex items-center gap-3 font-display text-4xl gold-text">
+            <ScrollText className="h-8 w-8" />
+            {access.canEdit ? name || "Scheda personaggio" : character.name}
+          </h1>
+          <p className="font-script italic text-ink-faded">
+            Cronaca, dettagli e memoria viva del personaggio
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-          {ABILITIES.map((a) => {
-            const v = value.abilities[a.key] ?? 0;
-            const mod = abilityModifier(v);
+        <div className="parchment-panel mb-8 flex flex-wrap items-center gap-2 p-3 text-sm font-script italic text-ink-faded">
+          <ShieldCheck className="h-4 w-4 text-primary" />
+          {access.isOwner
+            ? "Questa scheda appartiene a te."
+            : ownerProfile
+            ? `Scheda assegnata a ${ownerProfile.display_name}.`
+            : "Scheda condivisa della campagna."}
+        </div>
 
-            return (
-              <div
-                key={a.key}
-                className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
-              >
-                {lbl(
-                  `ability.${a.key}`,
-                  a.label,
-                  "font-heading text-xs uppercase tracking-wider text-ink-faded",
-                  "div",
-                )}
-                {canEdit ? (
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    min={1}
-                    max={30}
-                    value={v}
-                    onChange={(e) => setAbility(a.key, e.target.value)}
-                    className="h-10 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
-                    style={{ fontSize: "18px" }}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
+          <aside className="space-y-5 lg:self-start">
+            <div className="parchment-panel p-4">
+              <div className="group relative mx-auto aspect-[3/4] w-full max-w-[240px] overflow-hidden rounded bg-gradient-to-br from-parchment-deep to-parchment-shadow">
+                {character.image_url ? (
+                  <img
+                    src={character.image_url}
+                    alt={character.name}
+                    className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="font-display" style={{ fontSize: "18px" }}>
-                    {v}
+                  <div className="flex h-full w-full items-center justify-center">
+                    <ScrollText className="h-20 w-20 text-primary/40" />
                   </div>
                 )}
-                <div className="mt-1 font-script text-xs text-primary" style={{ fontSize: "22px" }}>
-                  {formatModifier(mod)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
 
-      <section className="space-y-3">
-        {lbl("section.stati", "Stati & Risorse", "font-display text-xl gold-text", "h3")}
-        <p className="font-script text-xs italic text-ink-faded">
-          L'<strong>Iniziativa</strong> Ã¨ calcolata automaticamente come <em>Mod. Destrezza + Mod. Prontezza</em>.
-        </p>
-
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-          {([
-            ["iniziativa", "Iniziativa"],
-            ["penalita", "PenalitÃ  aggiuntive"],
-            ["fortuna", "Fortuna"],
-            ["fatica", "Fatica"],
-            ["pe", "PE"],
-          ] as const).map(([k, label]) => {
-            const autoIniziativa =
-              abilityModifier(value.abilities.des ?? 0) + abilityModifier(value.abilities.pro ?? 0);
-            const isInit = k === "iniziativa";
-            const displayValue = isInit ? formatModifier(autoIniziativa) : String((value as any)[k]) || "â€”";
-
-            return (
-              <div
-                key={k}
-                className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
-              >
-                {lbl(`stat.${k}`, label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
-                {isInit ? (
-                  <div
-                    className="font-display text-primary"
-                    style={{ fontSize: "22px" }}
-                    title="Calcolata automaticamente: Mod. DES + Mod. PRO"
+                {access.canEdit && (
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
+                    className="absolute inset-0 flex items-center justify-center bg-ink/0 opacity-0 transition-opacity hover:bg-ink/40 hover:opacity-100"
                   >
-                    {formatModifier(autoIniziativa)}
-                  </div>
-                ) : canEdit ? (
-                  <Input
-                    value={(value as any)[k] ?? ""}
-                    onChange={(e) =>
-                      k === "pe"
-                        ? set("pe", Math.max(0, Number(e.target.value) || 0) as any)
-                        : set(k as any, e.target.value as any)
-                    }
-                    className="h-9 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
-                    style={{ fontSize: "18px" }}
-                  />
-                ) : (
-                  <div className="font-display" style={{ fontSize: "18px" }}>
-                    {displayValue}
-                  </div>
+                    <div className="flex flex-col items-center gap-1 text-primary-foreground">
+                      {uploading ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : (
+                        <Camera className="h-6 w-6" />
+                      )}
+                      <span className="text-xs font-heading">Cambia immagine</span>
+                    </div>
+                  </button>
                 )}
+
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImage}
+                  className="hidden"
+                />
               </div>
-            );
-          })}
-        </div>
 
-        <div className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center">
-          <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">
-            PenalitÃ  ferite
-          </Label>
-          <div className="font-display text-primary" style={{ fontSize: "22px" }}>
-            {formatModifier(woundPenalty)}
-          </div>
-          <div className="mt-1 font-script text-xs text-ink-faded">
-            Calcolata automaticamente dalle ferite inserite
-          </div>
-        </div>
-      </section>
+              {isDead && (
+                <div className="mt-4 space-y-3">
+                  <Badge variant="destructive" className="font-heading">
+                    <Skull className="mr-1 h-3.5 w-3.5" />
+                    Caduto
+                  </Badge>
 
-      <section className="space-y-3">
-        {lbl("section.magia", "Magia", "font-display text-xl gold-text", "h3")}
-        <p className="font-script text-xs italic text-ink-faded">
-          Punteggio per ciascuna delle dieci scuole di magia libera.
-        </p>
+                  <div className="rounded border border-destructive/30 bg-destructive/5 p-3">
+                    <p className="mb-1 font-heading text-xs uppercase tracking-wider text-destructive">
+                      Memoria della caduta
+                    </p>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-          {MAGIC_SCHOOLS.map((school) => {
-            const grade = value.magic[school] ?? 0;
-            const dmg = magicBaseDamage(grade);
+                    <p className="font-script text-sm italic leading-relaxed text-ink-faded">
+                      {deathDescription?.trim()
+                        ? deathDescription
+                        : "La cronaca della sua fine non è ancora stata tramandata."}
+                    </p>
 
-            return (
-              <div
-                key={school}
-                className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
-              >
-                {lbl(
-                  `magic.${school}`,
-                  school,
-                  "font-heading text-xs uppercase tracking-wider text-ink-faded",
-                  "label",
-                )}
-                {canEdit ? (
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    min={0}
-                    max={99}
-                    value={grade}
-                    onChange={(e) => setMagic(school, e.target.value)}
-                    className="h-9 border-0 bg-transparent px-0 text-center font-display text-xl focus-visible:ring-0"
-                  />
-                ) : (
-                  <div className="font-display text-xl">{grade}</div>
-                )}
-                <div className="mt-1 text-xs font-script text-primary" title="Danno base incantesimo per questa scuola">
-                  Danno base {formatModifier(dmg)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          {lbl("section.abilita", "AbilitÃ ", "font-display text-xl gold-text", "h3")}
-          {canEdit && (
-            <Button variant="outline" size="sm" onClick={addSkill} className="font-heading">
-              <Plus className="mr-1 h-4 w-4" /> Aggiungi
-            </Button>
-          )}
-        </div>
-
-        {value.skills.length === 0 ? (
-          <p className="text-sm font-script italic text-ink-faded">Nessuna abilitÃ  appresa.</p>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {sortSkillsAlphabetically(value.skills).map((s) => (
-              <div
-                key={s.id}
-                className="flex items-center gap-2 rounded border border-border/60 bg-parchment-deep/20 p-2"
-              >
-                {canEdit ? (
-                  <>
-                    <Input
-                      value={s.name}
-                      onChange={(e) => updateSkill(s.id, { name: e.target.value })}
-                      className="h-9 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
-                    />
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      min={0}
-                      max={20}
-                      value={s.grade}
-                      onChange={(e) =>
-                        updateSkill(s.id, {
-                          grade: Math.max(0, Math.min(20, Number(e.target.value) || 0)),
-                        })
-                      }
-                      className="h-9 w-16 border border-border/60 px-0 text-center font-display focus-visible:ring-0"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeSkill(s.id)}
-                      className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
-                      aria-label="Rimuovi abilitÃ "
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <span className="flex-1 font-script">{s.name}</span>
-                    <span className="font-display text-primary">{s.grade}</span>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="space-y-3">
-        {lbl("section.ferite", "Ferite & Stato del corpo", "font-display text-xl gold-text", "h3")}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {BODY_PARTS.map((p) => {
-            const partState = value.ferite[p] ?? { wounds: 0 };
-            const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
-            const totalNaturalArmor = (natural_soglia[p] ?? 0) + constitutionModifier;
-            const totalArmor = armorByBodyPart[p] ?? 0;
-
-            return (
-              <div key={p} className="rounded border border-border/60 bg-parchment-deep/20 p-3 space-y-3">
-                {lbl(
-                  `ferita.${p}`,
-                  p,
-                  "font-heading text-xs uppercase tracking-wider text-ink-faded",
-                  "label",
-                )}
-
-                <div className="space-y-2">
-                  <div>
-                    <Label className="font-heading text-[11px] uppercase tracking-wider text-ink-faded">
-                      Assorbimento naturale
-                    </Label>
-                    <Input
-                      value={totalNaturalArmor}
-                      readOnly
-                      className="h-9 border-0 bg-transparent px-0 font-display text-primary focus-visible:ring-0"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="font-heading text-[11px] uppercase tracking-wider text-ink-faded">
-                      Armatura
-                    </Label>
-                    <Input
-                      value={totalArmor}
-                      readOnly
-                      className="h-9 border-0 bg-transparent px-0 font-display text-primary focus-visible:ring-0"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="font-heading text-[11px] uppercase tracking-wider text-ink-faded">
-                      Ferite
-                    </Label>
-                    {canEdit ? (
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        value={partState.wounds > 0 ? `-${partState.wounds}` : ""}
-                        onChange={(e) => setFeritaValue(p, e.target.value)}
-                        placeholder="-0"
-                        className="h-9 border-0 bg-transparent px-0 font-display text-primary focus-visible:ring-0"
-                      />
-                    ) : (
-                      renderText(partState.wounds > 0 ? `-${partState.wounds}` : "â€”")
+                    {diedAt && (
+                      <p className="mt-2 text-xs font-script italic text-ink-faded">
+                        Caduto il{" "}
+                        {new Date(diedAt).toLocaleDateString("it-IT", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </p>
                     )}
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+              )}
+            </div>
 
-      <section className="space-y-3">
-        {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
-        <div className="grid gap-3 sm:grid-cols-2">
-          {EQUIPMENT_SECTIONS.map((sec) => {
-            const items = sortEquipmentAlphabetically(value.equipment[sec.key] ?? []);
-
-            return (
-              <div
-                key={sec.key}
-                className="space-y-1 rounded border border-border/60 bg-parchment-deep/20 p-3"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  {lbl(
-                    `equip.${sec.key}`,
-                    sec.label,
-                    "font-heading text-sm uppercase tracking-wider text-ink-faded",
-                    "h3",
-                  )}
-                  {canEdit && (
-                    <button
-                      type="button"
-                      onClick={() => addEquipItem(sec.key)}
-                      className={`${iconButtonClass} text-primary hover:bg-primary/10`}
-                      aria-label={`Aggiungi item a ${sec.label}`}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  )}
+                        {useOsgdrForm && (
+              <div className="parchment-panel p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <Coins className="h-4 w-4 text-primary" />
+                  <h3 className="font-heading text-lg">Monete</h3>
                 </div>
 
-                {items.length === 0 && !canEdit && (
-                  <p className="text-xs font-script italic text-ink-faded">â€”</p>
-                )}
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { key: "oro", short: "MO", title: "Monete d'Oro" },
+                    { key: "argento", short: "MA", title: "Monete d'Argento" },
+                    { key: "rame", short: "MR", title: "Monete di Rame" },
+                  ] as const).map((coin) => (
+                    <div
+                      key={coin.key}
+                      className="rounded border border-border/60 bg-parchment-deep/20 p-2 text-center"
+                      title={coin.title}
+                    >
+                      <Label className="mb-1 flex items-center justify-center gap-1 font-heading text-[11px] uppercase tracking-wider text-ink-faded">
+                        <Coins className="h-3.5 w-3.5 text-primary/80" />
+                        <span>{coin.short}</span>
+                      </Label>
 
-                {items.map((it) => (
-                  <div key={it.id} className="group flex items-center gap-1">
-                    {canEdit ? (
-                      <>
+                      {access.canEdit ? (
                         <Input
-                          value={it.text}
-                          onChange={(e) => setEquipItem(sec.key, it.id, e.target.value)}
-                          className="h-9 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
+                          type="number"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          min={0}
+                          value={osgdrSheet.coins[coin.key] ?? 0}
+                          onChange={(e) => setSheetCoin(coin.key, e.target.value)}
+                          className="h-9 border-0 bg-transparent px-0 text-center font-display text-xl focus-visible:ring-0"
                         />
-                        <button
-                          type="button"
-                          onClick={() => removeEquipItem(sec.key, it.id)}
-                          className={`${iconButtonClass} text-destructive opacity-90 hover:bg-destructive/10`}
-                          aria-label={`Rimuovi item da ${sec.label}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </>
-                    ) : (
-                      <span className="font-script">â€¢ {it.text}</span>
+                      ) : (
+                        <div className="font-display text-xl text-primary">
+                          {osgdrSheet.coins[coin.key] ?? 0}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {access.canManageDestiny && (
+              <div className="parchment-panel p-4">
+                <h3 className="mb-3 flex items-center gap-2 font-heading text-lg">
+                  <Skull className="h-4 w-4 text-destructive" />
+                  Destino del personaggio
+                </h3>
+
+                <div className="space-y-4">
+                  <label className="flex items-center gap-2 text-sm font-heading">
+                    <input
+                      type="checkbox"
+                      checked={isDead}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setIsDead(checked);
+                        if (!checked) {
+                          setDeathDescription("");
+                          setDiedAt("");
+                        }
+                      }}
+                      className="h-4 w-4 accent-current"
+                    />
+                    Segna come morto
+                  </label>
+
+                  {isDead && (
+                    <>
+                      <div>
+                        <Label htmlFor="diedAt" className="font-heading">
+                          Data della morte
+                        </Label>
+                        <Input
+                          id="diedAt"
+                          type="date"
+                          value={diedAt}
+                          onChange={(e) => setDiedAt(e.target.value)}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="deathDescription" className="font-heading">
+                          Descrizione della morte
+                        </Label>
+                        <Textarea
+                          id="deathDescription"
+                          value={deathDescription}
+                          onChange={(e) => setDeathDescription(e.target.value)}
+                          rows={5}
+                          placeholder="Racconta come il personaggio è caduto: battaglia, sacrificio, tradimento, ultima impresa..."
+                          className="font-script"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <div className="flex justify-end border-t border-border/40 pt-3">
+                    <Button
+                      size="sm"
+                      onClick={saveDestiny}
+                      disabled={destinySaving}
+                      className="font-heading"
+                      variant={isDead ? "destructive" : "default"}
+                    >
+                      {destinySaving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Save className="mr-1 h-4 w-4" /> Salva destino
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="lg:sticky lg:top-6">
+              <DiceRollerDock
+                campaignId={character.campaign_id}
+                characterId={character.id}
+                characterName={character.name}
+              />
+            </div>
+          </aside>
+
+          <div className="space-y-5">
+            <div className="parchment-panel p-5 md:p-6">
+              <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  {access.canEdit ? (
+                    <>
+                      <Input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="h-auto rounded-none border-0 border-b border-border bg-transparent px-0 py-1 font-display text-2xl gold-text focus-visible:border-primary focus-visible:ring-0 sm:text-3xl"
+                      />
+                      <Input
+                        value={concept}
+                        onChange={(e) => setConcept(e.target.value)}
+                        placeholder="Breve descrizione del personaggio..."
+                        className="mt-1 h-auto border-0 bg-transparent px-0 font-script italic text-ink-faded focus-visible:ring-0"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="font-display text-2xl gold-text sm:text-3xl">
+                        {character.name}
+                      </h2>
+                      {character.concept && (
+                        <p className="font-script italic text-ink-faded">{character.concept}</p>
+                      )}
+                    </>
+                  )}
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {access.isOwner ? (
+                      <Badge variant="outline" className="text-xs">
+                        Tuo
+                      </Badge>
+                    ) : ownerProfile ? (
+                      <Badge variant="outline" className="text-xs">
+                        {ownerProfile.display_name}
+                      </Badge>
+                    ) : null}
+
+                    {isDead && (
+                      <Badge variant="destructive" className="text-xs">
+                        Caduto
+                      </Badge>
                     )}
                   </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      </section>
+                </div>
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          {lbl("section.weapons", "Armi", "font-display text-xl gold-text", "h3")}
-          {canEdit && (
-            <Button variant="outline" size="sm" onClick={addWeapon} className="font-heading">
-              <Plus className="mr-1 h-4 w-4" /> Aggiungi
-            </Button>
-          )}
-        </div>
-
-        {!value.weapons || value.weapons.length === 0 ? (
-          <p className="text-sm font-script italic text-ink-faded">Nessuna arma inserita.</p>
-        ) : (
-          <div className="space-y-2">
-            {value.weapons.map((w) => (
-              <div key={w.id} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
-                {canEdit ? (
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                    <Input
-                      value={w.name}
-                      onChange={(e) => updateWeapon(w.id, { name: e.target.value })}
-                      placeholder="Nome arma"
-                      className="font-script"
-                    />
-                    <Input
-                      value={w.damage}
-                      onChange={(e) => updateWeapon(w.id, { damage: e.target.value })}
-                      placeholder="Danno es. 1d6+2"
-                      className="font-script"
-                    />
-                    <Input
-                      value={w.range}
-                      onChange={(e) => updateWeapon(w.id, { range: e.target.value })}
-                      placeholder="Gittata / tipo"
-                      className="font-script"
-                    />
-                    <div className="flex gap-2">
-                      <Input
-                        value={w.notes}
-                        onChange={(e) => updateWeapon(w.id, { notes: e.target.value })}
-                        placeholder="Note"
-                        className="font-script"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeWeapon(w.id)}
-                        className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
-                        aria-label="Rimuovi arma"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-1 font-script">
-                    <div>
-                      <strong className="font-heading text-ink">{w.name || "â€”"}</strong>
-                    </div>
-                    <div className="text-sm text-ink-faded">
-                      Danno: {w.damage || "â€”"} Â· Gittata: {w.range || "â€”"}
-                    </div>
-                    {w.notes && <div className="text-sm text-ink-faded">{w.notes}</div>}
-                  </div>
+                {access.canEdit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDelete}
+                    className="shrink-0 self-start text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 )}
               </div>
-            ))}
-          </div>
-        )}
-      </section>
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          {lbl("section.armors", "Armature", "font-display text-xl gold-text", "h3")}
-          {canEdit && (
-            <Button variant="outline" size="sm" onClick={addArmor} className="font-heading">
-              <Plus className="mr-1 h-4 w-4" /> Aggiungi
-            </Button>
-          )}
-        </div>
+              <Tabs defaultValue="sheet">
+                <TabsList className="flex h-auto w-full flex-nowrap overflow-x-auto bg-parchment-deep/40 p-1">
+                  <TabsTrigger value="sheet" className="shrink-0 font-heading text-xs sm:text-sm">
+                    <ScrollText className="mr-1 h-4 w-4" /> Scheda
+                  </TabsTrigger>
+                  <TabsTrigger value="diary" className="shrink-0 font-heading text-xs sm:text-sm">
+                    <BookMarked className="mr-1 h-4 w-4" /> Diario ({notes.length})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="background"
+                    className="shrink-0 font-heading text-xs sm:text-sm"
+                  >
+                    <BookOpen className="mr-1 h-4 w-4" /> Background
+                  </TabsTrigger>
+                  <TabsTrigger value="audit" className="shrink-0 font-heading text-xs sm:text-sm">
+                    <History className="mr-1 h-4 w-4" /> Modifiche
+                  </TabsTrigger>
+                </TabsList>
 
-        {!value.armors || value.armors.length === 0 ? (
-          <p className="text-sm font-script italic text-ink-faded">Nessuna armatura inserita.</p>
-        ) : (
-          <div className="space-y-2">
-            {value.armors.map((a) => (
-              <div key={a.id} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
-                {canEdit ? (
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                    <Input
-                      value={a.name}
-                      onChange={(e) => updateArmor(a.id, { name: e.target.value })}
-                      placeholder="Nome armatura"
-                      className="font-script"
-                    />
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      min={0}
-                      value={a.protection}
-                      onChange={(e) =>
-                        updateArmor(a.id, {
-                          protection: Math.max(0, Number(e.target.value) || 0),
-                        })
-                      }
-                      placeholder="Protezione"
-                      className="font-script"
-                    />
-                    <select
-                      value={a.location}
-                      onChange={(e) => updateArmor(a.id, { location: e.target.value })}
-                      className="h-10 rounded-md border border-input bg-background px-3 py-2 font-script text-sm"
-                    >
-                      {BODY_PARTS.map((part) => (
-                        <option key={part} value={part}>
-                          {part}
-                        </option>
+                <TabsContent value="sheet" className="mt-5 space-y-4">
+                  {useOsgdrForm ? (
+                    <>
+                      <div className="parchment-panel border border-border/50 bg-parchment-deep/20 p-3">
+                        <p className="font-script text-xs italic text-ink-faded">
+                          Scheda <strong>Open Source GDR</strong>
+                          {isAdmin && (
+                            <span className="ml-2 not-italic text-primary">
+                              · Admin: passa il mouse sulle etichette per modificarne testo e dimensione.
+                            </span>
+                          )}
+                        </p>
+                      </div>
+
+                      <OpenSourceGdrSheet
+                        value={osgdrSheet}
+                        onChange={setOsgdrSheet}
+                        canEdit={!!access.canEdit}
+                        labelOverrides={labelOverrides}
+                        canCustomizeLabels={isAdmin}
+                        onLabelOverrideChange={persistLabelOverride}
+                        assignedUserId={assignedUserId}
+                        onAssignedUserIdChange={setAssignedUserId}
+                      />
+
+                      {access.canEdit && (
+                        <div className="flex justify-end border-t border-border/40 pt-3">
+                          <Button
+                            size="sm"
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="font-heading"
+                          >
+                            {saving ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Save className="mr-1 h-4 w-4" /> Salva scheda
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {visibleFields.length === 0 && (
+                        <div className="parchment-panel p-8 text-center">
+                          <p className="font-script italic text-ink-faded">
+                            {access.canEdit
+                              ? "Nessun campo. Aggiungi caratteristiche, abilità, equipaggiamento o altri dettagli."
+                              : "Scheda vuota."}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {visibleFields.map((f) => (
+                          <div
+                            key={f.id}
+                            className="rounded border border-border/60 bg-parchment-deep/20 p-3"
+                          >
+                            {access.canEdit ? (
+                              <>
+                                <div className="mb-1 flex items-center gap-1">
+                                  <Input
+                                    value={f.label}
+                                    onChange={(e) => updateField(f.id, "label", e.target.value)}
+                                    className="h-6 border-0 bg-transparent px-0 font-heading text-xs uppercase tracking-wider focus-visible:ring-0"
+                                  />
+                                  <button
+                                    onClick={() => removeField(f.id)}
+                                    className="text-destructive"
+                                    type="button"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                                <Textarea
+                                  value={f.value}
+                                  onChange={(e) => updateField(f.id, "value", e.target.value)}
+                                  className="min-h-[40px] resize-none border-0 bg-transparent px-0 font-script focus-visible:ring-0"
+                                  rows={1}
+                                />
+                              </>
+                            ) : (
+                              <>
+                                <EditableLabel
+                                  defaultText={f.label}
+                                  override={labelOverrides[`free.${f.id}`]}
+                                  onChange={(o) => persistLabelOverride(`free.${f.id}`, o)}
+                                  canCustomize={isAdmin}
+                                  className="font-heading text-xs uppercase tracking-wider text-ink-faded"
+                                  as="div"
+                                />
+                                <div
+                                  className="font-script whitespace-pre-wrap"
+                                  style={
+                                    labelOverrides[`free.${f.id}.value`]?.size
+                                      ? {
+                                          fontSize: `${labelOverrides[`free.${f.id}.value`]!.size}px`,
+                                        }
+                                      : undefined
+                                  }
+                                >
+                                  {f.value}
+                                </div>
+                                {isAdmin && (
+                                  <div className="mt-1">
+                                    <EditableLabel
+                                      defaultText="Dimensione testo"
+                                      override={labelOverrides[`free.${f.id}.value`]}
+                                      onChange={(o) =>
+                                        persistLabelOverride(`free.${f.id}.value`, o)
+                                      }
+                                      canCustomize={isAdmin}
+                                      className="font-script text-[10px] italic text-ink-faded/70"
+                                      as="span"
+                                    />
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {access.canEdit && (
+                        <div className="flex flex-col gap-2 border-t border-border/40 pt-3 sm:flex-row sm:items-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={addField}
+                            className="font-heading"
+                          >
+                            <Plus className="mr-1 h-4 w-4" /> Aggiungi campo
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="font-heading sm:ml-auto"
+                          >
+                            {saving ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Save className="mr-1 h-4 w-4" /> Salva scheda
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="diary" className="mt-5 space-y-4">
+                  <div className="flex justify-end">
+                    <Dialog open={noteOpen} onOpenChange={setNoteOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" className="font-heading">
+                          <Plus className="mr-1 h-4 w-4" /> Nuova annotazione
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
+                        <DialogHeader>
+                          <DialogTitle className="font-display gold-text">
+                            Annotazione di sessione
+                          </DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={submitNote} className="space-y-3">
+                          <div>
+                            <Label className="font-heading">Titolo</Label>
+                            <Input
+                              value={noteTitle}
+                              onChange={(e) => setNoteTitle(e.target.value)}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label className="font-heading">Data sessione</Label>
+                            <Input
+                              type="date"
+                              value={noteDate}
+                              onChange={(e) => setNoteDate(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <Label className="font-heading">Cronaca</Label>
+                            <Textarea
+                              value={noteContent}
+                              onChange={(e) => setNoteContent(e.target.value)}
+                              rows={6}
+                              required
+                            />
+                          </div>
+                          <DialogFooter className="flex-col gap-2 sm:flex-row">
+                            <Button
+                              type="submit"
+                              disabled={noteSubmitting}
+                              className="w-full font-heading sm:w-auto"
+                            >
+                              {noteSubmitting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                "Annota"
+                              )}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+
+                  {notes.length === 0 ? (
+                    <div className="parchment-panel p-8 text-center">
+                      <p className="font-script italic text-ink-faded">
+                        Nessuna pagina ancora scritta nel diario.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {notes.map((n) => (
+                        <article
+                          key={n.id}
+                          className="rounded border border-border/60 bg-parchment-deep/20 p-4"
+                        >
+                          <div className="mb-2 flex items-start justify-between gap-2">
+                            <div>
+                              <h4 className="font-heading text-lg">{n.title}</h4>
+                              <p className="text-xs font-script italic text-ink-faded">
+                                {n.session_date
+                                  ? new Date(n.session_date).toLocaleDateString("it-IT", {
+                                      day: "numeric",
+                                      month: "long",
+                                      year: "numeric",
+                                    })
+                                  : new Date(n.created_at).toLocaleDateString("it-IT")}
+                              </p>
+                            </div>
+
+                            {n.author_id === user?.id && (
+                              <button
+                                onClick={() => deleteNote(n.id)}
+                                className="text-destructive"
+                                type="button"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+
+                          <p className="drop-cap whitespace-pre-wrap font-script leading-relaxed text-ink">
+                            {n.content}
+                          </p>
+                        </article>
                       ))}
-                    </select>
-                    <div className="flex gap-2">
-                      <Input
-                        value={a.notes}
-                        onChange={(e) => updateArmor(a.id, { notes: e.target.value })}
-                        placeholder="Note"
-                        className="font-script"
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="background" className="mt-5 space-y-3">
+                  {access.canEditBackground ? (
+                    <>
+                      <Textarea
+                        value={background}
+                        onChange={(e) => setBackground(e.target.value)}
+                        rows={14}
+                        placeholder="Scrivi qui il background del personaggio: origini, motivazioni, legami, segreti..."
+                        className="border-border/60 bg-parchment-deep/20 font-script focus-visible:ring-0"
                       />
-                      <button
-                        type="button"
-                        onClick={() => removeArmor(a.id)}
-                        className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
-                        aria-label="Rimuovi armatura"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex justify-end border-t border-border/40 pt-2">
+                        <Button
+                          size="sm"
+                          onClick={saveBackground}
+                          disabled={bgSaving}
+                          className="font-heading"
+                        >
+                          {bgSaving ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Save className="mr-1 h-4 w-4" /> Salva background
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </>
+                  ) : background.trim() ? (
+                    <div className="rounded border border-border/60 bg-parchment-deep/20 p-4">
+                      <p className="drop-cap whitespace-pre-wrap font-script leading-relaxed text-ink">
+                        {background}
+                      </p>
                     </div>
-                  </div>
-                ) : (
-                  <div className="space-y-1 font-script">
-                    <div>
-                      <strong className="font-heading text-ink">{a.name || "â€”"}</strong>
+                  ) : (
+                    <div className="parchment-panel p-8 text-center">
+                      <p className="font-script italic text-ink-faded">
+                        Nessun background scritto.
+                      </p>
                     </div>
-                    <div className="text-sm text-ink-faded">
-                      Protezione: {a.protection} Â· Zona: {a.location || "â€”"}
+                  )}
+                </TabsContent>
+
+                <TabsContent value="audit" className="mt-5 space-y-3">
+                  {auditLog.length === 0 ? (
+                    <div className="parchment-panel p-8 text-center">
+                      <p className="font-script italic text-ink-faded">
+                        Nessuna modifica registrata.
+                      </p>
                     </div>
-                    {a.notes && <div className="text-sm text-ink-faded">{a.notes}</div>}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+                  ) : (
+                    <ul className="space-y-2">
+                      {auditLog.map((entry) => {
+                        const changes: string[] = Array.isArray(entry.details?.changes)
+                          ? entry.details.changes
+                          : [];
 
-      <section className="space-y-3">
-        {lbl("section.note", "Note", "font-display text-xl gold-text", "h3")}
-        {canEdit ? (
-          <Textarea
-            value={value.note}
-            onChange={(e) => set("note", e.target.value)}
-            rows={4}
-            className="border-border/60 bg-parchment-deep/20 font-script focus-visible:ring-0"
-            placeholder="Annotazioni libere sul personaggio..."
-          />
-        ) : (
-          <p className="font-script whitespace-pre-wrap">{value.note || "â€”"}</p>
-        )}
-      </section>
+                        return (
+                          <li
+                            key={entry.id}
+                            className="rounded border border-border/60 bg-parchment-deep/20 p-3"
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <div className="font-heading text-sm">{entry.summary}</div>
+                              <div className="text-xs font-script italic text-ink-faded">
+                                {new Date(entry.created_at).toLocaleString("it-IT", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </div>
+                            </div>
 
-      {bodyPartPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-md rounded-lg border border-border bg-background p-5 shadow-xl">
-            <h3 className="font-display text-xl gold-text">
-              {bodyPartPopup.title}
-            </h3>
+                            <div className="mt-1 text-xs font-script italic text-ink-faded">
+                              {entry.user_display_name ?? "Utente sconosciuto"}
+                            </div>
 
-            <div className="mt-3 space-y-2 font-script text-sm text-ink">
-              <p>{bodyPartPopup.description}</p>
-
-              <div className="rounded border border-border/60 bg-parchment-deep/20 p-3 space-y-1">
-  <div><strong>Zona:</strong> {bodyPartPopup.part}</div>
-  <div><strong>Danno accumulato:</strong> -{bodyPartPopup.damage}</div>
-  <div><strong>Soglia:</strong> {bodyPartPopup.threshold}</div>
-  <div><strong>Stato:</strong> {bodyPartPopup.severity}</div>
-  <div>
-    <strong>PenalitÃ  della zona:</strong>{" "}
-    {formatModifier(bodyPartPopup.localPenalty)}
-  </div>
-  <div>
-    <strong>PenalitÃ  totale attuale:</strong>{" "}
-    {formatModifier(bodyPartPopup.totalPenalty)}
-  </div>
-</div>
-            </div>
-
-            <div className="mt-4 flex justify-end">
-              <Button
-                type="button"
-                onClick={() => setBodyPartPopup(null)}
-                className="font-heading"
-              >
-                Chiudi
-              </Button>
+                            {changes.length > 1 && (
+                              <ul className="mt-2 list-inside list-disc space-y-0.5 font-script text-sm">
+                                {changes.map((c, i) => (
+                                  <li key={i}>{c}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         </div>
-      )}
+      </main>
     </div>
   );
 };
+
+export default CharacterDetail;
