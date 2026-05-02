@@ -1187,74 +1187,68 @@ const fantasyZones = [
               </p>
 
               <div className="mx-auto flex max-w-[230px] justify-center">
-                <svg viewBox="0 0 240 340" className="h-auto w-full">
+                <svg viewBox="0 0 220 320" className="h-auto w-full">
   <defs>
-    <linearGradient id="fantasyBodyFill" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stopColor="rgba(247, 236, 208, 0.95)" />
-      <stop offset="100%" stopColor="rgba(214, 190, 148, 0.92)" />
+    <linearGradient id="bodyFillSoft" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="rgba(246, 238, 214, 0.96)" />
+      <stop offset="100%" stopColor="rgba(222, 201, 162, 0.92)" />
     </linearGradient>
-
-    <filter id="inkGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="rgba(90,60,30,0.18)" />
-    </filter>
   </defs>
 
-  <g className="text-border/70" fill="none" stroke="currentColor">
+  <g className="text-border/65" fill="none" stroke="currentColor">
     <path
-      d="M120 18
-         C138 20, 154 34, 156 54
-         C158 70, 151 84, 143 94
-         C156 98, 167 108, 173 123
-         C182 145, 185 170, 184 197
-         C179 198, 174 198, 169 197
-         C165 174, 159 154, 148 136
-         C145 151, 143 166, 142 182
-         C145 202, 150 221, 151 244
-         C152 265, 151 288, 149 316
-         L135 316
-         C135 286, 130 257, 123 223
-         L117 223
-         C110 257, 105 286, 105 316
-         L91 316
-         C89 288, 88 265, 89 244
-         C90 221, 95 202, 98 182
-         C97 166, 95 151, 92 136
-         C81 154, 75 174, 71 197
-         C66 198, 61 198, 56 197
-         C55 170, 58 145, 67 123
-         C73 108, 84 98, 97 94
-         C89 84, 82 70, 84 54
-         C86 34, 102 20, 120 18 Z"
-      strokeWidth="2.5"
-      filter="url(#inkGlow)"
+      d="M110 18
+         C124 20, 136 31, 138 46
+         C140 60, 135 73, 126 82
+         C137 87, 145 96, 151 109
+         C159 126, 163 146, 162 168
+         C158 169, 154 169, 150 168
+         C146 150, 141 134, 132 121
+         L128 141
+         C127 157, 127 173, 129 192
+         C132 211, 135 233, 136 258
+         C137 275, 136 291, 134 306
+         L122 306
+         C122 282, 119 255, 114 223
+         L106 223
+         C101 255, 98 282, 98 306
+         L86 306
+         C84 291, 83 275, 84 258
+         C85 233, 88 211, 91 192
+         C93 173, 93 157, 92 141
+         L88 121
+         C79 134, 74 150, 70 168
+         C66 169, 62 169, 58 168
+         C57 146, 61 126, 69 109
+         C75 96, 83 87, 94 82
+         C85 73, 80 60, 82 46
+         C84 31, 96 20, 110 18 Z"
+      strokeWidth="2.2"
     />
-    <path
-      d="M108 74 C112 77, 128 77, 132 74"
-      strokeWidth="1.5"
-      className="text-border/40"
-    />
-    <path
-      d="M96 150 C103 154, 137 154, 144 150"
-      strokeWidth="1.4"
-      className="text-border/35"
-    />
-    <path
-      d="M102 220 C108 223, 132 223, 138 220"
-      strokeWidth="1.2"
-      className="text-border/30"
-    />
+    <path d="M101 73 C104 76, 116 76, 119 73" strokeWidth="1.2" className="text-border/40" />
+    <path d="M96 148 C101 151, 119 151, 124 148" strokeWidth="1.1" className="text-border/30" />
   </g>
 
-  <g fill="url(#fantasyBodyFill)" stroke="currentColor" className="text-border/80">
+  <g fill="url(#bodyFillSoft)" stroke="currentColor" className="text-border/80">
     {fantasyZones.map((zone) => {
       const summary = bodyPartSummaryMap[zone.key];
       const isActive = summary.isExpanded;
+
+      const sharedStyle: React.CSSProperties = {
+        strokeWidth: isActive ? 3 : summary.isWounded ? 2.5 : 2,
+        opacity: isActive ? 1 : summary.isWounded ? 0.96 : 0.82,
+        filter: isActive
+          ? "drop-shadow(0 0 6px rgba(120,82,38,0.18))"
+          : summary.isWounded
+            ? "drop-shadow(0 0 4px rgba(120,82,38,0.1))"
+            : undefined,
+      };
 
       const zoneClassName = isActive
         ? `${summary.styles.zone} stroke-current`
         : summary.isWounded
           ? `${summary.styles.zone} stroke-current`
-          : "fill-background/35 stroke-border";
+          : "fill-background/30 stroke-border";
 
       return (
         <g
@@ -1264,23 +1258,138 @@ const fantasyZones = [
           }
           className="cursor-pointer transition-all"
         >
-          {zone.render(zoneClassName, {
-            strokeWidth: isActive ? 3.2 : summary.isWounded ? 2.6 : 2.1,
-            opacity: isActive ? 1 : summary.isWounded ? 0.96 : 0.72,
-            filter: isActive
-              ? "drop-shadow(0 0 8px rgba(120,82,38,0.25))"
-              : summary.isWounded
-                ? "drop-shadow(0 0 5px rgba(120,82,38,0.12))"
-                : undefined,
-          })}
+          {zone.key === "Testa" && (
+            <ellipse
+              cx="110"
+              cy="46"
+              rx="21"
+              ry="25"
+              className={zoneClassName}
+              style={sharedStyle}
+            />
+          )}
+
+          {zone.key === "Torace" && (
+            <path
+              d="M84 82
+                 C90 73, 99 69, 110 69
+                 C121 69, 130 73, 136 82
+                 L140 132
+                 C132 142, 122 148, 110 148
+                 C98 148, 88 142, 80 132 Z"
+              className={zoneClassName}
+              style={sharedStyle}
+            />
+          )}
+
+          {zone.key === "Braccio SX" && (
+            <path
+              d="M68 106
+                 C61 120, 58 135, 59 151
+                 C60 163, 64 175, 70 186
+                 L81 181
+                 C76 167, 74 153, 74 139
+                 C74 127, 77 115, 83 103 Z"
+              className={zoneClassName}
+              style={sharedStyle}
+            />
+          )}
+
+          {zone.key === "Braccio DX" && (
+            <path
+              d="M152 106
+                 C159 120, 162 135, 161 151
+                 C160 163, 156 175, 150 186
+                 L139 181
+                 C144 167, 146 153, 146 139
+                 C146 127, 143 115, 137 103 Z"
+              className={zoneClassName}
+              style={sharedStyle}
+            />
+          )}
+
+          {zone.key === "Mano SX" && (
+            <ellipse
+              cx="69"
+              cy="201"
+              rx="11"
+              ry="12"
+              className={zoneClassName}
+              style={sharedStyle}
+            />
+          )}
+
+          {zone.key === "Mano DX" && (
+            <ellipse
+              cx="151"
+              cy="201"
+              rx="11"
+              ry="12"
+              className={zoneClassName}
+              style={sharedStyle}
+            />
+          )}
+
+          {zone.key === "Gamba SX" && (
+            <path
+              d="M98 148
+                 C92 167, 89 187, 88 209
+                 C87 228, 89 250, 93 279
+                 L104 279
+                 C106 252, 108 229, 111 207
+                 C114 186, 117 166, 120 148 Z"
+              className={zoneClassName}
+              style={sharedStyle}
+            />
+          )}
+
+          {zone.key === "Gamba DX" && (
+            <path
+              d="M122 148
+                 C128 167, 131 187, 132 209
+                 C133 228, 131 250, 127 279
+                 L116 279
+                 C114 252, 112 229, 109 207
+                 C106 186, 103 166, 100 148 Z"
+              className={zoneClassName}
+              style={sharedStyle}
+            />
+          )}
+
+          {zone.key === "Piede SX" && (
+            <path
+              d="M90 282
+                 C82 282, 76 285, 72 289
+                 L73 297
+                 C82 300, 94 300, 104 297
+                 L103 289
+                 C99 285, 95 282, 90 282 Z"
+              className={zoneClassName}
+              style={sharedStyle}
+            />
+          )}
+
+          {zone.key === "Piede DX" && (
+            <path
+              d="M130 282
+                 C135 282, 139 285, 143 289
+                 L142 297
+                 C132 300, 120 300, 111 297
+                 L112 289
+                 C116 285, 122 282, 130 282 Z"
+              className={zoneClassName}
+              style={sharedStyle}
+            />
+          )}
+
           <title>{zone.key}</title>
         </g>
       );
     })}
   </g>
 
-  <g className="text-primary/30" fill="none" stroke="currentColor">
-    <path d="M120 23 L120 311" strokeWidth="0.9" strokeDasharray="4 5" />
+  <g className="text-primary/20" fill="none" stroke="currentColor">
+    <path d="M110 24 L110 304" strokeWidth="0.8" strokeDasharray="3 5" />
   </g>
 </svg>
               </div>
