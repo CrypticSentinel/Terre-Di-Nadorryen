@@ -458,7 +458,8 @@ export const OpenSourceGdrSheet = ({
 }: Props) => {
   const [bodyPartPopup, setBodyPartPopup] = useState<BodyPartPopupState | null>(null);
   const [expandedBodyPart, setExpandedBodyPart] = useState<string | null>(null);
-  
+  const [selectedHitZone, setSelectedHitZone] = useState<"Alta" | "Bassa">("Alta");
+
   const totalPoints = useMemo(
     () => ABILITIES.reduce((acc, a) => acc + (Number(value.abilities[a.key]) || 0), 0),
     [value.abilities],
@@ -907,35 +908,60 @@ export const OpenSourceGdrSheet = ({
       (part) => Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0)) > 0
     );
 
+    const hitLocations = {
+      Alta: [
+        { location: "Testa", roll: "1 - 6", key: "Testa" },
+        { location: "Collo", roll: "7 - 10", key: "Collo" },
+        { location: "Spalla SX", roll: "12 - 25", key: "Spalla SX" },
+        { location: "Spalla DX", roll: "26 - 40", key: "Spalla DX" },
+        { location: "Braccio SX", roll: "41 - 50", key: "Braccio SX" },
+        { location: "Braccio DX", roll: "51 - 60", key: "Braccio DX" },
+        { location: "Mano SX", roll: "61 - 65", key: "Mano SX" },
+        { location: "Mano DX", roll: "66 - 70", key: "Mano DX" },
+        { location: "Torace", roll: "72 - 100", key: "Torace" },
+      ],
+      Bassa: [
+        { location: "Piede SX", roll: "1 - 6", key: "Piede SX" },
+        { location: "Piede DX", roll: "7 - 10", key: "Piede DX" },
+        { location: "Gamba SX", roll: "12 - 25", key: "Gamba SX" },
+        { location: "Gamba DX", roll: "26 - 40", key: "Gamba DX" },
+        { location: "Stinco SX", roll: "41 - 50", key: "Stinco SX" },
+        { location: "Stinco DX", roll: "51 - 60", key: "Stinco DX" },
+        { location: "Ginocchio SX", roll: "61 - 65", key: "Ginocchio SX" },
+        { location: "Ginocchio DX", roll: "66 - 70", key: "Ginocchio DX" },
+        { location: "Addome", roll: "72 - 100", key: "Addome" },
+      ],
+    } as const;
+
     const getSeverityStyles = (severity: WoundSeverity) => {
       if (severity === "light") {
         return {
           badge: "border-amber-600/30 bg-amber-500/10 text-amber-700",
-          zone: "fill-amber-500/30 stroke-amber-700",
-          card: "border-amber-600/30 bg-amber-500/5",
+          zone: "fill-amber-500/25 stroke-amber-700",
+          row: "border-amber-600/20 bg-amber-500/5",
         };
       }
 
       if (severity === "grave") {
         return {
           badge: "border-destructive/30 bg-destructive/10 text-destructive",
-          zone: "fill-destructive/25 stroke-destructive",
-          card: "border-destructive/30 bg-destructive/5",
+          zone: "fill-destructive/22 stroke-destructive",
+          row: "border-destructive/25 bg-destructive/5",
         };
       }
 
       if (severity === "lethal") {
         return {
           badge: "border-destructive/40 bg-destructive/15 text-destructive",
-          zone: "fill-destructive/40 stroke-destructive",
-          card: "border-destructive/40 bg-destructive/10",
+          zone: "fill-destructive/38 stroke-destructive",
+          row: "border-destructive/35 bg-destructive/10",
         };
       }
 
       return {
         badge: "border-border60 bg-background/40 text-ink-faded",
-        zone: "fill-muted/20 stroke-border",
-        card: "border-border40 bg-background/30",
+        zone: "fill-muted/15 stroke-border",
+        row: "border-border40 bg-background/20",
       };
     };
 
@@ -946,132 +972,179 @@ export const OpenSourceGdrSheet = ({
       return "Integro";
     };
 
+    const getPartDamage = (part: string) =>
+      Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0));
+
+    const getPartThreshold = (part: string) => natural_soglia[part] ?? 0;
+
+    const getPartProtection = (part: string) => {
+      const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
+      const naturalThreshold = getPartThreshold(part);
+      const totalNaturalArmor = naturalThreshold + constitutionModifier;
+      const totalArmor = armorByBodyPart[part] ?? 0;
+      return {
+        totalNaturalArmor,
+        totalArmor,
+        totalProtection: totalNaturalArmor + totalArmor,
+      };
+    };
+
     const bodyZoneMap = [
       {
         key: "Testa",
-        shape: (
-          <circle
-            cx="100"
-            cy="42"
-            r="20"
-            className="transition-all"
-          />
+        label: "Testa",
+        render: (className: string, style: React.CSSProperties) => (
+          <ellipse cx="110" cy="42" rx="24" ry="28" className={className} style={style} />
+        ),
+      },
+      {
+        key: "Collo",
+        label: "Collo",
+        render: (className: string, style: React.CSSProperties) => (
+          <rect x="102" y="68" width="16" height="16" rx="6" className={className} style={style} />
         ),
       },
       {
         key: "Torace",
-        shape: (
-          <rect
-            x="72"
-            y="70"
-            width="56"
-            height="78"
-            rx="20"
-            className="transition-all"
+        label: "Torace",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M78 88 C84 76, 96 72, 110 72 C124 72, 136 76, 142 88 L146 132 C136 144, 124 150, 110 150 C96 150, 84 144, 74 132 Z"
+            className={className}
+            style={style}
+          />
+        ),
+      },
+      {
+        key: "Addome",
+        label: "Addome",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M82 150 C90 144, 100 142, 110 142 C120 142, 130 144, 138 150 L132 192 C124 198, 118 202, 110 202 C102 202, 96 198, 88 192 Z"
+            className={className}
+            style={style}
+          />
+        ),
+      },
+      {
+        key: "Spalla SX",
+        label: "Spalla SX",
+        render: (className: string, style: React.CSSProperties) => (
+          <ellipse cx="63" cy="96" rx="15" ry="18" className={className} style={style} />
+        ),
+      },
+      {
+        key: "Spalla DX",
+        label: "Spalla DX",
+        render: (className: string, style: React.CSSProperties) => (
+          <ellipse cx="157" cy="96" rx="15" ry="18" className={className} style={style} />
+        ),
+      },
+      {
+        key: "Braccio SX",
+        label: "Braccio SX",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M44 112 C40 124, 38 138, 40 154 C42 166, 46 176, 52 184 L66 178 C60 164, 58 150, 58 136 C58 126, 60 116, 64 106 Z"
+            className={className}
+            style={style}
           />
         ),
       },
       {
         key: "Braccio DX",
-        shape: (
-          <rect
-            x="38"
-            y="78"
-            width="22"
-            height="72"
-            rx="10"
-            className="transition-all"
-          />
-        ),
-      },
-      {
-        key: "Braccio SX",
-        shape: (
-          <rect
-            x="140"
-            y="78"
-            width="22"
-            height="72"
-            rx="10"
-            className="transition-all"
-          />
-        ),
-      },
-      {
-        key: "Mano DX",
-        shape: (
-          <rect
-            x="36"
-            y="150"
-            width="24"
-            height="24"
-            rx="8"
-            className="transition-all"
+        label: "Braccio DX",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M176 112 C180 124, 182 138, 180 154 C178 166, 174 176, 168 184 L154 178 C160 164, 162 150, 162 136 C162 126, 160 116, 156 106 Z"
+            className={className}
+            style={style}
           />
         ),
       },
       {
         key: "Mano SX",
-        shape: (
-          <rect
-            x="140"
-            y="150"
-            width="24"
-            height="24"
-            rx="8"
-            className="transition-all"
+        label: "Mano SX",
+        render: (className: string, style: React.CSSProperties) => (
+          <ellipse cx="52" cy="196" rx="12" ry="10" className={className} style={style} />
+        ),
+      },
+      {
+        key: "Mano DX",
+        label: "Mano DX",
+        render: (className: string, style: React.CSSProperties) => (
+          <ellipse cx="168" cy="196" rx="12" ry="10" className={className} style={style} />
+        ),
+      },
+      {
+        key: "Gamba SX",
+        label: "Gamba SX",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M98 202 C92 216, 88 228, 86 244 C85 254, 86 266, 88 278 L100 278 C102 266, 104 254, 106 242 C108 230, 110 216, 112 202 Z"
+            className={className}
+            style={style}
           />
         ),
       },
       {
         key: "Gamba DX",
-        shape: (
-          <rect
-            x="78"
-            y="152"
-            width="18"
-            height="92"
-            rx="10"
-            className="transition-all"
+        label: "Gamba DX",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M122 202 C128 216, 132 228, 134 244 C135 254, 134 266, 132 278 L120 278 C118 266, 116 254, 114 242 C112 230, 110 216, 108 202 Z"
+            className={className}
+            style={style}
           />
         ),
       },
       {
-        key: "Gamba SX",
-        shape: (
-          <rect
-            x="104"
-            y="152"
-            width="18"
-            height="92"
-            rx="10"
-            className="transition-all"
+        key: "Stinco SX",
+        label: "Stinco SX",
+        render: (className: string, style: React.CSSProperties) => (
+          <rect x="88" y="238" width="18" height="44" rx="8" className={className} style={style} />
+        ),
+      },
+      {
+        key: "Stinco DX",
+        label: "Stinco DX",
+        render: (className: string, style: React.CSSProperties) => (
+          <rect x="114" y="238" width="18" height="44" rx="8" className={className} style={style} />
+        ),
+      },
+      {
+        key: "Ginocchio SX",
+        label: "Ginocchio SX",
+        render: (className: string, style: React.CSSProperties) => (
+          <circle cx="97" cy="236" r="9" className={className} style={style} />
+        ),
+      },
+      {
+        key: "Ginocchio DX",
+        label: "Ginocchio DX",
+        render: (className: string, style: React.CSSProperties) => (
+          <circle cx="123" cy="236" r="9" className={className} style={style} />
+        ),
+      },
+      {
+        key: "Piede SX",
+        label: "Piede SX",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M82 282 C90 280, 100 280, 108 284 L106 294 C98 296, 88 296, 80 292 Z"
+            className={className}
+            style={style}
           />
         ),
       },
       {
         key: "Piede DX",
-        shape: (
-          <rect
-            x="72"
-            y="246"
-            width="28"
-            height="16"
-            rx="7"
-            className="transition-all"
-          />
-        ),
-      },
-      {
-        key: "Piede SX",
-        shape: (
-          <rect
-            x="102"
-            y="246"
-            width="28"
-            height="16"
-            rx="7"
-            className="transition-all"
+        label: "Piede DX",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M112 284 C120 280, 130 280, 138 282 L140 292 C132 296, 122 296, 114 294 Z"
+            className={className}
+            style={style}
           />
         ),
       },
@@ -1095,62 +1168,130 @@ export const OpenSourceGdrSheet = ({
           </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[240px,minmax(0,1fr)]">
-          <div className="rounded-2xl border border-border60 bg-parchment-deep20 p-4">
-            <p className="mb-3 text-center font-script text-xs italic text-ink-faded">
-              Clicca una zona del corpo per evidenziare i dettagli.
-            </p>
+        <div className="grid gap-4 xl:grid-cols-[280px,minmax(0,1fr)]">
+          <div className="space-y-4">
+            <div className="rounded-[1.25rem] border border-border60 bg-parchment-deep20 p-4">
+              <p className="mb-3 text-center font-script text-xs italic text-ink-faded">
+                Figura di riferimento interattiva in stile cronaca illustrata.
+              </p>
 
-            <div className="mx-auto flex max-w-[220px] justify-center">
-              <svg viewBox="0 0 200 280" className="h-auto w-full">
-                {bodyZoneMap.map(({ key, shape }) => {
-                  const damage = Math.max(0, Number(value.ferite?.[key]?.wounds ?? 0));
-                  const threshold = natural_soglia[key] ?? 0;
-                  const severity = getWoundSeverity(damage, threshold);
-                  const styles = getSeverityStyles(severity);
-                  const isActive = expandedBodyPart === key;
+              <div className="mx-auto flex max-w-[230px] justify-center">
+                <svg viewBox="0 0 220 310" className="h-auto w-full">
+                  <path
+                    d="M110 12 C132 14, 146 28, 148 46 C150 64, 142 76, 136 84 C148 88, 158 96, 164 108 C176 132, 182 158, 180 188 C176 188, 172 188, 168 188 C162 164, 156 142, 146 124 L140 146 C138 162, 136 180, 136 198 C142 226, 146 254, 144 292 L130 292 C130 268, 126 242, 120 214 L114 214 C108 242, 104 268, 104 292 L90 292 C88 254, 92 226, 98 198 C98 180, 96 162, 94 146 L88 124 C78 142, 72 164, 66 188 C62 188, 58 188, 54 188 C52 158, 58 132, 70 108 C76 96, 86 88, 98 84 C92 76, 84 64, 86 46 C88 28, 102 14, 110 12 Z"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    className="text-border/70"
+                  />
 
-                  return (
-                    <g
-                      key={key}
-                      onClick={() =>
-                        setExpandedBodyPart((prev) => (prev === key ? null : key))
-                      }
-                      className="cursor-pointer"
-                    >
+                  {bodyZoneMap.map((zone) => {
+                    const damage = getPartDamage(zone.key);
+                    const threshold = getPartThreshold(zone.key);
+                    const severity = getWoundSeverity(damage, threshold);
+                    const styles = getSeverityStyles(severity);
+                    const isActive = expandedBodyPart === zone.key;
+
+                    return (
                       <g
-                        className={`${styles.zone} ${
-                          isActive ? "opacity-100" : damage > 0 ? "opacity-100" : "opacity-55"
-                        }`}
-                        style={{
-                          strokeWidth: isActive ? 3 : 2,
-                          filter: isActive ? "drop-shadow(0 0 6px rgba(0,0,0,0.15))" : undefined,
-                        }}
+                        key={zone.key}
+                        onClick={() =>
+                          setExpandedBodyPart((prev) => (prev === zone.key ? null : zone.key))
+                        }
+                        className="cursor-pointer"
                       >
-                        {shape}
+                        {zone.render(
+                          `${styles.zone} transition-all`,
+                          {
+                            strokeWidth: isActive ? 3 : 2,
+                            opacity: isActive ? 1 : damage > 0 ? 0.95 : 0.58,
+                            filter: isActive ? "drop-shadow(0 0 8px rgba(120, 82, 38, 0.25))" : undefined,
+                          }
+                        )}
+                        <title>{zone.label}</title>
                       </g>
+                    );
+                  })}
+                </svg>
+              </div>
+            </div>
 
-                      <title>{key}</title>
-                    </g>
-                  );
-                })}
-              </svg>
+            <div className="rounded-[1.25rem] border border-border60 bg-parchment-deep20 p-3">
+              <div className="mb-3 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={selectedHitZone === "Alta" ? "default" : "outline"}
+                  className="font-heading"
+                  onClick={() => setSelectedHitZone("Alta")}
+                >
+                  Zona alta
+                </Button>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={selectedHitZone === "Bassa" ? "default" : "outline"}
+                  className="font-heading"
+                  onClick={() => setSelectedHitZone("Bassa")}
+                >
+                  Zona bassa
+                </Button>
+              </div>
+
+              <div className="overflow-hidden rounded-lg border border-border40">
+                <table className="w-full text-left">
+                  <thead className="bg-background/40">
+                    <tr>
+                      <th className="px-3 py-2 font-heading text-[10px] uppercase tracking-wider text-ink-faded">
+                        Locazione
+                      </th>
+                      <th className="px-3 py-2 font-heading text-[10px] uppercase tracking-wider text-ink-faded">
+                        Dado
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {hitLocations[selectedHitZone].map((row) => {
+                      const linked = expandedBodyPart === row.key;
+
+                      return (
+                        <tr
+                          key={`${selectedHitZone}-${row.location}`}
+                          className={`border-t border-border40 transition-colors ${
+                            linked ? "bg-primary/10" : "bg-transparent"
+                          }`}
+                        >
+                          <td className="px-3 py-2">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedBodyPart(row.key)}
+                              className="font-script text-sm text-ink hover:text-primary"
+                            >
+                              {row.location}
+                            </button>
+                          </td>
+                          <td className="px-3 py-2 font-display text-sm text-primary">
+                            {row.roll}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
           <div className="space-y-2">
             {BODY_PARTS.map((p) => {
-              const partState = value.ferite[p] ?? { wounds: 0 };
-              const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
-              const naturalThreshold = natural_soglia[p] ?? 0;
-              const totalNaturalArmor = naturalThreshold + constitutionModifier;
-              const totalArmor = armorByBodyPart[p] ?? 0;
-              const totalProtection = totalNaturalArmor + totalArmor;
-              const damage = Math.max(0, Number(partState.wounds ?? 0));
+              const damage = getPartDamage(p);
+              const naturalThreshold = getPartThreshold(p);
               const severity = getWoundSeverity(damage, naturalThreshold);
-              const localPenalty = getPenaltyFromSeverity(severity);
               const severityLabel = getSeverityLabel(severity);
+              const localPenalty = getPenaltyFromSeverity(severity);
               const styles = getSeverityStyles(severity);
+              const { totalProtection, totalNaturalArmor, totalArmor } = getPartProtection(p);
               const isExpanded = expandedBodyPart === p;
               const isWounded = damage > 0;
 
@@ -1159,10 +1300,10 @@ export const OpenSourceGdrSheet = ({
                   key={p}
                   className={`rounded-xl border transition-all ${
                     isExpanded
-                      ? `${styles.card} shadow-sm`
+                      ? `${styles.row} shadow-sm`
                       : isWounded
                         ? "border-border60 bg-parchment-deep20"
-                        : "border-border40 bg-background/25 opacity-80"
+                        : "border-border30 bg-background/15 opacity-80"
                   }`}
                 >
                   <button
@@ -1170,22 +1311,21 @@ export const OpenSourceGdrSheet = ({
                     onClick={() =>
                       setExpandedBodyPart((prev) => (prev === p ? null : p))
                     }
-                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                    className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left"
                   >
                     <div className="min-w-0">
-                      <div className="font-heading text-sm uppercase tracking-[0.14em] text-ink">
+                      <div className="font-heading text-[13px] uppercase tracking-[0.14em] text-ink">
                         {p}
-                      </div>
-                      <div className="mt-1 text-[11px] font-script italic text-ink-faded">
-                        {damage > 0
-                          ? `Ferite ${-damage} · Protezione ${totalProtection}`
-                          : `Nessuna ferita · Protezione ${totalProtection}`}
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
+                      <div className="min-w-[54px] text-right font-display text-sm text-primary">
+                        {damage > 0 ? -damage : "—"}
+                      </div>
+
                       <span
-                        className={`rounded-md px-2.5 py-1.5 text-xs font-heading uppercase tracking-[0.12em] ${styles.badge}`}
+                        className={`rounded-md px-2 py-1 text-[11px] font-heading uppercase tracking-[0.12em] ${styles.badge}`}
                       >
                         {severityLabel}
                       </span>
@@ -1193,9 +1333,9 @@ export const OpenSourceGdrSheet = ({
                   </button>
 
                   {isExpanded && (
-                    <div className="border-t border-border40 px-4 pb-4 pt-3">
-                      <div className="grid gap-3 sm:grid-cols-3">
-                        <div className="rounded-lg border border-border40 bg-background/40 p-3 text-center">
+                    <div className="border-t border-border40 px-3 pb-3 pt-2">
+                      <div className="grid gap-2 sm:grid-cols-4">
+                        <div className="rounded-lg border border-border40 bg-background/35 p-2 text-center">
                           <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
                             Ferite
                           </div>
@@ -1207,41 +1347,55 @@ export const OpenSourceGdrSheet = ({
                               value={damage > 0 ? -damage : ""}
                               onChange={(e) => setFeritaValue(p, e.target.value)}
                               placeholder="-0"
-                              className="mt-1 h-8 border-0 bg-transparent px-0 text-center font-display text-lg text-primary focus-visible:ring-0"
+                              className="mt-1 h-7 border-0 bg-transparent px-0 text-center font-display text-base text-primary focus-visible:ring-0"
                             />
                           ) : (
-                            <div className="mt-1 h-8 font-display text-lg leading-8 text-primary">
+                            <div className="mt-1 h-7 font-display text-base leading-7 text-primary">
                               {damage > 0 ? -damage : "—"}
                             </div>
                           )}
                         </div>
 
-                        <div className="rounded-lg border border-border40 bg-background/40 p-3 text-center">
+                        <div className="rounded-lg border border-border40 bg-background/35 p-2 text-center">
                           <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
                             Soglia
                           </div>
-                          <div className="mt-1 h-8 font-display text-lg leading-8 text-primary">
+                          <div className="mt-1 h-7 font-display text-base leading-7 text-primary">
                             {naturalThreshold}
                           </div>
                         </div>
 
-                        <div className="rounded-lg border border-border40 bg-background/40 p-3 text-center">
+                        <div className="rounded-lg border border-border40 bg-background/35 p-2 text-center">
                           <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
-                            Protezione
+                            Naturale
+                          </div>
+                          <div className="mt-1 h-7 font-display text-base leading-7 text-primary">
+                            {totalNaturalArmor}
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg border border-border40 bg-background/35 p-2 text-center">
+                          <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
+                            Armatura
                           </div>
                           <div
-                            className="mt-1 h-8 font-display text-lg leading-8 text-primary"
-                            title={`Naturale ${totalNaturalArmor} + armatura ${totalArmor}`}
+                            className="mt-1 h-7 font-display text-base leading-7 text-primary"
+                            title={`Protezione totale ${totalProtection}`}
                           >
-                            {totalProtection}
+                            {totalArmor}
                           </div>
                         </div>
                       </div>
 
-                      <div className="mt-3 text-sm font-script italic text-ink-faded">
+                      <div className="mt-2 text-xs font-script italic text-ink-faded">
                         Penalità della zona:{" "}
                         <strong className="font-heading text-ink">
                           {formatModifier(localPenalty)}
+                        </strong>
+                        {" · "}
+                        Protezione totale:{" "}
+                        <strong className="font-heading text-ink">
+                          {totalProtection}
                         </strong>
                       </div>
                     </div>
