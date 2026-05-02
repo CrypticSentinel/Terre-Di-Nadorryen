@@ -202,6 +202,28 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
     };
   }
 
+type WoundSeverity = "none" | "light" | "grave" | "lethal";
+
+const getWoundSeverity = (damage: number, threshold: number): WoundSeverity => {
+  if (damage >= threshold * 2) return "lethal";
+  if (damage >= threshold) return "grave";
+  if (damage >= 2) return "light";
+  return "none";
+};
+
+const getPenaltyFromSeverity = (severity: WoundSeverity): number => {
+  switch (severity) {
+    case "light":
+      return -2;
+    case "grave":
+      return -5;
+    case "lethal":
+      return -5;
+    default:
+      return 0;
+  }
+};
+
   const abilities = { ...base.abilities, ...(input.abilities ?? {}) };
         const ferite: Record<string, OsgdrBodyPartState> = { ...base.ferite };
   if (input.ferite && typeof input.ferite === "object") {
@@ -315,6 +337,27 @@ interface Props {
 
 const iconButtonClass =
   "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors";
+type WoundSeverity = "none" | "light" | "grave" | "lethal";
+
+const getWoundSeverity = (damage: number, threshold: number): WoundSeverity => {
+  if (damage >= threshold * 2) return "lethal";
+  if (damage >= threshold) return "grave";
+  if (damage >= 2) return "light";
+  return "none";
+};
+
+const getPenaltyFromSeverity = (severity: WoundSeverity): number => {
+  switch (severity) {
+    case "light":
+      return -2;
+    case "grave":
+      return -5;
+    case "lethal":
+      return -5;
+    default:
+      return 0;
+  }
+};
 
 export const OpenSourceGdrSheet = ({
   value,
@@ -380,16 +423,12 @@ export const OpenSourceGdrSheet = ({
   let worstPenalty = 0;
 
   for (const part of BODY_PARTS) {
-    const raw = Number(value.ferite?.[part]?.wounds ?? 0) || 0;
+    const damage = Number(value.ferite?.[part]?.wounds ?? 0) || 0;
     const threshold = NATURAL_ARMOR_BY_PART[part] ?? 0;
+    const severity = getWoundSeverity(damage, threshold);
+    const penalty = getPenaltyFromSeverity(severity);
 
-    if (raw >= threshold * 2) {
-      worstPenalty = Math.min(worstPenalty, -5);
-    } else if (raw >= threshold) {
-      worstPenalty = Math.min(worstPenalty, -5);
-    } else if (raw >= 2) {
-      worstPenalty = Math.min(worstPenalty, -2);
-    }
+    worstPenalty = Math.min(worstPenalty, penalty);
   }
 
   return worstPenalty;
