@@ -926,6 +926,11 @@ const hitLocations = {
   ],
 } as const;
 
+const getHitZoneFromBodyPart = (part: string): "Alta" | "Bassa" => {
+  const upperParts = ["Testa", "Torace", "Braccio SX", "Braccio DX", "Mano SX", "Mano DX"];
+  return upperParts.includes(part) ? "Alta" : "Bassa";
+};
+
 const getSeverityStyles = (severity: WoundSeverity) => {
   if (severity === "light") {
     return {
@@ -1253,9 +1258,10 @@ const fantasyZones = [
       return (
         <g
           key={zone.key}
-          onClick={() =>
-            setExpandedBodyPart((prev) => (prev === zone.key ? null : zone.key))
-          }
+          onClick={() => {
+  setSelectedHitZone(getHitZoneFromBodyPart(zone.key));
+  setExpandedBodyPart((prev) => (prev === zone.key ? null : zone.key));
+}}
           className="cursor-pointer transition-all"
         >
           {zone.key === "Testa" && (
@@ -1431,31 +1437,48 @@ const fantasyZones = [
                     </tr>
                   </thead>
                   <tbody>
-                    {hitLocations[selectedHitZone].map((row) => {
-                      const linked = expandedBodyPart === row.key;
+                    <div className="space-y-1.5">
+  {hitLocations[selectedHitZone].map((entry) => {
+    const isActive = expandedBodyPart === entry.key;
+    const summary = bodyPartSummaryMap[entry.key];
+    const zoneStyles = summary?.styles ?? getSeverityStyles("none");
 
-                      return (
-                        <tr
-                          key={`${selectedHitZone}-${row.location}`}
-                          className={`border-t border-border40 transition-colors ${
-                            linked ? "bg-primary/10" : "bg-transparent"
-                          }`}
-                        >
-                          <td className="px-3 py-2">
-                            <button
-                              type="button"
-                              onClick={() => setExpandedBodyPart(row.key)}
-                              className="font-script text-sm text-ink hover:text-primary"
-                            >
-                              {row.location}
-                            </button>
-                          </td>
-                          <td className="px-3 py-2 font-display text-sm text-primary">
-                            {row.roll}
-                          </td>
-                        </tr>
-                      );
-                    })}
+    return (
+      <button
+        key={`${selectedHitZone}-${entry.key}`}
+        type="button"
+        onClick={() => {
+          setSelectedHitZone(selectedHitZone);
+          setExpandedBodyPart((prev) => (prev === entry.key ? null : entry.key));
+        }}
+        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition-all ${
+          isActive
+            ? "border-red-800 bg-red-700/15 shadow-[0_0_0_1px_rgba(127,29,29,0.35),0_0_18px_rgba(127,29,29,0.18)]"
+            : "border-border40 bg-background/20 hover:border-border60 hover:bg-background/35"
+        }`}
+      >
+        <div className="min-w-0">
+          <div className="font-heading text-[11px] uppercase tracking-[0.14em] text-ink-faded">
+            {selectedHitZone}
+          </div>
+          <div className="font-heading text-sm text-ink">{entry.location}</div>
+        </div>
+
+        <div className="flex items-center gap-2 pl-3">
+          <span className="font-display text-sm text-primary">{entry.roll}</span>
+
+          <span
+            className={`rounded-md px-2 py-1 text-[10px] font-heading uppercase tracking-[0.12em] ${
+              isActive ? "border border-red-800/40 bg-red-700/15 text-red-900" : zoneStyles.badge
+            }`}
+          >
+            {summary ? summary.severityLabel : "Integro"}
+          </span>
+        </div>
+      </button>
+    );
+  })}
+</div>
                   </tbody>
                 </table>
               </div>
@@ -1489,9 +1512,10 @@ const fantasyZones = [
       >
         <button
           type="button"
-          onClick={() =>
-            setExpandedBodyPart((prev) => (prev === part ? null : part))
-          }
+          onClick={() => {
+  setSelectedHitZone(getHitZoneFromBodyPart(part));
+  setExpandedBodyPart((prev) => (prev === part ? null : part));
+}}
           className="flex w-full flex-col items-start gap-2 px-3 py-3 text-left sm:flex-row sm:items-center sm:justify-between"
         >
           <div className="min-w-0">
