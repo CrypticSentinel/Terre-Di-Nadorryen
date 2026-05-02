@@ -9,7 +9,6 @@ import { Plus, Trash2 } from "lucide-react";
 import { abilityModifier, formatModifier, magicBaseDamage } from "@/lib/rulesets";
 import { EditableLabel, type LabelOverride } from "@/components/EditableLabel";
 
-// === Schema dati Open Source GDR ===
 const ABILITIES = [
   { key: "for", label: "FOR", full: "Forza" },
   { key: "des", label: "DES", full: "Destrezza" },
@@ -33,8 +32,8 @@ const BODY_PARTS = [
 ] as const;
 
 const natural_soglia: Record<string, number> = {
-  "Testa": 3,
-  "Torace": 5,
+  Testa: 3,
+  Torace: 5,
   "Braccio DX": 4,
   "Braccio SX": 4,
   "Mano DX": 3,
@@ -151,16 +150,16 @@ export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
   pe: 0,
   magic: Object.fromEntries(MAGIC_SCHOOLS.map((s) => [s, 0])) as Record<MagicSchool, number>,
   coins: Object.fromEntries(COIN_TYPES.map((c) => [c.key, 0])) as Record<CoinKey, number>,
-        ferite: Object.fromEntries(
+  ferite: Object.fromEntries(
     BODY_PARTS.map((p) => [
       p,
       {
         wounds: 0,
       },
-    ])
+    ]),
   ) as Record<string, OsgdrBodyPartState>,
   equipment: Object.fromEntries(
-  EQUIPMENT_SECTIONS.map((s) => [s.key, [] as OsgdrEquipmentItem[]])
+    EQUIPMENT_SECTIONS.map((s) => [s.key, [] as OsgdrEquipmentItem[]]),
   ) as Record<EquipmentKey, OsgdrEquipmentItem[]>,
   weapons: [],
   armors: [],
@@ -188,6 +187,7 @@ const sortEquipmentAlphabetically = (items: OsgdrEquipmentItem[]): OsgdrEquipmen
 
 export function normalizeOsgdrSheet(input: any): OsgdrSheet {
   const base = EMPTY_OSGDR_SHEET;
+
   if (!input || typeof input !== "object") {
     return {
       ...base,
@@ -202,37 +202,16 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
     };
   }
 
-type WoundSeverity = "none" | "light" | "grave" | "lethal";
-
-const getWoundSeverity = (damage: number, threshold: number): WoundSeverity => {
-  if (damage >= threshold * 2) return "lethal";
-  if (damage >= threshold) return "grave";
-  if (damage >= 2) return "light";
-  return "none";
-};
-
-const getPenaltyFromSeverity = (severity: WoundSeverity): number => {
-  switch (severity) {
-    case "light":
-      return -2;
-    case "grave":
-      return -5;
-    case "lethal":
-      return -5;
-    default:
-      return 0;
-  }
-};
-
   const abilities = { ...base.abilities, ...(input.abilities ?? {}) };
-        const ferite: Record<string, OsgdrBodyPartState> = { ...base.ferite };
+
+  const ferite: Record<string, OsgdrBodyPartState> = { ...base.ferite };
   if (input.ferite && typeof input.ferite === "object") {
     for (const part of BODY_PARTS) {
       const raw = input.ferite[part];
       if (raw && typeof raw === "object") {
         ferite[part] = {
-  wounds: Math.max(0, Number(raw.wounds) || 0),
-};
+          wounds: Math.max(0, Number(raw.wounds) || 0),
+        };
       }
     }
   }
@@ -269,7 +248,7 @@ const getPenaltyFromSeverity = (severity: WoundSeverity): number => {
               id: String(item?.id ?? crypto.randomUUID()),
               text: String(item?.text ?? ""),
             };
-          })
+          }),
         );
       } else {
         equipment[s.key] = [];
@@ -285,7 +264,7 @@ const getPenaltyFromSeverity = (severity: WoundSeverity): number => {
       }))
     : [];
 
-    const weapons: OsgdrWeapon[] = Array.isArray(input.weapons)
+  const weapons: OsgdrWeapon[] = Array.isArray(input.weapons)
     ? input.weapons.map((w: any) => ({
         id: String(w?.id ?? crypto.randomUUID()),
         name: String(w?.name ?? ""),
@@ -295,7 +274,7 @@ const getPenaltyFromSeverity = (severity: WoundSeverity): number => {
       }))
     : [];
 
-    const armors: OsgdrArmor[] = Array.isArray(input.armors)
+  const armors: OsgdrArmor[] = Array.isArray(input.armors)
     ? input.armors.map((a: any) => ({
         id: String(a?.id ?? crypto.randomUUID()),
         name: String(a?.name ?? ""),
@@ -304,8 +283,8 @@ const getPenaltyFromSeverity = (severity: WoundSeverity): number => {
         notes: String(a?.notes ?? ""),
       }))
     : [];
-  
-    return {
+
+  return {
     ...base,
     ...input,
     abilities,
@@ -335,9 +314,16 @@ interface Props {
   onAssignedUserIdChange?: (next: string | undefined) => void;
 }
 
-const iconButtonClass =
-  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors";
 type WoundSeverity = "none" | "light" | "grave" | "lethal";
+
+interface BodyPartPopupState {
+  part: string;
+  damage: number;
+  threshold: number;
+  severity: WoundSeverity;
+  title: string;
+  description: string;
+}
 
 const getWoundSeverity = (damage: number, threshold: number): WoundSeverity => {
   if (damage >= threshold * 2) return "lethal";
@@ -359,6 +345,106 @@ const getPenaltyFromSeverity = (severity: WoundSeverity): number => {
   }
 };
 
+const getBodyPartPopupInfo = (
+  part: string,
+  damage: number,
+  threshold: number,
+  severity: WoundSeverity,
+): BodyPartPopupState => {
+  const base = { part, damage, threshold, severity };
+
+  const isHead = part === "Testa";
+  const isTorso = part === "Torace";
+  const isArm = part === "Braccio DX" || part === "Braccio SX";
+  const isHand = part === "Mano DX" || part === "Mano SX";
+  const isLeg = part === "Gamba DX" || part === "Gamba SX";
+  const isFoot = part === "Piede DX" || part === "Piede SX";
+
+  if (severity === "none") {
+    return {
+      ...base,
+      title: `${part}: nessuna ferita rilevante`,
+      description:
+        "Il danno accumulato non è sufficiente a produrre una penalità o una conseguenza meccanica significativa.",
+    };
+  }
+
+  if (severity === "light") {
+    return {
+      ...base,
+      title: `${part}: ferita leggera`,
+      description:
+        "La parte del corpo è ferita ma ancora funzionale. Il personaggio subisce -2 a tutte le azioni dal round successivo.",
+    };
+  }
+
+  if (severity === "grave") {
+    if (isHead) {
+      return {
+        ...base,
+        title: "Testa: ferita grave",
+        description:
+          "Possibile stordimento o perdita di sensi. Il personaggio subisce -5 a tutte le azioni dal round successivo.",
+      };
+    }
+
+    if (isTorso) {
+      return {
+        ...base,
+        title: "Torace: ferita grave",
+        description:
+          "La ferita può causare difficoltà respiratorie, dolore intenso o emorragie interne. Il personaggio subisce -5 a tutte le azioni dal round successivo.",
+      };
+    }
+
+    if (isArm) {
+      return {
+        ...base,
+        title: `${part}: ferita grave`,
+        description:
+          "L'arto è compromesso: il personaggio può perdere l'uso del braccio o lasciar cadere l'arma. Subisce -5 a tutte le azioni dal round successivo.",
+      };
+    }
+
+    if (isHand) {
+      return {
+        ...base,
+        title: `${part}: ferita grave`,
+        description:
+          "La mano perde precisione e forza: impugnare o manipolare oggetti diventa difficile. Il personaggio subisce -5 a tutte le azioni dal round successivo.",
+      };
+    }
+
+    if (isLeg) {
+      return {
+        ...base,
+        title: `${part}: ferita grave`,
+        description:
+          "La gamba è compromessa: il movimento diventa difficile e la caduta è possibile. Il personaggio subisce -5 a tutte le azioni dal round successivo.",
+      };
+    }
+
+    if (isFoot) {
+      return {
+        ...base,
+        title: `${part}: ferita grave`,
+        description:
+          "Il piede è seriamente colpito: correre o mantenere l'equilibrio diventa difficile. Il personaggio subisce -5 a tutte le azioni dal round successivo.",
+      };
+    }
+  }
+
+  return {
+    ...base,
+    title: `${part}: ferita letale`,
+    description:
+      "La zona è devastata. La conseguenza è potenzialmente mortale o permanentemente invalidante, a discrezione del Narratore.",
+  };
+};
+
+const iconButtonClass =
+  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors";
+
 export const OpenSourceGdrSheet = ({
   value,
   onChange,
@@ -371,6 +457,7 @@ export const OpenSourceGdrSheet = ({
 }: Props) => {
   const { user, isAdmin, isActingAsNarrator } = useAuth();
   const [profiles, setProfiles] = useState<SelectableProfile[]>([]);
+  const [bodyPartPopup, setBodyPartPopup] = useState<BodyPartPopupState | null>(null);
 
   const canAssignCharacter = canEdit && !!onAssignedUserIdChange && (isAdmin || isActingAsNarrator);
 
@@ -405,9 +492,9 @@ export const OpenSourceGdrSheet = ({
     [value.abilities],
   );
 
-    const armorByBodyPart = useMemo(() => {
+  const armorByBodyPart = useMemo(() => {
     const totals: Record<string, number> = Object.fromEntries(
-      BODY_PARTS.map((part) => [part, 0])
+      BODY_PARTS.map((part) => [part, 0]),
     ) as Record<string, number>;
 
     for (const armor of value.armors ?? []) {
@@ -420,21 +507,22 @@ export const OpenSourceGdrSheet = ({
   }, [value.armors]);
 
   const woundPenalty = useMemo(() => {
-  let worstPenalty = 0;
+    let worstPenalty = 0;
 
-  for (const part of BODY_PARTS) {
-    const damage = Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0) || 0);
-    const threshold = natural_soglia[part] ?? 0;
-    const severity = getWoundSeverity(damage, threshold);
-    const penalty = getPenaltyFromSeverity(severity);
+    for (const part of BODY_PARTS) {
+      const damage = Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0) || 0);
+      const threshold = natural_soglia[part] ?? 0;
+      const severity = getWoundSeverity(damage, threshold);
+      const penalty = getPenaltyFromSeverity(severity);
 
-    worstPenalty = Math.min(worstPenalty, penalty);
-  }
+      worstPenalty = Math.min(worstPenalty, penalty);
+    }
 
-  return worstPenalty;
-}, [value.ferite]);
-  
-  const set = <K extends keyof OsgdrSheet>(k: K, v: OsgdrSheet[K]) => onChange({ ...value, [k]: v });
+    return worstPenalty;
+  }, [value.ferite]);
+
+  const set = <K extends keyof OsgdrSheet>(k: K, v: OsgdrSheet[K]) =>
+    onChange({ ...value, [k]: v });
 
   const setAbility = (key: Ability, raw: string) => {
     const n = Math.max(0, Math.min(30, Number(raw) || 0));
@@ -451,20 +539,27 @@ export const OpenSourceGdrSheet = ({
     onChange({ ...value, coins: { ...value.coins, [key]: n } });
   };
 
-        const setFeritaValue = (part: string, nextValue: string) =>
-  onChange({
-    ...value,
-    ferite: {
-      ...value.ferite,
-      [part]: {
-        wounds: Math.max(0, Math.abs(Number(nextValue) || 0)),
+  const setFeritaValue = (part: string, nextValue: string) => {
+    const damage = Math.max(0, Math.abs(Number(nextValue) || 0));
+    const threshold = natural_soglia[part] ?? 0;
+    const severity = getWoundSeverity(damage, threshold);
+
+    onChange({
+      ...value,
+      ferite: {
+        ...value.ferite,
+        [part]: {
+          wounds: damage,
+        },
       },
-    },
-  });
+    });
+
+    setBodyPartPopup(getBodyPartPopupInfo(part, damage, threshold, severity));
+  };
 
   const setEquipItem = (sec: EquipmentKey, id: string, txt: string) => {
     const arr = (value.equipment[sec] ?? []).map((item) =>
-      item.id === id ? { ...item, text: txt } : item
+      item.id === id ? { ...item, text: txt } : item,
     );
 
     onChange({
@@ -503,7 +598,7 @@ export const OpenSourceGdrSheet = ({
     });
   };
 
-    const addWeapon = () =>
+  const addWeapon = () =>
     onChange({
       ...value,
       weapons: [
@@ -570,7 +665,7 @@ export const OpenSourceGdrSheet = ({
     onChange({
       ...value,
       skills: sortSkillsAlphabetically(
-        value.skills.map((s) => (s.id === id ? { ...s, ...patch } : s))
+        value.skills.map((s) => (s.id === id ? { ...s, ...patch } : s)),
       ),
     });
 
@@ -671,6 +766,7 @@ export const OpenSourceGdrSheet = ({
           {ABILITIES.map((a) => {
             const v = value.abilities[a.key] ?? 0;
             const mod = abilityModifier(v);
+
             return (
               <div
                 key={a.key}
@@ -761,17 +857,18 @@ export const OpenSourceGdrSheet = ({
             );
           })}
         </div>
+
         <div className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center">
-  <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">
-    Penalità ferite
-  </Label>
-  <div className="font-display text-primary" style={{ fontSize: "22px" }}>
-    {formatModifier(woundPenalty)}
-  </div>
-  <div className="mt-1 font-script text-xs text-ink-faded">
-    Calcolata automaticamente dalle ferite inserite
-  </div>
-</div>
+          <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">
+            Penalità ferite
+          </Label>
+          <div className="font-display text-primary" style={{ fontSize: "22px" }}>
+            {formatModifier(woundPenalty)}
+          </div>
+          <div className="mt-1 font-script text-xs text-ink-faded">
+            Calcolata automaticamente dalle ferite inserite
+          </div>
+        </div>
       </section>
 
       <section className="space-y-3">
@@ -784,6 +881,7 @@ export const OpenSourceGdrSheet = ({
           {MAGIC_SCHOOLS.map((school) => {
             const grade = value.magic[school] ?? 0;
             const dmg = magicBaseDamage(grade);
+
             return (
               <div
                 key={school}
@@ -908,17 +1006,13 @@ export const OpenSourceGdrSheet = ({
         )}
       </section>
 
-            <section className="space-y-3">
+      <section className="space-y-3">
         {lbl("section.ferite", "Ferite & Stato del corpo", "font-display text-xl gold-text", "h3")}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {BODY_PARTS.map((p) => {
-            const partState = value.ferite[p] ?? {
-  wounds: 0,
-};
-
+            const partState = value.ferite[p] ?? { wounds: 0 };
             const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
-            const totalNaturalArmor =
-              (natural_soglia[p] ?? 0) + constitutionModifier;
+            const totalNaturalArmor = (natural_soglia[p] ?? 0) + constitutionModifier;
             const totalArmor = armorByBodyPart[p] ?? 0;
 
             return (
@@ -935,7 +1029,7 @@ export const OpenSourceGdrSheet = ({
                     <Label className="font-heading text-[11px] uppercase tracking-wider text-ink-faded">
                       Assorbimento naturale
                     </Label>
-                      <Input
+                    <Input
                       value={totalNaturalArmor}
                       readOnly
                       className="h-9 border-0 bg-transparent px-0 font-display text-primary focus-visible:ring-0"
@@ -958,17 +1052,17 @@ export const OpenSourceGdrSheet = ({
                       Ferite
                     </Label>
                     {canEdit ? (
-  <Input
-    type="text"
-    inputMode="numeric"
-    value={partState.wounds > 0 ? `-${partState.wounds}` : ""}
-    onChange={(e) => setFeritaValue(p, e.target.value)}
-    placeholder="-0"
-    className="h-9 border-0 bg-transparent px-0 font-display text-primary focus-visible:ring-0"
-  />
-) : (
-  renderText(partState.wounds > 0 ? `-${partState.wounds}` : "—")
-)}
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        value={partState.wounds > 0 ? `-${partState.wounds}` : ""}
+                        onChange={(e) => setFeritaValue(p, e.target.value)}
+                        placeholder="-0"
+                        className="h-9 border-0 bg-transparent px-0 font-display text-primary focus-visible:ring-0"
+                      />
+                    ) : (
+                      renderText(partState.wounds > 0 ? `-${partState.wounds}` : "—")
+                    )}
                   </div>
                 </div>
               </div>
@@ -977,7 +1071,7 @@ export const OpenSourceGdrSheet = ({
         </div>
       </section>
 
-            <section className="space-y-3">
+      <section className="space-y-3">
         {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
         <div className="grid gap-3 sm:grid-cols-2">
           {EQUIPMENT_SECTIONS.map((sec) => {
@@ -1050,7 +1144,7 @@ export const OpenSourceGdrSheet = ({
           )}
         </div>
 
-        {(!value.weapons || value.weapons.length === 0) ? (
+        {!value.weapons || value.weapons.length === 0 ? (
           <p className="text-sm font-script italic text-ink-faded">Nessuna arma inserita.</p>
         ) : (
           <div className="space-y-2">
@@ -1095,8 +1189,12 @@ export const OpenSourceGdrSheet = ({
                   </div>
                 ) : (
                   <div className="space-y-1 font-script">
-                    <div><strong className="font-heading text-ink">{w.name || "—"}</strong></div>
-                    <div className="text-sm text-ink-faded">Danno: {w.damage || "—"} · Gittata: {w.range || "—"}</div>
+                    <div>
+                      <strong className="font-heading text-ink">{w.name || "—"}</strong>
+                    </div>
+                    <div className="text-sm text-ink-faded">
+                      Danno: {w.damage || "—"} · Gittata: {w.range || "—"}
+                    </div>
                     {w.notes && <div className="text-sm text-ink-faded">{w.notes}</div>}
                   </div>
                 )}
@@ -1116,7 +1214,7 @@ export const OpenSourceGdrSheet = ({
           )}
         </div>
 
-        {(!value.armors || value.armors.length === 0) ? (
+        {!value.armors || value.armors.length === 0 ? (
           <p className="text-sm font-script italic text-ink-faded">Nessuna armatura inserita.</p>
         ) : (
           <div className="space-y-2">
@@ -1174,8 +1272,10 @@ export const OpenSourceGdrSheet = ({
                   </div>
                 ) : (
                   <div className="space-y-1 font-script">
-                    <div><strong className="font-heading text-ink">{a.name || "—"}</strong></div>
-                                        <div className="text-sm text-ink-faded">
+                    <div>
+                      <strong className="font-heading text-ink">{a.name || "—"}</strong>
+                    </div>
+                    <div className="text-sm text-ink-faded">
                       Protezione: {a.protection} · Zona: {a.location || "—"}
                     </div>
                     {a.notes && <div className="text-sm text-ink-faded">{a.notes}</div>}
@@ -1201,6 +1301,41 @@ export const OpenSourceGdrSheet = ({
           <p className="font-script whitespace-pre-wrap">{value.note || "—"}</p>
         )}
       </section>
+
+      {bodyPartPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-lg border border-border bg-background p-5 shadow-xl">
+            <h3 className="font-display text-xl gold-text">
+              {bodyPartPopup.title}
+            </h3>
+
+            <div className="mt-3 space-y-2 font-script text-sm text-ink">
+              <p>{bodyPartPopup.description}</p>
+
+              <div className="rounded border border-border/60 bg-parchment-deep/20 p-3">
+                <div><strong>Zona:</strong> {bodyPartPopup.part}</div>
+                <div><strong>Danno accumulato:</strong> -{bodyPartPopup.damage}</div>
+                <div><strong>Soglia:</strong> {bodyPartPopup.threshold}</div>
+                <div><strong>Stato:</strong> {bodyPartPopup.severity}</div>
+                <div>
+                  <strong>Penalità ferite:</strong>{" "}
+                  {formatModifier(getPenaltyFromSeverity(bodyPartPopup.severity))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <Button
+                type="button"
+                onClick={() => setBodyPartPopup(null)}
+                className="font-heading"
+              >
+                Chiudi
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
