@@ -728,120 +728,7 @@ export const OpenSourceGdrSheet = ({
         </div>
       </section>
 
-            <section className="space-y-3">
-        {lbl("section.stati", "Stati", "font-display text-xl gold-text", "h3")}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {([
-  ["iniziativa", "Iniziativa"],
-  ["woundPenalty", "Penalità ferite"],
-  ["penalita", "Penalità aggiuntive"],
-  ["fatica", "Fatica"],
-] as const).map(([k, label]) => {
-  const autoIniziativa =
-    abilityModifier(value.abilities.des ?? 0) + abilityModifier(value.abilities.pro ?? 0);
-
-  const isInit = k === "iniziativa";
-  const isWoundPenalty = k === "woundPenalty";
-  const editableKey = k === "penalita" || k === "fatica" ? k : null;
-
-  return (
-    <div
-      key={k}
-      className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
-    >
-      {lbl(
-        `stat.${k}`,
-        label,
-        "font-heading text-xs uppercase tracking-wider text-ink-faded",
-        "label",
-      )}
-
-      {isInit ? (
-  <>
-    <div
-      className="font-display text-primary"
-      style={{ fontSize: "22px" }}
-      title="Calcolata automaticamente: Mod. DES + Mod. PRO"
-    >
-      {formatModifier(autoIniziativa)}
-    </div>
-    <div className="mt-1 font-script text-xs text-ink-faded">
-      Calcolata automaticamente da Mod. Destrezza + Mod. Prontezza
-    </div>
-  </>
-) : isWoundPenalty ? (
-        <>
-          <div className="font-display text-primary" style={{ fontSize: "22px" }}>
-            {formatModifier(woundPenalty)}
-          </div>
-          <div className="mt-1 font-script text-xs text-ink-faded">
-            Calcolata automaticamente dalle ferite inserite
-          </div>
-        </>
-      ) : canEdit && editableKey ? (
-        <Input
-          value={value[editableKey] ?? ""}
-          onChange={(e) => set(editableKey, e.target.value)}
-          className="h-9 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
-          style={{ fontSize: "18px" }}
-        />
-      ) : (
-        <div className="font-display" style={{ fontSize: "18px" }}>
-          {editableKey ? String(value[editableKey] ?? "") || "—" : "—"}
-        </div>
-      )}
-    </div>
-  );
-})}
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        {lbl("section.magia", "Magia", "font-display text-xl gold-text", "h3")}
-        <p className="font-script text-xs italic text-ink-faded">
-          Punteggio per ciascuna delle dieci scuole di magia libera.
-        </p>
-
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-          {MAGIC_SCHOOLS.map((school) => {
-            const grade = value.magic[school] ?? 0;
-            const dmg = magicBaseDamage(grade);
-
-            return (
-              <div
-                key={school}
-                className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
-              >
-                {lbl(
-                  `magic.${school}`,
-                  school,
-                  "font-heading text-xs uppercase tracking-wider text-ink-faded",
-                  "label",
-                )}
-                {canEdit ? (
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    min={0}
-                    max={99}
-                    value={grade}
-                    onChange={(e) => setMagic(school, e.target.value)}
-                    className="h-9 border-0 bg-transparent px-0 text-center font-display text-xl focus-visible:ring-0"
-                  />
-                ) : (
-                  <div className="font-display text-xl">{grade}</div>
-                )}
-                <div className="mt-1 text-xs font-script text-primary" title="Danno base incantesimo per questa scuola">
-                  Danno base {formatModifier(dmg)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="space-y-3">
+<section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
           {lbl("section.abilita", "Abilità", "font-display text-xl gold-text", "h3")}
           {canEdit && (
@@ -1168,6 +1055,75 @@ const fantasyZones = [
 
     return (
       <>
+            <section className="space-y-3">
+        {lbl("section.stati", "Stati", "font-display text-xl gold-text", "h3")}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {([
+  ["iniziativa", "Iniziativa"],
+  ["woundPenalty", "Penalità ferite"],
+  ["penalita", "Penalità aggiuntive"],
+  ["fatica", "Fatica"],
+] as const).map(([k, label]) => {
+  const autoIniziativa =
+    abilityModifier(value.abilities.des ?? 0) + abilityModifier(value.abilities.pro ?? 0);
+
+  const isInit = k === "iniziativa";
+  const isWoundPenalty = k === "woundPenalty";
+  const editableKey = k === "penalita" || k === "fatica" ? k : null;
+
+  return (
+    <div
+      key={k}
+      className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
+    >
+      {lbl(
+        `stat.${k}`,
+        label,
+        "font-heading text-xs uppercase tracking-wider text-ink-faded",
+        "label",
+      )}
+
+      {isInit ? (
+  <>
+    <div
+      className="font-display text-primary"
+      style={{ fontSize: "22px" }}
+      title="Calcolata automaticamente: Mod. DES + Mod. PRO"
+    >
+      {formatModifier(autoIniziativa)}
+    </div>
+    <div className="mt-1 font-script text-xs text-ink-faded">
+      Calcolata automaticamente da Mod. Destrezza + Mod. Prontezza
+    </div>
+  </>
+) : isWoundPenalty ? (
+        <>
+          <div className="font-display text-primary" style={{ fontSize: "22px" }}>
+            {formatModifier(woundPenalty)}
+          </div>
+          <div className="mt-1 font-script text-xs text-ink-faded">
+            Calcolata automaticamente dalle ferite inserite
+          </div>
+        </>
+      ) : canEdit && editableKey ? (
+        <Input
+          value={value[editableKey] ?? ""}
+          onChange={(e) => set(editableKey, e.target.value)}
+          className="h-9 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
+          style={{ fontSize: "18px" }}
+        />
+      ) : (
+        <div className="font-display" style={{ fontSize: "18px" }}>
+          {editableKey ? String(value[editableKey] ?? "") || "—" : "—"}
+        </div>
+      )}
+    </div>
+  );
+})}
+        </div>
+      </section>
+
+      
         <div className="flex flex-wrap items-end justify-between gap-2">
           {lbl("section.ferite", "Ferite & Stato del corpo", "font-display text-xl gold-text", "h3")}
 
@@ -1611,69 +1567,6 @@ const fantasyZones = [
 </section>
 
       <section className="space-y-3">
-        {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
-        <div className="grid gap-3 sm:grid-cols-2">
-          {EQUIPMENT_SECTIONS.map((sec) => {
-            const items = sortEquipmentAlphabetically(value.equipment[sec.key] ?? []);
-
-            return (
-              <div
-                key={sec.key}
-                className="space-y-1 rounded border border-border/60 bg-parchment-deep/20 p-3"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  {lbl(
-                    `equip.${sec.key}`,
-                    sec.label,
-                    "font-heading text-sm uppercase tracking-wider text-ink-faded",
-                    "h3",
-                  )}
-                  {canEdit && (
-                    <button
-                      type="button"
-                      onClick={() => addEquipItem(sec.key)}
-                      className={`${iconButtonClass} text-primary hover:bg-primary/10`}
-                      aria-label={`Aggiungi item a ${sec.label}`}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-
-                {items.length === 0 && !canEdit && (
-                  <p className="text-xs font-script italic text-ink-faded">—</p>
-                )}
-
-                {items.map((it) => (
-                  <div key={it.id} className="group flex items-center gap-1">
-                    {canEdit ? (
-                      <>
-                        <Input
-                          value={it.text}
-                          onChange={(e) => setEquipItem(sec.key, it.id, e.target.value)}
-                          className="h-9 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeEquipItem(sec.key, it.id)}
-                          className={`${iconButtonClass} text-destructive opacity-90 hover:bg-destructive/10`}
-                          aria-label={`Rimuovi item da ${sec.label}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </>
-                    ) : (
-                      <span className="font-script">• {it.text}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
           {lbl("section.weapons", "Armi", "font-display text-xl gold-text", "h3")}
           {canEdit && (
@@ -1824,6 +1717,114 @@ const fantasyZones = [
             ))}
           </div>
         )}
+      </section>
+
+<section className="space-y-3">
+        {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {EQUIPMENT_SECTIONS.map((sec) => {
+            const items = sortEquipmentAlphabetically(value.equipment[sec.key] ?? []);
+
+            return (
+              <div
+                key={sec.key}
+                className="space-y-1 rounded border border-border/60 bg-parchment-deep/20 p-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  {lbl(
+                    `equip.${sec.key}`,
+                    sec.label,
+                    "font-heading text-sm uppercase tracking-wider text-ink-faded",
+                    "h3",
+                  )}
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => addEquipItem(sec.key)}
+                      className={`${iconButtonClass} text-primary hover:bg-primary/10`}
+                      aria-label={`Aggiungi item a ${sec.label}`}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                {items.length === 0 && !canEdit && (
+                  <p className="text-xs font-script italic text-ink-faded">—</p>
+                )}
+
+                {items.map((it) => (
+                  <div key={it.id} className="group flex items-center gap-1">
+                    {canEdit ? (
+                      <>
+                        <Input
+                          value={it.text}
+                          onChange={(e) => setEquipItem(sec.key, it.id, e.target.value)}
+                          className="h-9 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeEquipItem(sec.key, it.id)}
+                          className={`${iconButtonClass} text-destructive opacity-90 hover:bg-destructive/10`}
+                          aria-label={`Rimuovi item da ${sec.label}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <span className="font-script">• {it.text}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+<section className="space-y-3">
+        {lbl("section.magia", "Magia", "font-display text-xl gold-text", "h3")}
+        <p className="font-script text-xs italic text-ink-faded">
+          Punteggio per ciascuna delle dieci scuole di magia libera.
+        </p>
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          {MAGIC_SCHOOLS.map((school) => {
+            const grade = value.magic[school] ?? 0;
+            const dmg = magicBaseDamage(grade);
+
+            return (
+              <div
+                key={school}
+                className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
+              >
+                {lbl(
+                  `magic.${school}`,
+                  school,
+                  "font-heading text-xs uppercase tracking-wider text-ink-faded",
+                  "label",
+                )}
+                {canEdit ? (
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    min={0}
+                    max={99}
+                    value={grade}
+                    onChange={(e) => setMagic(school, e.target.value)}
+                    className="h-9 border-0 bg-transparent px-0 text-center font-display text-xl focus-visible:ring-0"
+                  />
+                ) : (
+                  <div className="font-display text-xl">{grade}</div>
+                )}
+                <div className="mt-1 text-xs font-script text-primary" title="Danno base incantesimo per questa scuola">
+                  Danno base {formatModifier(dmg)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       <section className="space-y-3">
