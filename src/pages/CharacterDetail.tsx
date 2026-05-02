@@ -816,269 +816,290 @@ const CharacterDetail = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="space-y-5 lg:self-start">
-            <div className="parchment-panel p-4">
-              <div className="group relative mx-auto aspect-[3/4] w-full max-w-[240px] overflow-hidden rounded bg-gradient-to-br from-parchment-deep to-parchment-shadow">
-                {character.image_url ? (
-                  <img
-                    src={character.image_url}
-                    alt={character.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <ScrollText className="h-20 w-20 text-primary/40" />
-                  </div>
-                )}
-
-                {access.canEdit && (
-                  <button
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploading}
-                    className="absolute inset-0 flex items-center justify-center bg-ink/0 opacity-0 transition-opacity hover:bg-ink/40 hover:opacity-100"
-                  >
-                    <div className="flex flex-col items-center gap-1 text-primary-foreground">
-                      {uploading ? (
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                      ) : (
-                        <Camera className="h-6 w-6" />
-                      )}
-                      <span className="text-xs font-heading">Cambia immagine</span>
-                    </div>
-                  </button>
-                )}
-
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImage}
-                  className="hidden"
-                />
-              </div>
-
-            {useOsgdrForm && (
-              <div className="parchment-panel p-4 space-y-4">
-                <div className="space-y-1">
-                  <h3 className="font-heading text-lg">Anagrafica</h3>
-                  <p className="font-script text-xs italic text-ink-faded">
-                    Identità, provenienza e tratti visibili del personaggio.
-                  </p>
-                </div>
-
-                {access.canAssignCharacter && (
-                  <div className="space-y-2 rounded border border-border/60 bg-parchment-deep/20 p-3">
-                    <Label
-                      htmlFor="assigned-user"
-                      className="font-heading text-xs uppercase tracking-wider text-ink-faded"
-                    >
-                      Assegna scheda a
-                    </Label>
-
-                    <select
-                      id="assigned-user"
-                      value={assignedUserId ?? ""}
-                      onChange={(e) => setAssignedUserId(e.target.value || undefined)}
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 font-script text-sm"
-                    >
-                      <option value="">Nessuna assegnazione</option>
-                      {assignmentOptions.map((profile) => (
-                        <option key={profile.id} value={profile.id}>
-                          {profile.display_name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-2">
-                  {([
-                    ["razza", "Razza"],
-                    ["provenienza", "Provenienza"],
-                    ["eta", "Età"],
-                    ["altezza", "Altezza"],
-                    ["peso", "Peso"],
-                    ["carnagione", "Carnagione"],
-                    ["capelli", "Capelli"],
-                    ["occhi", "Occhi"],
-                  ] as const).map(([key, label]) => (
-                    <div
-                      key={key}
-                      className="rounded border border-border/60 bg-parchment-deep/20 p-2"
-                    >
-                      <Label className="mb-1 block font-heading text-[11px] uppercase tracking-wider text-ink-faded">
-                        {label}
-                      </Label>
-
-                      {access.canEdit ? (
-                        <Input
-                          value={osgdrSheet[key] ?? ""}
-                          onChange={(e) => setSheetField(key, e.target.value as OsgdrSheet[typeof key])}
-                          className="h-9 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
-                        />
-                      ) : (
-                        <div className="min-h-9 font-script leading-9 text-ink">
-                          {String(osgdrSheet[key] ?? "").trim() || "—"}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-              {isDead && (
-                <div className="mt-4 space-y-3">
-                  <Badge variant="destructive" className="font-heading">
-                    <Skull className="mr-1 h-3.5 w-3.5" />
-                    Caduto
-                  </Badge>
-
-                  <div className="rounded border border-destructive/30 bg-destructive/5 p-3">
-                    <p className="mb-1 font-heading text-xs uppercase tracking-wider text-destructive">
-                      Memoria della caduta
-                    </p>
-
-                    <p className="font-script text-sm italic leading-relaxed text-ink-faded">
-                      {deathDescription?.trim()
-                        ? deathDescription
-                        : "La cronaca della sua fine non è ancora stata tramandata."}
-                    </p>
-
-                    {diedAt && (
-                      <p className="mt-2 text-xs font-script italic text-ink-faded">
-                        Caduto il{" "}
-                        {new Date(diedAt).toLocaleDateString("it-IT", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}
-                      </p>
+                    <aside className="space-y-4 lg:self-start">
+            <div className="parchment-panel overflow-hidden p-4 sm:p-5">
+              <div className="space-y-5">
+                <section className="space-y-4">
+                  <div className="group relative mx-auto aspect-[3/4] w-full max-w-[240px] overflow-hidden rounded bg-gradient-to-br from-parchment-deep to-parchment-shadow">
+                    {character.image_url ? (
+                      <img
+                        src={character.image_url}
+                        alt={character.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <ScrollText className="h-20 w-20 text-primary/40" />
+                      </div>
                     )}
-                  </div>
-                </div>
-              )}
-            </div>
 
-                        {useOsgdrForm && (
-              <div className="parchment-panel p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <Coins className="h-4 w-4 text-primary" />
-                  <h3 className="font-heading text-lg">Monete</h3>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  {([
-                    { key: "oro", short: "MO", title: "Monete d'Oro" },
-                    { key: "argento", short: "MA", title: "Monete d'Argento" },
-                    { key: "rame", short: "MR", title: "Monete di Rame" },
-                  ] as const).map((coin) => (
-                    <div
-                      key={coin.key}
-                      className="rounded border border-border/60 bg-parchment-deep/20 p-2 text-center"
-                      title={coin.title}
-                    >
-                      <Label className="mb-1 flex items-center justify-center gap-1 font-heading text-[11px] uppercase tracking-wider text-ink-faded">
-                        <Coins className="h-3.5 w-3.5 text-primary/80" />
-                        <span>{coin.short}</span>
-                      </Label>
-
-                      {access.canEdit ? (
-                        <Input
-                          type="number"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          min={0}
-                          value={osgdrSheet.coins[coin.key] ?? 0}
-                          onChange={(e) => setSheetCoin(coin.key, e.target.value)}
-                          className="h-9 border-0 bg-transparent px-0 text-center font-display text-xl focus-visible:ring-0"
-                        />
-                      ) : (
-                        <div className="font-display text-xl text-primary">
-                          {osgdrSheet.coins[coin.key] ?? 0}
+                    {access.canEdit && (
+                      <button
+                        onClick={() => fileRef.current?.click()}
+                        disabled={uploading}
+                        className="absolute inset-0 flex items-center justify-center bg-ink/0 opacity-0 transition-opacity hover:bg-ink/40 hover:opacity-100"
+                      >
+                        <div className="flex flex-col items-center gap-1 text-primary-foreground">
+                          {uploading ? (
+                            <Loader2 className="h-6 w-6 animate-spin" />
+                          ) : (
+                            <Camera className="h-6 w-6" />
+                          )}
+                          <span className="text-xs font-heading">Cambia immagine</span>
                         </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                      </button>
+                    )}
 
-            {access.canManageDestiny && (
-              <div className="parchment-panel p-4">
-                <h3 className="mb-3 flex items-center gap-2 font-heading text-lg">
-                  <Skull className="h-4 w-4 text-destructive" />
-                  Destino del personaggio
-                </h3>
-
-                <div className="space-y-4">
-                  <label className="flex items-center gap-2 text-sm font-heading">
                     <input
-                      type="checkbox"
-                      checked={isDead}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setIsDead(checked);
-                        if (!checked) {
-                          setDeathDescription("");
-                          setDiedAt("");
-                        }
-                      }}
-                      className="h-4 w-4 accent-current"
+                      ref={fileRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImage}
+                      className="hidden"
                     />
-                    Segna come morto
-                  </label>
+                  </div>
 
                   {isDead && (
-                    <>
-                      <div>
-                        <Label htmlFor="diedAt" className="font-heading">
-                          Data della morte
-                        </Label>
-                        <Input
-                          id="diedAt"
-                          type="date"
-                          value={diedAt}
-                          onChange={(e) => setDiedAt(e.target.value)}
-                        />
-                      </div>
+                    <div className="space-y-3">
+                      <Badge variant="destructive" className="font-heading">
+                        <Skull className="mr-1 h-3.5 w-3.5" />
+                        Caduto
+                      </Badge>
 
-                      <div>
-                        <Label htmlFor="deathDescription" className="font-heading">
-                          Descrizione della morte
-                        </Label>
-                        <Textarea
-                          id="deathDescription"
-                          value={deathDescription}
-                          onChange={(e) => setDeathDescription(e.target.value)}
-                          rows={5}
-                          placeholder="Racconta come il personaggio è caduto: battaglia, sacrificio, tradimento, ultima impresa..."
-                          className="font-script"
-                        />
+                      <div className="rounded border border-destructive/30 bg-destructive/5 p-3">
+                        <p className="mb-1 font-heading text-[11px] uppercase tracking-[0.18em] text-destructive">
+                          Memoria della caduta
+                        </p>
+
+                        <p className="font-script text-sm italic leading-relaxed text-ink-faded">
+                          {deathDescription?.trim()
+                            ? deathDescription
+                            : "La cronaca della sua fine non è ancora stata tramandata."}
+                        </p>
+
+                        {diedAt && (
+                          <p className="mt-2 text-xs font-script italic text-ink-faded">
+                            Caduto il{" "}
+                            {new Date(diedAt).toLocaleDateString("it-IT", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </p>
+                        )}
                       </div>
-                    </>
+                    </div>
                   )}
+                </section>
 
-                  <div className="flex justify-end border-t border-border/40 pt-3">
-                    <Button
-                      size="sm"
-                      onClick={saveDestiny}
-                      disabled={destinySaving}
-                      className="font-heading"
-                      variant={isDead ? "destructive" : "default"}
-                    >
-                      {destinySaving ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Save className="mr-1 h-4 w-4" /> Salva destino
-                        </>
+                {useOsgdrForm && (
+                  <>
+                    <div className="h-px bg-border/50" />
+
+                    <section className="space-y-4">
+                      <div className="space-y-1">
+                        <h3 className="font-heading text-sm uppercase tracking-[0.18em] text-ink-faded">
+                          Anagrafica
+                        </h3>
+                        <p className="font-script text-xs italic text-ink-faded">
+                          Identità, provenienza e tratti visibili del personaggio.
+                        </p>
+                      </div>
+
+                      {access.canAssignCharacter && (
+                        <div className="space-y-2 rounded border border-border/60 bg-parchment-deep/20 p-3">
+                          <Label
+                            htmlFor="assigned-user"
+                            className="font-heading text-[11px] uppercase tracking-[0.18em] text-ink-faded"
+                          >
+                            Assegna scheda a
+                          </Label>
+
+                          <select
+                            id="assigned-user"
+                            value={assignedUserId ?? ""}
+                            onChange={(e) => setAssignedUserId(e.target.value || undefined)}
+                            className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 font-script text-sm"
+                          >
+                            <option value="">Nessuna assegnazione</option>
+                            {assignmentOptions.map((profile) => (
+                              <option key={profile.id} value={profile.id}>
+                                {profile.display_name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       )}
-                    </Button>
-                  </div>
-                </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        {([
+                          ["razza", "Razza"],
+                          ["provenienza", "Provenienza"],
+                          ["eta", "Età"],
+                          ["altezza", "Altezza"],
+                          ["peso", "Peso"],
+                          ["carnagione", "Carnagione"],
+                          ["capelli", "Capelli"],
+                          ["occhi", "Occhi"],
+                        ] as const).map(([key, label]) => (
+                          <div
+                            key={key}
+                            className="rounded border border-border/60 bg-parchment-deep/20 p-2.5"
+                          >
+                            <Label className="mb-1 block font-heading text-[11px] uppercase tracking-[0.18em] text-ink-faded">
+                              {label}
+                            </Label>
+
+                            {access.canEdit ? (
+                              <Input
+                                value={osgdrSheet[key] ?? ""}
+                                onChange={(e) =>
+                                  setSheetField(key, e.target.value as OsgdrSheet[typeof key])
+                                }
+                                className="h-8 border-0 bg-transparent px-0 font-script text-sm focus-visible:ring-0"
+                              />
+                            ) : (
+                              <div className="min-h-8 font-script text-sm leading-8 text-ink">
+                                {String(osgdrSheet[key] ?? "").trim() || "—"}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    <div className="h-px bg-border/50" />
+
+                    <section className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Coins className="h-4 w-4 text-primary" />
+                        <h3 className="font-heading text-sm uppercase tracking-[0.18em] text-ink-faded">
+                          Monete
+                        </h3>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { key: "oro", short: "MO", title: "Monete d'Oro" },
+                          { key: "argento", short: "MA", title: "Monete d'Argento" },
+                          { key: "rame", short: "MR", title: "Monete di Rame" },
+                        ] as const).map((coin) => (
+                          <div
+                            key={coin.key}
+                            className="rounded border border-border/60 bg-parchment-deep/20 p-2 text-center"
+                            title={coin.title}
+                          >
+                            <Label className="mb-1 flex items-center justify-center gap-1 font-heading text-[11px] uppercase tracking-[0.18em] text-ink-faded">
+                              <Coins className="h-3.5 w-3.5 text-primary/80" />
+                              <span>{coin.short}</span>
+                            </Label>
+
+                            {access.canEdit ? (
+                              <Input
+                                type="number"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                min={0}
+                                value={osgdrSheet.coins[coin.key] ?? 0}
+                                onChange={(e) => setSheetCoin(coin.key, e.target.value)}
+                                className="h-8 border-0 bg-transparent px-0 text-center font-display text-lg focus-visible:ring-0"
+                              />
+                            ) : (
+                              <div className="font-display text-lg text-primary">
+                                {osgdrSheet.coins[coin.key] ?? 0}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  </>
+                )}
+
+                {access.canManageDestiny && (
+                  <>
+                    <div className="h-px bg-border/50" />
+
+                    <section className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Skull className="h-4 w-4 text-destructive" />
+                        <h3 className="font-heading text-sm uppercase tracking-[0.18em] text-ink-faded">
+                          Destino
+                        </h3>
+                      </div>
+
+                      <div className="space-y-4">
+                        <label className="flex items-center gap-2 text-sm font-heading">
+                          <input
+                            type="checkbox"
+                            checked={isDead}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setIsDead(checked);
+                              if (!checked) {
+                                setDeathDescription("");
+                                setDiedAt("");
+                              }
+                            }}
+                            className="h-4 w-4 accent-current"
+                          />
+                          Segna come morto
+                        </label>
+
+                        {isDead && (
+                          <>
+                            <div>
+                              <Label htmlFor="diedAt" className="font-heading text-xs uppercase tracking-wider text-ink-faded">
+                                Data della morte
+                              </Label>
+                              <Input
+                                id="diedAt"
+                                type="date"
+                                value={diedAt}
+                                onChange={(e) => setDiedAt(e.target.value)}
+                                className="mt-1"
+                              />
+                            </div>
+
+                            <div>
+                              <Label htmlFor="deathDescription" className="font-heading text-xs uppercase tracking-wider text-ink-faded">
+                                Descrizione della morte
+                              </Label>
+                              <Textarea
+                                id="deathDescription"
+                                value={deathDescription}
+                                onChange={(e) => setDeathDescription(e.target.value)}
+                                rows={5}
+                                placeholder="Racconta come il personaggio è caduto: battaglia, sacrificio, tradimento, ultima impresa..."
+                                className="mt-1 font-script"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        <div className="flex justify-end border-t border-border/40 pt-3">
+                          <Button
+                            size="sm"
+                            onClick={saveDestiny}
+                            disabled={destinySaving}
+                            className="font-heading"
+                            variant={isDead ? "destructive" : "default"}
+                          >
+                            {destinySaving ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Save className="mr-1 h-4 w-4" /> Salva destino
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </section>
+                  </>
+                )}
               </div>
-            )}
+            </div>
 
             <div className="lg:sticky lg:top-6">
               <DiceRollerDock
