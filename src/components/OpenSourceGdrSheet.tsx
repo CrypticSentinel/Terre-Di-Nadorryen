@@ -1169,43 +1169,253 @@ export const OpenSourceGdrSheet = ({
               </p>
 
               <div className="mx-auto flex max-w-[230px] justify-center">
-                <svg viewBox="0 0 220 310" className="h-auto w-full">
-                  <path
-                    d="M110 12 C132 14, 146 28, 148 46 C150 64, 142 76, 136 84 C148 88, 158 96, 164 108 C176 132, 182 158, 180 188 C176 188, 172 188, 168 188 C162 164, 156 142, 146 124 L140 146 C138 162, 136 180, 136 198 C142 226, 146 254, 144 292 L130 292 C130 268, 126 242, 120 214 L114 214 C108 242, 104 268, 104 292 L90 292 C88 254, 92 226, 98 198 C98 180, 96 162, 94 146 L88 124 C78 142, 72 164, 66 188 C62 188, 58 188, 54 188 C52 158, 58 132, 70 108 C76 96, 86 88, 98 84 C92 76, 84 64, 86 46 C88 28, 102 14, 110 12 Z"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    className="text-border/70"
-                  />
+                <svg viewBox="0 0 240 340" className="h-auto w-full">
+  <defs>
+    <linearGradient id="fantasyBodyFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="rgba(247, 236, 208, 0.95)" />
+      <stop offset="100%" stopColor="rgba(214, 190, 148, 0.92)" />
+    </linearGradient>
 
-                  {bodyZoneMap.map((zone) => {
-                    const damage = getPartDamage(zone.key);
-                    const threshold = getPartThreshold(zone.key);
-                    const severity = getWoundSeverity(damage, threshold);
-                    const styles = getSeverityStyles(severity);
-                    const isActive = expandedBodyPart === zone.key;
+    <filter id="inkGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="rgba(90,60,30,0.18)" />
+    </filter>
+  </defs>
 
-                    return (
-                      <g
-                        key={zone.key}
-                        onClick={() =>
-                          setExpandedBodyPart((prev) => (prev === zone.key ? null : zone.key))
-                        }
-                        className="cursor-pointer"
-                      >
-                        {zone.render(
-                          `${styles.zone} transition-all`,
-                          {
-                            strokeWidth: isActive ? 3 : 2,
-                            opacity: isActive ? 1 : damage > 0 ? 0.95 : 0.58,
-                            filter: isActive ? "drop-shadow(0 0 8px rgba(120, 82, 38, 0.25))" : undefined,
-                          }
-                        )}
-                        <title>{zone.label}</title>
-                      </g>
-                    );
-                  })}
-                </svg>
+  {(() => {
+    const fantasyZones = [
+      {
+        key: "Testa",
+        render: (className: string, style: React.CSSProperties) => (
+          <ellipse cx="120" cy="48" rx="24" ry="28" className={className} style={style} />
+        ),
+      },
+      {
+        key: "Torace",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M86 94
+               C92 82, 104 76, 120 76
+               C136 76, 148 82, 154 94
+               L158 142
+               C149 153, 137 159, 120 159
+               C103 159, 91 153, 82 142 Z"
+            className={className}
+            style={style}
+          />
+        ),
+      },
+      {
+        key: "Braccio SX",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M72 112
+               C64 128, 61 145, 62 163
+               C63 176, 67 189, 74 201
+               L87 195
+               C82 181, 79 166, 79 151
+               C79 137, 82 123, 89 109 Z"
+            className={className}
+            style={style}
+          />
+        ),
+      },
+      {
+        key: "Braccio DX",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M168 112
+               C176 128, 179 145, 178 163
+               C177 176, 173 189, 166 201
+               L153 195
+               C158 181, 161 166, 161 151
+               C161 137, 158 123, 151 109 Z"
+            className={className}
+            style={style}
+          />
+        ),
+      },
+      {
+        key: "Mano SX",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M70 205
+               C63 207, 58 213, 58 219
+               C58 226, 64 231, 71 231
+               C77 231, 82 226, 82 220
+               C82 213, 77 207, 70 205 Z"
+            className={className}
+            style={style}
+          />
+        ),
+      },
+      {
+        key: "Mano DX",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M170 205
+               C177 207, 182 213, 182 219
+               C182 226, 176 231, 169 231
+               C163 231, 158 226, 158 220
+               C158 213, 163 207, 170 205 Z"
+            className={className}
+            style={style}
+          />
+        ),
+      },
+      {
+        key: "Gamba SX",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M105 160
+               C98 181, 94 200, 92 223
+               C91 242, 93 262, 98 285
+               L110 285
+               C112 263, 114 243, 117 223
+               C120 201, 123 180, 127 160 Z"
+            className={className}
+            style={style}
+          />
+        ),
+      },
+      {
+        key: "Gamba DX",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M135 160
+               C142 181, 146 200, 148 223
+               C149 242, 147 262, 142 285
+               L130 285
+               C128 263, 126 243, 123 223
+               C120 201, 117 180, 113 160 Z"
+            className={className}
+            style={style}
+          />
+        ),
+      },
+      {
+        key: "Piede SX",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M95 289
+               C88 289, 82 291, 77 295
+               L78 304
+               C87 307, 99 307, 109 304
+               L108 295
+               C104 291, 100 289, 95 289 Z"
+            className={className}
+            style={style}
+          />
+        ),
+      },
+      {
+        key: "Piede DX",
+        render: (className: string, style: React.CSSProperties) => (
+          <path
+            d="M145 289
+               C150 289, 154 291, 158 295
+               L157 304
+               C147 307, 135 307, 126 304
+               L127 295
+               C132 291, 138 289, 145 289 Z"
+            className={className}
+            style={style}
+          />
+        ),
+      },
+    ] as const;
+
+    return (
+      <>
+        <g className="text-border/70" fill="none" stroke="currentColor">
+          <path
+            d="M120 18
+               C138 20, 154 34, 156 54
+               C158 70, 151 84, 143 94
+               C156 98, 167 108, 173 123
+               C182 145, 185 170, 184 197
+               C179 198, 174 198, 169 197
+               C165 174, 159 154, 148 136
+               C145 151, 143 166, 142 182
+               C145 202, 150 221, 151 244
+               C152 265, 151 288, 149 316
+               L135 316
+               C135 286, 130 257, 123 223
+               L117 223
+               C110 257, 105 286, 105 316
+               L91 316
+               C89 288, 88 265, 89 244
+               C90 221, 95 202, 98 182
+               C97 166, 95 151, 92 136
+               C81 154, 75 174, 71 197
+               C66 198, 61 198, 56 197
+               C55 170, 58 145, 67 123
+               C73 108, 84 98, 97 94
+               C89 84, 82 70, 84 54
+               C86 34, 102 20, 120 18 Z"
+            strokeWidth="2.5"
+            filter="url(#inkGlow)"
+          />
+          <path
+            d="M108 74 C112 77, 128 77, 132 74"
+            strokeWidth="1.5"
+            className="text-border/40"
+          />
+          <path
+            d="M96 150 C103 154, 137 154, 144 150"
+            strokeWidth="1.4"
+            className="text-border/35"
+          />
+          <path
+            d="M102 220 C108 223, 132 223, 138 220"
+            strokeWidth="1.2"
+            className="text-border/30"
+          />
+        </g>
+
+        <g fill="url(#fantasyBodyFill)" stroke="currentColor" className="text-border/80">
+          {fantasyZones.map((zone) => {
+            const damage = getPartDamage(zone.key);
+            const threshold = getPartThreshold(zone.key);
+            const severity = getWoundSeverity(damage, threshold);
+            const styles = getSeverityStyles(severity);
+            const isActive = expandedBodyPart === zone.key;
+
+            const zoneClassName = isActive
+              ? `${styles.zone} stroke-current`
+              : damage > 0
+                ? `${styles.zone} stroke-current`
+                : "fill-background/35 stroke-border";
+
+            return (
+              <g
+                key={zone.key}
+                onClick={() =>
+                  setExpandedBodyPart((prev) => (prev === zone.key ? null : zone.key))
+                }
+                className="cursor-pointer transition-all"
+              >
+                {zone.render(zoneClassName, {
+                  strokeWidth: isActive ? 3.2 : damage > 0 ? 2.6 : 2.1,
+                  opacity: isActive ? 1 : damage > 0 ? 0.96 : 0.72,
+                  filter: isActive
+                    ? "drop-shadow(0 0 8px rgba(120,82,38,0.25))"
+                    : damage > 0
+                      ? "drop-shadow(0 0 5px rgba(120,82,38,0.12))"
+                      : undefined,
+                })}
+                <title>{zone.key}</title>
+              </g>
+            );
+          })}
+        </g>
+
+        <g className="text-primary/30" fill="none" stroke="currentColor">
+          <path d="M120 23 L120 311" strokeWidth="0.9" strokeDasharray="4 5" />
+        </g>
+      </>
+    );
+  })()}
+</svg>
               </div>
             </div>
 
