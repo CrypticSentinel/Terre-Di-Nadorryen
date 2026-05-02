@@ -1784,6 +1784,21 @@ const fantasyZones = [
 
 <section className="space-y-3">
         {lbl("section.magia", "Magia", "font-display text-xl gold-text", "h3")}
+        <div className="flex flex-wrap items-center gap-2">
+  <a
+    href="https://crypticsentinel.github.io/Open-Source-GDR/Magia%20Libera/SpellCheck/"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-flex items-center gap-2 rounded-lg border border-border60 bg-parchment-deep20 px-3 py-2 text-sm font-heading text-primary transition-all hover:border-border80 hover:bg-background/40"
+  >
+    <span>Apri Spell Check</span>
+    <span aria-hidden="true">↗</span>
+  </a>
+
+  <p className="text-xs font-script italic text-ink-faded">
+    Calcolo rapido della difficoltà degli incantesimi.
+  </p>
+</div>        
         <p className="font-script text-xs italic text-ink-faded">
           Punteggio per ciascuna delle dieci scuole di magia libera.
         </p>
