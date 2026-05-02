@@ -242,7 +242,7 @@ const CharacterDetail = () => {
       f.id !== BACKGROUND_FIELD_ID
   );
 
-    const setSheetField = <
+      const setSheetField = <
     K extends
       | "razza"
       | "provenienza"
@@ -252,6 +252,9 @@ const CharacterDetail = () => {
       | "carnagione"
       | "capelli"
       | "occhi"
+      | "fortuna"
+      | "penalita"
+      | "fatica"
   >(
     key: K,
     next: OsgdrSheet[K],

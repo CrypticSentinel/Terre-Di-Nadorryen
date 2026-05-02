@@ -734,48 +734,44 @@ export const OpenSourceGdrSheet = ({
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           {([
-            ["iniziativa", "Iniziativa"],
-            ["penalita", "Penalità aggiuntive"],
-            ["fatica", "Fatica"],
-          ] as const).map(([k, label]) => {
-            const autoIniziativa =
-              abilityModifier(value.abilities.des ?? 0) + abilityModifier(value.abilities.pro ?? 0);
-            const isInit = k === "iniziativa";
-            const displayValue = isInit ? formatModifier(autoIniziativa) : String((value as any)[k]) || "—";
+  ["iniziativa", "Iniziativa"],
+  ["penalita", "Penalità aggiuntive"],
+  ["fatica", "Fatica"],
+] as const).map(([k, label]) => {
+  const autoIniziativa =
+    abilityModifier(value.abilities.des ?? 0) + abilityModifier(value.abilities.pro ?? 0);
+  const isInit = k === "iniziativa";
+  const displayValue = isInit ? formatModifier(autoIniziativa) : String(value[k] ?? "") || "—";
 
-            return (
-              <div
-                key={k}
-                className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
-              >
-                {lbl(`stat.${k}`, label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
-                {isInit ? (
-                  <div
-                    className="font-display text-primary"
-                    style={{ fontSize: "22px" }}
-                    title="Calcolata automaticamente: Mod. DES + Mod. PRO"
-                  >
-                    {formatModifier(autoIniziativa)}
-                  </div>
-                ) : canEdit ? (
-                  <Input
-                    value={(value as any)[k] ?? ""}
-                    onChange={(e) =>
-                      k === "pe"
-                        ? set("pe", Math.max(0, Number(e.target.value) || 0) as any)
-                        : set(k as any, e.target.value as any)
-                    }
-                    className="h-9 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
-                    style={{ fontSize: "18px" }}
-                  />
-                ) : (
-                  <div className="font-display" style={{ fontSize: "18px" }}>
-                    {displayValue}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+  return (
+    <div
+      key={k}
+      className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
+    >
+      {lbl(`stat.${k}`, label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
+      {isInit ? (
+        <div
+          className="font-display text-primary"
+          style={{ fontSize: "22px" }}
+          title="Calcolata automaticamente: Mod. DES + Mod. PRO"
+        >
+          {formatModifier(autoIniziativa)}
+        </div>
+      ) : canEdit ? (
+        <Input
+          value={value[k] ?? ""}
+          onChange={(e) => set(k, e.target.value)}
+          className="h-9 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
+          style={{ fontSize: "18px" }}
+        />
+      ) : (
+        <div className="font-display" style={{ fontSize: "18px" }}>
+          {displayValue}
+        </div>
+      )}
+    </div>
+  );
+})}
         </div>
 
         <div className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center">
