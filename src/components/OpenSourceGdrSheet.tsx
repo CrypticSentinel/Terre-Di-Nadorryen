@@ -53,15 +53,15 @@ const EQUIPMENT_SECTIONS = [
 
 const MAGIC_SCHOOLS = [
   "Acqua",
-  "Fuoco",
-  "Aria",
-  "Terra",
   "Vita",
-  "Morte",
-  "Spirito",
-  "Materia",
   "Mente",
+  "Aria",
+  "Spirito",
+  "Fuoco",
+  "Morte",
   "Corpo",
+  "Terra",
+  "Materia",
 ] as const;
 
 const COIN_TYPES = [
