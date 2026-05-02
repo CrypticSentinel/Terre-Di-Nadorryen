@@ -19,6 +19,8 @@ import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
+import { InstallPrompt } from "@/components/InstallPrompt";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -50,6 +52,8 @@ const App = () => (
 
                 <Route path="*" element={<NotFound />} />
               </Routes>
+
+              <InstallPrompt />
             </UiTextProvider>
           </ThemeProvider>
         </AuthProvider>
