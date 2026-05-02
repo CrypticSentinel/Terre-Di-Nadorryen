@@ -966,7 +966,7 @@ export const OpenSourceGdrSheet = ({
             )}
 
             <span
-              className={`rounded px-2 py-1 text-[10px] font-heading uppercase tracking-wider ${severityClassName}`}
+              className={`rounded-md px-2.5 py-1.5 text-xs font-heading uppercase tracking-[0.14em] ${severityClassName}`}
             >
               {severityLabel}
             </span>
