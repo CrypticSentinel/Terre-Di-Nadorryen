@@ -736,9 +736,7 @@ export const OpenSourceGdrSheet = ({
           {([
             ["iniziativa", "Iniziativa"],
             ["penalita", "Penalità aggiuntive"],
-            ["fortuna", "Fortuna"],
             ["fatica", "Fatica"],
-            ["pe", "PE"],
           ] as const).map(([k, label]) => {
             const autoIniziativa =
               abilityModifier(value.abilities.des ?? 0) + abilityModifier(value.abilities.pro ?? 0);
