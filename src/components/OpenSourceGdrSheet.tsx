@@ -321,6 +321,8 @@ interface BodyPartPopupState {
   damage: number;
   threshold: number;
   severity: WoundSeverity;
+  localPenalty: number;
+  totalPenalty: number;
   title: string;
   description: string;
 }
@@ -350,8 +352,18 @@ const getBodyPartPopupInfo = (
   damage: number,
   threshold: number,
   severity: WoundSeverity,
+  totalPenalty: number,
 ): BodyPartPopupState => {
-  const base = { part, damage, threshold, severity };
+  const localPenalty = getPenaltyFromSeverity(severity);
+
+const base = {
+  part,
+  damage,
+  threshold,
+  severity,
+  localPenalty,
+  totalPenalty,
+};
 
   const isHead = part === "Testa";
   const isTorso = part === "Torace";
@@ -507,19 +519,19 @@ export const OpenSourceGdrSheet = ({
   }, [value.armors]);
 
   const woundPenalty = useMemo(() => {
-    let worstPenalty = 0;
+  let totalPenalty = 0;
 
-    for (const part of BODY_PARTS) {
-      const damage = Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0) || 0);
-      const threshold = natural_soglia[part] ?? 0;
-      const severity = getWoundSeverity(damage, threshold);
-      const penalty = getPenaltyFromSeverity(severity);
+  for (const part of BODY_PARTS) {
+    const damage = Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0) || 0);
+    const threshold = natural_soglia[part] ?? 0;
+    const severity = getWoundSeverity(damage, threshold);
+    const penalty = getPenaltyFromSeverity(severity);
 
-      worstPenalty = Math.min(worstPenalty, penalty);
-    }
+    totalPenalty += penalty;
+  }
 
-    return worstPenalty;
-  }, [value.ferite]);
+  return totalPenalty;
+}, [value.ferite]);
 
   const set = <K extends keyof OsgdrSheet>(k: K, v: OsgdrSheet[K]) =>
     onChange({ ...value, [k]: v });
@@ -540,22 +552,35 @@ export const OpenSourceGdrSheet = ({
   };
 
   const setFeritaValue = (part: string, nextValue: string) => {
-    const damage = Math.max(0, Math.abs(Number(nextValue) || 0));
-    const threshold = natural_soglia[part] ?? 0;
-    const severity = getWoundSeverity(damage, threshold);
+  const damage = Math.max(0, Math.abs(Number(nextValue) || 0));
+  const threshold = natural_soglia[part] ?? 0;
+  const severity = getWoundSeverity(damage, threshold);
 
-    onChange({
-      ...value,
-      ferite: {
-        ...value.ferite,
-        [part]: {
-          wounds: damage,
-        },
-      },
-    });
-
-    setBodyPartPopup(getBodyPartPopupInfo(part, damage, threshold, severity));
+  const nextFerite = {
+    ...value.ferite,
+    [part]: {
+      wounds: damage,
+    },
   };
+
+  let totalPenalty = 0;
+
+  for (const bodyPart of BODY_PARTS) {
+    const bodyDamage = Math.max(0, Number(nextFerite?.[bodyPart]?.wounds ?? 0) || 0);
+    const bodyThreshold = natural_soglia[bodyPart] ?? 0;
+    const bodySeverity = getWoundSeverity(bodyDamage, bodyThreshold);
+    totalPenalty += getPenaltyFromSeverity(bodySeverity);
+  }
+
+  onChange({
+    ...value,
+    ferite: nextFerite,
+  });
+
+  setBodyPartPopup(
+    getBodyPartPopupInfo(part, damage, threshold, severity, totalPenalty)
+  );
+};
 
   const setEquipItem = (sec: EquipmentKey, id: string, txt: string) => {
     const arr = (value.equipment[sec] ?? []).map((item) =>
@@ -1312,16 +1337,20 @@ export const OpenSourceGdrSheet = ({
             <div className="mt-3 space-y-2 font-script text-sm text-ink">
               <p>{bodyPartPopup.description}</p>
 
-              <div className="rounded border border-border/60 bg-parchment-deep/20 p-3">
-                <div><strong>Zona:</strong> {bodyPartPopup.part}</div>
-                <div><strong>Danno accumulato:</strong> -{bodyPartPopup.damage}</div>
-                <div><strong>Soglia:</strong> {bodyPartPopup.threshold}</div>
-                <div><strong>Stato:</strong> {bodyPartPopup.severity}</div>
-                <div>
-                  <strong>Penalità ferite:</strong>{" "}
-                  {formatModifier(getPenaltyFromSeverity(bodyPartPopup.severity))}
-                </div>
-              </div>
+              <div className="rounded border border-border/60 bg-parchment-deep/20 p-3 space-y-1">
+  <div><strong>Zona:</strong> {bodyPartPopup.part}</div>
+  <div><strong>Danno accumulato:</strong> -{bodyPartPopup.damage}</div>
+  <div><strong>Soglia:</strong> {bodyPartPopup.threshold}</div>
+  <div><strong>Stato:</strong> {bodyPartPopup.severity}</div>
+  <div>
+    <strong>Penalità della zona:</strong>{" "}
+    {formatModifier(bodyPartPopup.localPenalty)}
+  </div>
+  <div>
+    <strong>Penalità totale attuale:</strong>{" "}
+    {formatModifier(bodyPartPopup.totalPenalty)}
+  </div>
+</div>
             </div>
 
             <div className="mt-4 flex justify-end">
