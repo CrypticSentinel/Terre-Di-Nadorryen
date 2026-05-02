@@ -1427,14 +1427,6 @@ const fantasyZones = [
               <div className="overflow-hidden rounded-lg border border-border40">
                 <table className="w-full text-left">
                   <thead className="bg-background/40">
-                    <tr>
-                      <th className="px-3 py-2 font-heading text-[10px] uppercase tracking-wider text-ink-faded">
-                        Locazione
-                      </th>
-                      <th className="px-3 py-2 font-heading text-[10px] uppercase tracking-wider text-ink-faded">
-                        Dado
-                      </th>
-                    </tr>
                   </thead>
                   <tbody>
                     <div className="space-y-2">
