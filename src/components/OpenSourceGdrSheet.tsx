@@ -1492,7 +1492,7 @@ const fantasyZones = [
           onClick={() =>
             setExpandedBodyPart((prev) => (prev === part ? null : part))
           }
-          className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left"
+          className="flex w-full flex-col items-start gap-2 px-3 py-3 text-left sm:flex-row sm:items-center sm:justify-between"
         >
           <div className="min-w-0">
             <div className="font-heading text-[13px] uppercase tracking-[0.14em] text-ink">
@@ -1515,7 +1515,7 @@ const fantasyZones = [
 
         {isExpanded && (
           <div className="border-t border-border40 px-3 pb-3 pt-2">
-            <div className="grid gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div className="rounded-lg border border-border40 bg-background/35 p-2 text-center">
                 <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
                   Ferite
