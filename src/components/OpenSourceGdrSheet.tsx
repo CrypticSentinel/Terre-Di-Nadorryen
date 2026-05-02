@@ -726,29 +726,38 @@ export const OpenSourceGdrSheet = ({
         </div>
       </section>
 
-      <section className="space-y-3">
-        {lbl("section.stati", "Stati & Risorse", "font-display text-xl gold-text", "h3")}
+            <section className="space-y-3">
+        {lbl("section.stati", "Stati", "font-display text-xl gold-text", "h3")}
         <p className="font-script text-xs italic text-ink-faded">
           L'<strong>Iniziativa</strong> è calcolata automaticamente come <em>Mod. Destrezza + Mod. Prontezza</em>.
         </p>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {([
   ["iniziativa", "Iniziativa"],
+  ["woundPenalty", "Penalità ferite"],
   ["penalita", "Penalità aggiuntive"],
   ["fatica", "Fatica"],
 ] as const).map(([k, label]) => {
   const autoIniziativa =
     abilityModifier(value.abilities.des ?? 0) + abilityModifier(value.abilities.pro ?? 0);
+
   const isInit = k === "iniziativa";
-  const displayValue = isInit ? formatModifier(autoIniziativa) : String(value[k] ?? "") || "—";
+  const isWoundPenalty = k === "woundPenalty";
+  const editableKey = k === "penalita" || k === "fatica" ? k : null;
 
   return (
     <div
       key={k}
       className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
     >
-      {lbl(`stat.${k}`, label, "font-heading text-xs uppercase tracking-wider text-ink-faded", "label")}
+      {lbl(
+        `stat.${k}`,
+        label,
+        "font-heading text-xs uppercase tracking-wider text-ink-faded",
+        "label",
+      )}
+
       {isInit ? (
         <div
           className="font-display text-primary"
@@ -757,33 +766,30 @@ export const OpenSourceGdrSheet = ({
         >
           {formatModifier(autoIniziativa)}
         </div>
-      ) : canEdit ? (
-        <Input
-          value={value[k] ?? ""}
-          onChange={(e) => set(k, e.target.value)}
-          className="h-9 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
-          style={{ fontSize: "18px" }}
-        />
-      ) : (
-        <div className="font-display" style={{ fontSize: "18px" }}>
-          {displayValue}
-        </div>
-      )}
-    </div>
-  );
-})}
-        </div>
-
-        <div className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center">
-          <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">
-            Penalità ferite
-          </Label>
+      ) : isWoundPenalty ? (
+        <>
           <div className="font-display text-primary" style={{ fontSize: "22px" }}>
             {formatModifier(woundPenalty)}
           </div>
           <div className="mt-1 font-script text-xs text-ink-faded">
             Calcolata automaticamente dalle ferite inserite
           </div>
+        </>
+      ) : canEdit && editableKey ? (
+        <Input
+          value={value[editableKey] ?? ""}
+          onChange={(e) => set(editableKey, e.target.value)}
+          className="h-9 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
+          style={{ fontSize: "18px" }}
+        />
+      ) : (
+        <div className="font-display" style={{ fontSize: "18px" }}>
+          {editableKey ? String(value[editableKey] ?? "") || "—" : "—"}
+        </div>
+      )}
+    </div>
+  );
+})}
         </div>
       </section>
 
