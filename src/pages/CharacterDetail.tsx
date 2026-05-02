@@ -29,6 +29,7 @@ import {
   History,
   ShieldCheck,
   Skull,
+  Coins,
 } from "lucide-react";
 import { toast } from "sonner";
 import { isOpenSourceGdr } from "@/lib/rulesets";
@@ -554,6 +555,17 @@ const CharacterDetail = () => {
     }
   };
 
+    const setSheetCoin = (key: "oro" | "argento" | "rame", raw: string) => {
+    const n = Math.max(0, Number(raw) || 0);
+    setOsgdrSheet((prev) => ({
+      ...prev,
+      coins: {
+        ...prev.coins,
+        [key]: n,
+      },
+    }));
+  };
+
   const saveDestiny = async () => {
     if (!character || !access.canManageDestiny) return;
     setDestinySaving(true);
@@ -812,6 +824,50 @@ const CharacterDetail = () => {
                 </div>
               )}
             </div>
+
+                        {useOsgdrForm && (
+              <div className="parchment-panel p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <Coins className="h-4 w-4 text-primary" />
+                  <h3 className="font-heading text-lg">Monete</h3>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { key: "oro", short: "MO", title: "Monete d'Oro" },
+                    { key: "argento", short: "MA", title: "Monete d'Argento" },
+                    { key: "rame", short: "MR", title: "Monete di Rame" },
+                  ] as const).map((coin) => (
+                    <div
+                      key={coin.key}
+                      className="rounded border border-border/60 bg-parchment-deep/20 p-2 text-center"
+                      title={coin.title}
+                    >
+                      <Label className="mb-1 flex items-center justify-center gap-1 font-heading text-[11px] uppercase tracking-wider text-ink-faded">
+                        <Coins className="h-3.5 w-3.5 text-primary/80" />
+                        <span>{coin.short}</span>
+                      </Label>
+
+                      {access.canEdit ? (
+                        <Input
+                          type="number"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          min={0}
+                          value={osgdrSheet.coins[coin.key] ?? 0}
+                          onChange={(e) => setSheetCoin(coin.key, e.target.value)}
+                          className="h-9 border-0 bg-transparent px-0 text-center font-display text-xl focus-visible:ring-0"
+                        />
+                      ) : (
+                        <div className="font-display text-xl text-primary">
+                          {osgdrSheet.coins[coin.key] ?? 0}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {access.canManageDestiny && (
               <div className="parchment-panel p-4">
