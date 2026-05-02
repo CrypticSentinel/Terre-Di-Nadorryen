@@ -1066,7 +1066,7 @@ export const OpenSourceGdrSheet = ({
                       placeholder="Nome armatura"
                       className="font-script"
                     />
-                                        <Input
+                    <Input
                       type="number"
                       inputMode="numeric"
                       pattern="[0-9]*"
