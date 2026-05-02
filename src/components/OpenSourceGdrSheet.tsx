@@ -35,14 +35,14 @@ const BODY_PARTS = [
 const NATURAL_ARMOR_BY_PART: Record<string, number> = {
   "Testa": 3,
   "Torace": 4,
-  "Braccio DX": 3,
-  "Braccio SX": 3,
-  "Mano DX": 2,
-  "Mano SX": 2,
-  "Gamba DX": 3,
-  "Gamba SX": 3,
-  "Piede DX": 2,
-  "Piede SX": 2,
+  "Braccio DX": 4,
+  "Braccio SX": 4,
+  "Mano DX": 3,
+  "Mano SX": 3,
+  "Gamba DX": 4,
+  "Gamba SX": 4,
+  "Piede DX": 3,
+  "Piede SX": 3,
 };
 
 const EQUIPMENT_SECTIONS = [
@@ -106,7 +106,6 @@ export interface OsgdrArmor {
 }
 
 export interface OsgdrBodyPartState {
-  naturalArmor: number;
   armor: string;
   wounds: string;
 }
@@ -153,11 +152,10 @@ export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
   pe: 0,
   magic: Object.fromEntries(MAGIC_SCHOOLS.map((s) => [s, 0])) as Record<MagicSchool, number>,
   coins: Object.fromEntries(COIN_TYPES.map((c) => [c.key, 0])) as Record<CoinKey, number>,
-    ferite: Object.fromEntries(
+      ferite: Object.fromEntries(
     BODY_PARTS.map((p) => [
       p,
       {
-                naturalArmor: NATURAL_ARMOR_BY_PART[p] ?? 0,
         armor: "",
         wounds: "",
       },
@@ -207,13 +205,12 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
   }
 
   const abilities = { ...base.abilities, ...(input.abilities ?? {}) };
-    const ferite: Record<string, OsgdrBodyPartState> = { ...base.ferite };
+      const ferite: Record<string, OsgdrBodyPartState> = { ...base.ferite };
   if (input.ferite && typeof input.ferite === "object") {
     for (const part of BODY_PARTS) {
       const raw = input.ferite[part];
       if (raw && typeof raw === "object") {
         ferite[part] = {
-          naturalArmor: Number(raw.naturalArmor ?? base.ferite[part].naturalArmor) || 0,
           armor: String(raw.armor ?? ""),
           wounds: String(raw.wounds ?? ""),
         };
@@ -385,7 +382,7 @@ export const OpenSourceGdrSheet = ({
     onChange({ ...value, coins: { ...value.coins, [key]: n } });
   };
 
-    const setFeritaField = (
+      const setFeritaField = (
     part: string,
     field: keyof OsgdrBodyPartState,
     nextValue: string
@@ -396,11 +393,10 @@ export const OpenSourceGdrSheet = ({
         ...value.ferite,
         [part]: {
           ...(value.ferite[part] ?? {
-            naturalArmor: NATURAL_ARMOR_BY_PART[part] ?? 0,
             armor: "",
             wounds: "",
           }),
-          [field]: field === "naturalArmor" ? Number(nextValue) || 0 : nextValue,
+          [field]: nextValue,
         },
       },
     });
@@ -845,10 +841,13 @@ export const OpenSourceGdrSheet = ({
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {BODY_PARTS.map((p) => {
             const partState = value.ferite[p] ?? {
-              naturalArmor: 0,
               armor: "",
               wounds: "",
             };
+
+            const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
+            const totalNaturalArmor =
+              (NATURAL_ARMOR_BY_PART[p] ?? 0) + constitutionModifier;
 
             return (
               <div key={p} className="rounded border border-border/60 bg-parchment-deep/20 p-3 space-y-3">
@@ -864,8 +863,8 @@ export const OpenSourceGdrSheet = ({
                     <Label className="font-heading text-[11px] uppercase tracking-wider text-ink-faded">
                       Assorbimento naturale
                     </Label>
-                    <Input
-                      value={partState.naturalArmor ?? 0}
+                      <Input
+                      value={totalNaturalArmor}
                       readOnly
                       className="h-9 border-0 bg-transparent px-0 font-display text-primary focus-visible:ring-0"
                     />
