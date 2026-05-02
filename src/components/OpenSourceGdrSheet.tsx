@@ -457,7 +457,8 @@ export const OpenSourceGdrSheet = ({
   onLabelOverrideChange,
 }: Props) => {
   const [bodyPartPopup, setBodyPartPopup] = useState<BodyPartPopupState | null>(null);
-
+  const [expandedBodyPart, setExpandedBodyPart] = useState<string | null>(null);
+  
   const totalPoints = useMemo(
     () => ABILITIES.reduce((acc, a) => acc + (Number(value.abilities[a.key]) || 0), 0),
     [value.abilities],
@@ -900,138 +901,359 @@ export const OpenSourceGdrSheet = ({
         )}
       </section>
 
-      <section className="space-y-3">
-  <div className="flex flex-wrap items-end justify-between gap-2">
-    {lbl("section.ferite", "Ferite & Stato del corpo", "font-display text-xl gold-text", "h3")}
+      <section className="space-y-4">
+  {(() => {
+    const woundedParts = BODY_PARTS.filter(
+      (part) => Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0)) > 0
+    );
 
-    <div className="flex flex-wrap gap-2 text-xs font-script italic text-ink-faded">
-      <span className="rounded border border-border60 bg-parchment-deep20 px-2 py-1">
-        Zone ferite:{" "}
-        <strong className="font-heading text-ink">
-          {BODY_PARTS.filter((part) => Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0)) > 0).length}
-        </strong>
-        /{BODY_PARTS.length}
-      </span>
+    const getSeverityStyles = (severity: WoundSeverity) => {
+      if (severity === "light") {
+        return {
+          badge: "border-amber-600/30 bg-amber-500/10 text-amber-700",
+          zone: "fill-amber-500/30 stroke-amber-700",
+          card: "border-amber-600/30 bg-amber-500/5",
+        };
+      }
 
-      <span className="rounded border border-border60 bg-parchment-deep20 px-2 py-1">
-        Penalità totale:{" "}
-        <strong className="font-heading text-primary">{formatModifier(woundPenalty)}</strong>
-      </span>
-    </div>
-  </div>
+      if (severity === "grave") {
+        return {
+          badge: "border-destructive/30 bg-destructive/10 text-destructive",
+          zone: "fill-destructive/25 stroke-destructive",
+          card: "border-destructive/30 bg-destructive/5",
+        };
+      }
 
-  <p className="font-script text-xs italic text-ink-faded">
-    Vista compatta delle zone colpite. Apri i dettagli solo quando ti serve la descrizione completa.
-  </p>
+      if (severity === "lethal") {
+        return {
+          badge: "border-destructive/40 bg-destructive/15 text-destructive",
+          zone: "fill-destructive/40 stroke-destructive",
+          card: "border-destructive/40 bg-destructive/10",
+        };
+      }
 
-  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-    {BODY_PARTS.map((p) => {
-      const partState = value.ferite[p] ?? { wounds: 0 };
-      const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
-      const naturalThreshold = natural_soglia[p] ?? 0;
-      const totalNaturalArmor = naturalThreshold + constitutionModifier;
-      const totalArmor = armorByBodyPart[p] ?? 0;
-      const damage = Math.max(0, Number(partState.wounds ?? 0));
-      const severity = getWoundSeverity(damage, naturalThreshold);
+      return {
+        badge: "border-border60 bg-background/40 text-ink-faded",
+        zone: "fill-muted/20 stroke-border",
+        card: "border-border40 bg-background/30",
+      };
+    };
 
-      const severityLabel =
-        severity === "none"
-          ? "Integro"
-          : severity === "light"
-            ? "Leggera"
-            : severity === "grave"
-              ? "Grave"
-              : "Letale";
+    const getSeverityLabel = (severity: WoundSeverity) => {
+      if (severity === "light") return "Leggera";
+      if (severity === "grave") return "Grave";
+      if (severity === "lethal") return "Letale";
+      return "Integro";
+    };
 
-      const severityClassName =
-  severity === "none"
-    ? "border-border60 bg-background/40 text-ink-faded"
-    : severity === "light"
-      ? "border-amber-600/30 bg-amber-500/10 text-amber-700"
-      : severity === "grave"
-        ? "border-destructive/30 bg-destructive/10 text-destructive"
-        : "border-destructive/40 bg-destructive/15 text-destructive";
+    const bodyZoneMap = [
+      {
+        key: "Testa",
+        shape: (
+          <circle
+            cx="100"
+            cy="42"
+            r="20"
+            className="transition-all"
+          />
+        ),
+      },
+      {
+        key: "Torace",
+        shape: (
+          <rect
+            x="72"
+            y="70"
+            width="56"
+            height="78"
+            rx="20"
+            className="transition-all"
+          />
+        ),
+      },
+      {
+        key: "Braccio DX",
+        shape: (
+          <rect
+            x="38"
+            y="78"
+            width="22"
+            height="72"
+            rx="10"
+            className="transition-all"
+          />
+        ),
+      },
+      {
+        key: "Braccio SX",
+        shape: (
+          <rect
+            x="140"
+            y="78"
+            width="22"
+            height="72"
+            rx="10"
+            className="transition-all"
+          />
+        ),
+      },
+      {
+        key: "Mano DX",
+        shape: (
+          <rect
+            x="36"
+            y="150"
+            width="24"
+            height="24"
+            rx="8"
+            className="transition-all"
+          />
+        ),
+      },
+      {
+        key: "Mano SX",
+        shape: (
+          <rect
+            x="140"
+            y="150"
+            width="24"
+            height="24"
+            rx="8"
+            className="transition-all"
+          />
+        ),
+      },
+      {
+        key: "Gamba DX",
+        shape: (
+          <rect
+            x="78"
+            y="152"
+            width="18"
+            height="92"
+            rx="10"
+            className="transition-all"
+          />
+        ),
+      },
+      {
+        key: "Gamba SX",
+        shape: (
+          <rect
+            x="104"
+            y="152"
+            width="18"
+            height="92"
+            rx="10"
+            className="transition-all"
+          />
+        ),
+      },
+      {
+        key: "Piede DX",
+        shape: (
+          <rect
+            x="72"
+            y="246"
+            width="28"
+            height="16"
+            rx="7"
+            className="transition-all"
+          />
+        ),
+      },
+      {
+        key: "Piede SX",
+        shape: (
+          <rect
+            x="102"
+            y="246"
+            width="28"
+            height="16"
+            rx="7"
+            className="transition-all"
+          />
+        ),
+      },
+    ] as const;
 
-      return (
-        <div
-          key={p}
-          className="rounded border border-border60 bg-parchment-deep20 p-3 space-y-3"
-        >
-          <div className="flex items-start justify-between gap-2">
-            {lbl(
-              `ferita.${p}`,
-              p,
-              "font-heading text-xs uppercase tracking-wider text-ink-faded",
-              "div"
-            )}
+    return (
+      <>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          {lbl("section.ferite", "Ferite & Stato del corpo", "font-display text-xl gold-text", "h3")}
 
-            <span
-              className={`rounded-md px-3 py-1.5 text-sm font-heading uppercase tracking-[0.12em] ${severityClassName}`}
-            >
-              {severityLabel}
+          <div className="flex flex-wrap gap-2 text-xs font-script italic text-ink-faded">
+            <span className="rounded-full border border-border60 bg-parchment-deep20 px-3 py-1.5">
+              Zone ferite:{" "}
+              <strong className="font-heading text-ink">{woundedParts.length}</strong>/{BODY_PARTS.length}
+            </span>
+
+            <span className="rounded-full border border-border60 bg-parchment-deep20 px-3 py-1.5">
+              Penalità totale:{" "}
+              <strong className="font-heading text-primary">{formatModifier(woundPenalty)}</strong>
             </span>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded border border-border40 bg-background/40 p-2 text-center">
-              <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
-                Ferite
-              </div>
+        <div className="grid gap-4 lg:grid-cols-[240px,minmax(0,1fr)]">
+          <div className="rounded-2xl border border-border60 bg-parchment-deep20 p-4">
+            <p className="mb-3 text-center font-script text-xs italic text-ink-faded">
+              Clicca una zona del corpo per evidenziare i dettagli.
+            </p>
 
-              {canEdit ? (
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  value={damage > 0 ? -damage : ""}
-                  onChange={(e) => setFeritaValue(p, e.target.value)}
-                  placeholder="-0"
-                  className="h-8 border-0 bg-transparent px-0 text-center font-display text-lg text-primary focus-visible:ring-0"
-                />
-              ) : (
-                <div className="h-8 font-display text-lg leading-8 text-primary">
-                  {damage > 0 ? -damage : "—"}
-                </div>
-              )}
-            </div>
+            <div className="mx-auto flex max-w-[220px] justify-center">
+              <svg viewBox="0 0 200 280" className="h-auto w-full">
+                {bodyZoneMap.map(({ key, shape }) => {
+                  const damage = Math.max(0, Number(value.ferite?.[key]?.wounds ?? 0));
+                  const threshold = natural_soglia[key] ?? 0;
+                  const severity = getWoundSeverity(damage, threshold);
+                  const styles = getSeverityStyles(severity);
+                  const isActive = expandedBodyPart === key;
 
-            <div className="rounded border border-border40 bg-background/40 p-2 text-center">
-              <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
-                Protezione
-              </div>
+                  return (
+                    <g
+                      key={key}
+                      onClick={() =>
+                        setExpandedBodyPart((prev) => (prev === key ? null : key))
+                      }
+                      className="cursor-pointer"
+                    >
+                      <g
+                        className={`${styles.zone} ${
+                          isActive ? "opacity-100" : damage > 0 ? "opacity-100" : "opacity-55"
+                        }`}
+                        style={{
+                          strokeWidth: isActive ? 3 : 2,
+                          filter: isActive ? "drop-shadow(0 0 6px rgba(0,0,0,0.15))" : undefined,
+                        }}
+                      >
+                        {shape}
+                      </g>
 
-              <div
-                className="h-8 font-display text-lg leading-8 text-primary"
-                title={`Naturale ${totalNaturalArmor} + armatura ${totalArmor}`}
-              >
-                {totalNaturalArmor + totalArmor}
-              </div>
+                      <title>{key}</title>
+                    </g>
+                  );
+                })}
+              </svg>
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-[11px] font-script italic text-ink-faded">
-              Soglia {naturalThreshold} · Penalità{" "}
-              {formatModifier(getPenaltyFromSeverity(severity))}
-            </div>
+          <div className="space-y-2">
+            {BODY_PARTS.map((p) => {
+              const partState = value.ferite[p] ?? { wounds: 0 };
+              const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
+              const naturalThreshold = natural_soglia[p] ?? 0;
+              const totalNaturalArmor = naturalThreshold + constitutionModifier;
+              const totalArmor = armorByBodyPart[p] ?? 0;
+              const totalProtection = totalNaturalArmor + totalArmor;
+              const damage = Math.max(0, Number(partState.wounds ?? 0));
+              const severity = getWoundSeverity(damage, naturalThreshold);
+              const localPenalty = getPenaltyFromSeverity(severity);
+              const severityLabel = getSeverityLabel(severity);
+              const styles = getSeverityStyles(severity);
+              const isExpanded = expandedBodyPart === p;
+              const isWounded = damage > 0;
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="font-heading"
-              onClick={() =>
-                setBodyPartPopup(
-                  getBodyPartPopupInfo(p, damage, naturalThreshold, severity, woundPenalty)
-                )
-              }
-            >
-              Dettagli
-            </Button>
+              return (
+                <div
+                  key={p}
+                  className={`rounded-xl border transition-all ${
+                    isExpanded
+                      ? `${styles.card} shadow-sm`
+                      : isWounded
+                        ? "border-border60 bg-parchment-deep20"
+                        : "border-border40 bg-background/25 opacity-80"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedBodyPart((prev) => (prev === p ? null : p))
+                    }
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-heading text-sm uppercase tracking-[0.14em] text-ink">
+                        {p}
+                      </div>
+                      <div className="mt-1 text-[11px] font-script italic text-ink-faded">
+                        {damage > 0
+                          ? `Ferite ${-damage} · Protezione ${totalProtection}`
+                          : `Nessuna ferita · Protezione ${totalProtection}`}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`rounded-md px-2.5 py-1.5 text-xs font-heading uppercase tracking-[0.12em] ${styles.badge}`}
+                      >
+                        {severityLabel}
+                      </span>
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="border-t border-border40 px-4 pb-4 pt-3">
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <div className="rounded-lg border border-border40 bg-background/40 p-3 text-center">
+                          <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
+                            Ferite
+                          </div>
+
+                          {canEdit ? (
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              value={damage > 0 ? -damage : ""}
+                              onChange={(e) => setFeritaValue(p, e.target.value)}
+                              placeholder="-0"
+                              className="mt-1 h-8 border-0 bg-transparent px-0 text-center font-display text-lg text-primary focus-visible:ring-0"
+                            />
+                          ) : (
+                            <div className="mt-1 h-8 font-display text-lg leading-8 text-primary">
+                              {damage > 0 ? -damage : "—"}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="rounded-lg border border-border40 bg-background/40 p-3 text-center">
+                          <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
+                            Soglia
+                          </div>
+                          <div className="mt-1 h-8 font-display text-lg leading-8 text-primary">
+                            {naturalThreshold}
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg border border-border40 bg-background/40 p-3 text-center">
+                          <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
+                            Protezione
+                          </div>
+                          <div
+                            className="mt-1 h-8 font-display text-lg leading-8 text-primary"
+                            title={`Naturale ${totalNaturalArmor} + armatura ${totalArmor}`}
+                          >
+                            {totalProtection}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 text-sm font-script italic text-ink-faded">
+                        Penalità della zona:{" "}
+                        <strong className="font-heading text-ink">
+                          {formatModifier(localPenalty)}
+                        </strong>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
-      );
-    })}
-  </div>
+      </>
+    );
+  })()}
 </section>
 
       <section className="space-y-3">
