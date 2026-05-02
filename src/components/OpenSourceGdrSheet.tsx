@@ -1243,14 +1243,14 @@ const fantasyZones = [
   strokeWidth: isActive ? 4.5 : summary.isWounded ? 2.5 : 2,
   opacity: isActive ? 1 : summary.isWounded ? 0.96 : 0.82,
   filter: isActive
-    ? "drop-shadow(0 0 12px rgba(161,45,45,0.45)) drop-shadow(0 0 22px rgba(161,45,45,0.28))"
-    : summary.isWounded
-      ? "drop-shadow(0 0 4px rgba(120,82,38,0.10))"
-      : undefined,
+  ? "drop-shadow(0 0 10px rgba(13,148,136,0.30)) drop-shadow(0 0 18px rgba(15,118,110,0.22))"
+  : summary.isWounded
+    ? "drop-shadow(0 0 4px rgba(120,82,38,0.10))"
+    : undefined,
 };
 
       const zoneClassName = isActive
-  ? "fill-red-700/45 stroke-red-800"
+  ? "fill-teal-700/35 stroke-teal-800"
   : summary.isWounded
     ? `${summary.styles.zone} stroke-current`
     : "fill-background/30 stroke-border";
@@ -1445,8 +1445,8 @@ const fantasyZones = [
         }}
         className={`grid w-full grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-xl border px-3 py-3 text-left transition-all ${
           isActive
-            ? "border-red-800 bg-red-700/15 shadow-[0_0_0_1px_rgba(127,29,29,0.35),0_0_18px_rgba(127,29,29,0.18)]"
-            : "border-border40 bg-background/20 hover:border-border60 hover:bg-background/35"
+  ? "border-teal-800 bg-teal-700/10 shadow-[0_0_0_1px_rgba(13,148,136,0.28),0_0_16px_rgba(13,148,136,0.16)]"
+  : "border-border40 bg-background/20 hover:border-border60 hover:bg-background/35"
         }`}
       >
         <div className="min-w-0 self-center">
@@ -1463,8 +1463,8 @@ const fantasyZones = [
           <span
             className={`rounded-md px-2 py-1 text-[10px] leading-none font-heading uppercase tracking-[0.12em] ${
               isActive
-                ? "border border-red-800/40 bg-red-700/15 text-red-900"
-                : zoneStyles.badge
+  ? "border border-teal-800/40 bg-teal-700/10 text-teal-900"
+  : zoneStyles.badge
             }`}
           >
             {summary ? summary.severityLabel : "Integro"}
@@ -1499,10 +1499,10 @@ const fantasyZones = [
         key={part}
         className={`rounded-xl border transition-all ${
           isExpanded
-            ? `${styles.row} shadow-sm`
-            : isWounded
-              ? "border-border60 bg-parchment-deep20"
-              : "border-border30 bg-background/15 opacity-80"
+  ? "border-teal-800 bg-teal-700/10 shadow-[0_0_0_1px_rgba(13,148,136,0.20)]"
+  : isWounded
+    ? "border-border60 bg-parchment-deep20"
+    : "border-border30 bg-background/15 opacity-80"
         }`}
       >
         <button
