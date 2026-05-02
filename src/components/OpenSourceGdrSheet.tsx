@@ -1437,7 +1437,7 @@ const fantasyZones = [
                     </tr>
                   </thead>
                   <tbody>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
   {hitLocations[selectedHitZone].map((entry) => {
     const isActive = expandedBodyPart === entry.key;
     const summary = bodyPartSummaryMap[entry.key];
@@ -1448,28 +1448,35 @@ const fantasyZones = [
         key={`${selectedHitZone}-${entry.key}`}
         type="button"
         onClick={() => {
-          setSelectedHitZone(selectedHitZone);
+          setSelectedHitZone(getHitZoneFromBodyPart(entry.key));
           setExpandedBodyPart((prev) => (prev === entry.key ? null : entry.key));
         }}
-        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition-all ${
+        className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border px-3 py-3 text-left transition-all ${
           isActive
             ? "border-red-800 bg-red-700/15 shadow-[0_0_0_1px_rgba(127,29,29,0.35),0_0_18px_rgba(127,29,29,0.18)]"
             : "border-border40 bg-background/20 hover:border-border60 hover:bg-background/35"
         }`}
       >
-        <div className="min-w-0">
-          <div className="font-heading text-[11px] uppercase tracking-[0.14em] text-ink-faded">
-            {selectedHitZone}
+        <div className="min-w-0 space-y-1">
+          <div className="font-heading text-[10px] uppercase tracking-[0.18em] text-ink-faded">
+            Zona {selectedHitZone}
           </div>
-          <div className="font-heading text-sm text-ink">{entry.location}</div>
+
+          <div className="font-heading text-sm leading-5 text-ink">
+            {entry.location}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 pl-3">
-          <span className="font-display text-sm text-primary">{entry.roll}</span>
+        <div className="flex flex-col items-end gap-1 text-right">
+          <span className="font-display text-sm leading-5 text-primary">
+            {entry.roll}
+          </span>
 
           <span
-            className={`rounded-md px-2 py-1 text-[10px] font-heading uppercase tracking-[0.12em] ${
-              isActive ? "border border-red-800/40 bg-red-700/15 text-red-900" : zoneStyles.badge
+            className={`rounded-md px-2 py-1 text-[10px] leading-none font-heading uppercase tracking-[0.12em] ${
+              isActive
+                ? "border border-red-800/40 bg-red-700/15 text-red-900"
+                : zoneStyles.badge
             }`}
           >
             {summary ? summary.severityLabel : "Integro"}
