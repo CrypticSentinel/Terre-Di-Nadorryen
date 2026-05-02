@@ -273,6 +273,14 @@ const CharacterDetail = () => {
     }));
   };
 
+    const setSheetPe = (raw: string) => {
+    const n = Math.max(0, Number(raw) || 0);
+    setOsgdrSheet((prev) => ({
+      ...prev,
+      pe: n,
+    }));
+  };
+  
   const load = async () => {
     if (!characterId) return;
     setLoading(true);
@@ -1012,6 +1020,57 @@ const CharacterDetail = () => {
                           </div>
                         ))}
                       </div>
+                                          <div className="h-px bg-border/50" />
+
+                    <section className="space-y-3">
+                      <h3 className="font-heading text-sm uppercase tracking-[0.18em] text-ink-faded">
+                        Risorse
+                      </h3>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded border border-border/60 bg-parchment-deep/20 p-2.5 text-center">
+                          <Label className="mb-1 block font-heading text-[11px] uppercase tracking-[0.18em] text-ink-faded">
+                            Fortuna
+                          </Label>
+
+                          {access.canEdit ? (
+                            <Input
+                              value={osgdrSheet.fortuna ?? ""}
+                              onChange={(e) =>
+                                setSheetField("fortuna", e.target.value as OsgdrSheet["fortuna"])
+                              }
+                              className="h-8 border-0 bg-transparent px-0 text-center font-display text-lg focus-visible:ring-0"
+                            />
+                          ) : (
+                            <div className="font-display text-lg text-primary">
+                              {String(osgdrSheet.fortuna ?? "").trim() || "—"}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="rounded border border-border/60 bg-parchment-deep/20 p-2.5 text-center">
+                          <Label className="mb-1 block font-heading text-[11px] uppercase tracking-[0.18em] text-ink-faded">
+                            PE
+                          </Label>
+
+                          {access.canEdit ? (
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              min={0}
+                              value={osgdrSheet.pe ?? 0}
+                              onChange={(e) => setSheetPe(e.target.value)}
+                              className="h-8 border-0 bg-transparent px-0 text-center font-display text-lg focus-visible:ring-0"
+                            />
+                          ) : (
+                            <div className="font-display text-lg text-primary">
+                              {osgdrSheet.pe ?? 0}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </section>
                     </section>
                   </>
                 )}
