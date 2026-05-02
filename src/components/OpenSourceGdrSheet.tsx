@@ -901,69 +901,138 @@ export const OpenSourceGdrSheet = ({
       </section>
 
       <section className="space-y-3">
-        {lbl("section.ferite", "Ferite & Stato del corpo", "font-display text-xl gold-text", "h3")}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {BODY_PARTS.map((p) => {
-            const partState = value.ferite[p] ?? { wounds: 0 };
-            const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
-            const totalNaturalArmor = (natural_soglia[p] ?? 0) + constitutionModifier;
-            const totalArmor = armorByBodyPart[p] ?? 0;
+  <div className="flex flex-wrap items-end justify-between gap-2">
+    {lbl("section.ferite", "Ferite & Stato del corpo", "font-display text-xl gold-text", "h3")}
 
-            return (
-              <div key={p} className="rounded border border-border/60 bg-parchment-deep/20 p-3 space-y-3">
-                {lbl(
-                  `ferita.${p}`,
-                  p,
-                  "font-heading text-xs uppercase tracking-wider text-ink-faded",
-                  "label",
-                )}
+    <div className="flex flex-wrap gap-2 text-xs font-script italic text-ink-faded">
+      <span className="rounded border border-border60 bg-parchment-deep20 px-2 py-1">
+        Zone ferite:{" "}
+        <strong className="font-heading text-ink">
+          {BODY_PARTS.filter((part) => Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0)) > 0).length}
+        </strong>
+        /{BODY_PARTS.length}
+      </span>
 
-                <div className="space-y-2">
-                  <div>
-                    <Label className="font-heading text-[11px] uppercase tracking-wider text-ink-faded">
-                      Assorbimento naturale
-                    </Label>
-                    <Input
-                      value={totalNaturalArmor}
-                      readOnly
-                      className="h-9 border-0 bg-transparent px-0 font-display text-primary focus-visible:ring-0"
-                    />
-                  </div>
+      <span className="rounded border border-border60 bg-parchment-deep20 px-2 py-1">
+        Penalità totale:{" "}
+        <strong className="font-heading text-primary">{formatModifier(woundPenalty)}</strong>
+      </span>
+    </div>
+  </div>
 
-                  <div>
-                    <Label className="font-heading text-[11px] uppercase tracking-wider text-ink-faded">
-                      Armatura
-                    </Label>
-                    <Input
-                      value={totalArmor}
-                      readOnly
-                      className="h-9 border-0 bg-transparent px-0 font-display text-primary focus-visible:ring-0"
-                    />
-                  </div>
+  <p className="font-script text-xs italic text-ink-faded">
+    Vista compatta delle zone colpite. Apri i dettagli solo quando ti serve la descrizione completa.
+  </p>
 
-                  <div>
-                    <Label className="font-heading text-[11px] uppercase tracking-wider text-ink-faded">
-                      Ferite
-                    </Label>
-                    {canEdit ? (
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        value={partState.wounds > 0 ? `-${partState.wounds}` : ""}
-                        onChange={(e) => setFeritaValue(p, e.target.value)}
-                        placeholder="-0"
-                        className="h-9 border-0 bg-transparent px-0 font-display text-primary focus-visible:ring-0"
-                      />
-                    ) : (
-                      renderText(partState.wounds > 0 ? `-${partState.wounds}` : "—")
-                    )}
-                  </div>
-                </div>
+  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+    {BODY_PARTS.map((p) => {
+      const partState = value.ferite[p] ?? { wounds: 0 };
+      const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
+      const naturalThreshold = natural_soglia[p] ?? 0;
+      const totalNaturalArmor = naturalThreshold + constitutionModifier;
+      const totalArmor = armorByBodyPart[p] ?? 0;
+      const damage = Math.max(0, Number(partState.wounds ?? 0));
+      const severity = getWoundSeverity(damage, naturalThreshold);
+
+      const severityLabel =
+        severity === "none"
+          ? "Integro"
+          : severity === "light"
+            ? "Leggera"
+            : severity === "grave"
+              ? "Grave"
+              : "Letale";
+
+      const severityClassName =
+        severity === "none"
+          ? "border-border60 bg-background/40 text-ink-faded"
+          : severity === "light"
+            ? "border-primary/30 bg-primary/10 text-primary"
+            : severity === "grave"
+              ? "border-amber-600/30 bg-amber-500/10 text-amber-700"
+              : "border-destructive/30 bg-destructive/10 text-destructive";
+
+      return (
+        <div
+          key={p}
+          className="rounded border border-border60 bg-parchment-deep20 p-3 space-y-3"
+        >
+          <div className="flex items-start justify-between gap-2">
+            {lbl(
+              `ferita.${p}`,
+              p,
+              "font-heading text-xs uppercase tracking-wider text-ink-faded",
+              "div"
+            )}
+
+            <span
+              className={`rounded px-2 py-1 text-[10px] font-heading uppercase tracking-wider ${severityClassName}`}
+            >
+              {severityLabel}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded border border-border40 bg-background/40 p-2 text-center">
+              <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
+                Ferite
               </div>
-            );
-          })}
+
+              {canEdit ? (
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  value={damage > 0 ? -damage : ""}
+                  onChange={(e) => setFeritaValue(p, e.target.value)}
+                  placeholder="-0"
+                  className="h-8 border-0 bg-transparent px-0 text-center font-display text-lg text-primary focus-visible:ring-0"
+                />
+              ) : (
+                <div className="h-8 font-display text-lg leading-8 text-primary">
+                  {damage > 0 ? -damage : "—"}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded border border-border40 bg-background/40 p-2 text-center">
+              <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
+                Protezione
+              </div>
+
+              <div
+                className="h-8 font-display text-lg leading-8 text-primary"
+                title={`Naturale ${totalNaturalArmor} + armatura ${totalArmor}`}
+              >
+                {totalNaturalArmor + totalArmor}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[11px] font-script italic text-ink-faded">
+              Soglia {naturalThreshold} · Penalità{" "}
+              {formatModifier(getPenaltyFromSeverity(severity))}
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="font-heading"
+              onClick={() =>
+                setBodyPartPopup(
+                  getBodyPartPopupInfo(p, damage, naturalThreshold, severity, woundPenalty)
+                )
+              }
+            >
+              Dettagli
+            </Button>
+          </div>
         </div>
-      </section>
+      );
+    })}
+  </div>
+</section>
 
       <section className="space-y-3">
         {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
