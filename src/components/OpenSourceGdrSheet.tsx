@@ -728,10 +728,6 @@ export const OpenSourceGdrSheet = ({
 
             <section className="space-y-3">
         {lbl("section.stati", "Stati", "font-display text-xl gold-text", "h3")}
-        <p className="font-script text-xs italic text-ink-faded">
-          L'<strong>Iniziativa</strong> è calcolata automaticamente come <em>Mod. Destrezza + Mod. Prontezza</em>.
-        </p>
-
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {([
   ["iniziativa", "Iniziativa"],
@@ -765,6 +761,9 @@ export const OpenSourceGdrSheet = ({
           title="Calcolata automaticamente: Mod. DES + Mod. PRO"
         >
           {formatModifier(autoIniziativa)}
+        </div>
+        <div className="mt-1 font-script text-xs text-ink-faded">
+            L'<strong>Iniziativa</strong> è calcolata automaticamente come <em>Mod. Destrezza + Mod. Prontezza</em>.
         </div>
       ) : isWoundPenalty ? (
         <>
