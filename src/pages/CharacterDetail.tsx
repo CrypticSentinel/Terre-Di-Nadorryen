@@ -1023,10 +1023,6 @@ const CharacterDetail = () => {
                                           <div className="h-px bg-border/50" />
 
                     <section className="space-y-3">
-                      <h3 className="font-heading text-sm uppercase tracking-[0.18em] text-ink-faded">
-                        Risorse
-                      </h3>
-
                       <div className="grid grid-cols-2 gap-2">
                         <div className="rounded border border-border/60 bg-parchment-deep/20 p-2.5 text-center">
                           <Label className="mb-1 block font-heading text-[11px] uppercase tracking-[0.18em] text-ink-faded">
