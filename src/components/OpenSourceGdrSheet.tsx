@@ -34,7 +34,7 @@ const BODY_PARTS = [
 
 const NATURAL_ARMOR_BY_PART: Record<string, number> = {
   "Testa": 3,
-  "Torace": 4,
+  "Torace": 5,
   "Braccio DX": 4,
   "Braccio SX": 4,
   "Mano DX": 3,
