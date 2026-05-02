@@ -100,13 +100,12 @@ export interface OsgdrWeapon {
 export interface OsgdrArmor {
   id: string;
   name: string;
-  protection: string;
+  protection: number;
   location: string;
   notes: string;
 }
 
 export interface OsgdrBodyPartState {
-  armor: string;
   wounds: string;
 }
 
@@ -152,11 +151,10 @@ export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
   pe: 0,
   magic: Object.fromEntries(MAGIC_SCHOOLS.map((s) => [s, 0])) as Record<MagicSchool, number>,
   coins: Object.fromEntries(COIN_TYPES.map((c) => [c.key, 0])) as Record<CoinKey, number>,
-      ferite: Object.fromEntries(
+        ferite: Object.fromEntries(
     BODY_PARTS.map((p) => [
       p,
       {
-        armor: "",
         wounds: "",
       },
     ])
@@ -205,13 +203,12 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
   }
 
   const abilities = { ...base.abilities, ...(input.abilities ?? {}) };
-      const ferite: Record<string, OsgdrBodyPartState> = { ...base.ferite };
+        const ferite: Record<string, OsgdrBodyPartState> = { ...base.ferite };
   if (input.ferite && typeof input.ferite === "object") {
     for (const part of BODY_PARTS) {
       const raw = input.ferite[part];
       if (raw && typeof raw === "object") {
         ferite[part] = {
-          armor: String(raw.armor ?? ""),
           wounds: String(raw.wounds ?? ""),
         };
       }
@@ -276,12 +273,12 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
       }))
     : [];
 
-  const armors: OsgdrArmor[] = Array.isArray(input.armors)
+    const armors: OsgdrArmor[] = Array.isArray(input.armors)
     ? input.armors.map((a: any) => ({
         id: String(a?.id ?? crypto.randomUUID()),
         name: String(a?.name ?? ""),
-        protection: String(a?.protection ?? ""),
-        location: String(a?.location ?? ""),
+        protection: Math.max(0, Number(a?.protection) || 0),
+        location: String(a?.location ?? BODY_PARTS[0] ?? ""),
         notes: String(a?.notes ?? ""),
       }))
     : [];
@@ -365,6 +362,20 @@ export const OpenSourceGdrSheet = ({
     [value.abilities],
   );
 
+    const armorByBodyPart = useMemo(() => {
+    const totals: Record<string, number> = Object.fromEntries(
+      BODY_PARTS.map((part) => [part, 0])
+    ) as Record<string, number>;
+
+    for (const armor of value.armors ?? []) {
+      const location = armor.location;
+      if (!location || !(location in totals)) continue;
+      totals[location] += Math.max(0, Number(armor.protection) || 0);
+    }
+
+    return totals;
+  }, [value.armors]);
+  
   const set = <K extends keyof OsgdrSheet>(k: K, v: OsgdrSheet[K]) => onChange({ ...value, [k]: v });
 
   const setAbility = (key: Ability, raw: string) => {
@@ -382,7 +393,7 @@ export const OpenSourceGdrSheet = ({
     onChange({ ...value, coins: { ...value.coins, [key]: n } });
   };
 
-      const setFeritaField = (
+        const setFeritaField = (
     part: string,
     field: keyof OsgdrBodyPartState,
     nextValue: string
@@ -393,7 +404,6 @@ export const OpenSourceGdrSheet = ({
         ...value.ferite,
         [part]: {
           ...(value.ferite[part] ?? {
-            armor: "",
             wounds: "",
           }),
           [field]: nextValue,
@@ -477,8 +487,8 @@ export const OpenSourceGdrSheet = ({
         {
           id: crypto.randomUUID(),
           name: "",
-          protection: "",
-          location: "",
+          protection: 0,
+          location: BODY_PARTS[0],
           notes: "",
         },
       ],
@@ -841,13 +851,13 @@ export const OpenSourceGdrSheet = ({
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {BODY_PARTS.map((p) => {
             const partState = value.ferite[p] ?? {
-              armor: "",
               wounds: "",
             };
 
             const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
             const totalNaturalArmor =
               (NATURAL_ARMOR_BY_PART[p] ?? 0) + constitutionModifier;
+            const totalArmor = armorByBodyPart[p] ?? 0;
 
             return (
               <div key={p} className="rounded border border-border/60 bg-parchment-deep/20 p-3 space-y-3">
@@ -874,16 +884,11 @@ export const OpenSourceGdrSheet = ({
                     <Label className="font-heading text-[11px] uppercase tracking-wider text-ink-faded">
                       Armatura
                     </Label>
-                    {canEdit ? (
-                      <Input
-                        value={partState.armor ?? ""}
-                        onChange={(e) => setFeritaField(p, "armor", e.target.value)}
-                        placeholder="Valore armatura..."
-                        className="h-9 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
-                      />
-                    ) : (
-                      renderText(partState.armor)
-                    )}
+                    <Input
+                      value={totalArmor}
+                      readOnly
+                      className="h-9 border-0 bg-transparent px-0 font-display text-primary focus-visible:ring-0"
+                    />
                   </div>
 
                   <div>
@@ -1061,18 +1066,31 @@ export const OpenSourceGdrSheet = ({
                       placeholder="Nome armatura"
                       className="font-script"
                     />
-                    <Input
+                                        <Input
+                      type="number"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      min={0}
                       value={a.protection}
-                      onChange={(e) => updateArmor(a.id, { protection: e.target.value })}
+                      onChange={(e) =>
+                        updateArmor(a.id, {
+                          protection: Math.max(0, Number(e.target.value) || 0),
+                        })
+                      }
                       placeholder="Protezione"
                       className="font-script"
                     />
-                    <Input
+                    <select
                       value={a.location}
                       onChange={(e) => updateArmor(a.id, { location: e.target.value })}
-                      placeholder="Parte del corpo"
-                      className="font-script"
-                    />
+                      className="h-10 rounded-md border border-input bg-background px-3 py-2 font-script text-sm"
+                    >
+                      {BODY_PARTS.map((part) => (
+                        <option key={part} value={part}>
+                          {part}
+                        </option>
+                      ))}
+                    </select>
                     <div className="flex gap-2">
                       <Input
                         value={a.notes}
@@ -1093,7 +1111,9 @@ export const OpenSourceGdrSheet = ({
                 ) : (
                   <div className="space-y-1 font-script">
                     <div><strong className="font-heading text-ink">{a.name || "—"}</strong></div>
-                    <div className="text-sm text-ink-faded">Protezione: {a.protection || "—"} · Zona: {a.location || "—"}</div>
+                                        <div className="text-sm text-ink-faded">
+                      Protezione: {a.protection} · Zona: {a.location || "—"}
+                    </div>
                     {a.notes && <div className="text-sm text-ink-faded">{a.notes}</div>}
                   </div>
                 )}
