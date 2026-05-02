@@ -1457,31 +1457,26 @@ const fantasyZones = [
             : "border-border40 bg-background/20 hover:border-border60 hover:bg-background/35"
         }`}
       >
-        <div className="min-w-0 space-y-1">
-          <div className="font-heading text-[10px] uppercase tracking-[0.18em] text-ink-faded">
-            Zona {selectedHitZone}
-          </div>
+        <div className="min-w-0">
+  <div className="font-heading text-sm leading-5 text-ink">
+    {entry.location}
+  </div>
+</div>
 
-          <div className="font-heading text-sm leading-5 text-ink">
-            {entry.location}
-          </div>
-        </div>
-
-        <div className="flex flex-col items-end gap-1 text-right">
-          <span className="font-display text-sm leading-5 text-primary">
-            {entry.roll}
-          </span>
-
-          <span
-            className={`rounded-md px-2 py-1 text-[10px] leading-none font-heading uppercase tracking-[0.12em] ${
-              isActive
-                ? "border border-red-800/40 bg-red-700/15 text-red-900"
-                : zoneStyles.badge
-            }`}
-          >
-            {summary ? summary.severityLabel : "Integro"}
-          </span>
-        </div>
+<div className="flex flex-col items-end gap-1 text-right">
+  <span className="font-display text-sm leading-5 text-primary">
+    {entry.roll}
+  </span>
+  <span
+    className={`rounded-md px-2 py-1 text-[10px] leading-none font-heading uppercase tracking-[0.12em] ${
+      isActive
+        ? "border border-red-800/40 bg-red-700/15 text-red-900"
+        : zoneStyles.badge
+    }`}
+  >
+    {summary ? summary.severityLabel : "Integro"}
+  </span>
+</div>
       </button>
     );
   })}
