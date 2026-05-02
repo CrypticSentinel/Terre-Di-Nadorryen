@@ -1184,9 +1184,9 @@ const fantasyZones = [
           </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[230px,minmax(0,1fr)] lg:items-start">
-          <div className="space-y-3">
-            <div className="rounded-xl border border-border60 bg-parchment-deep20 p-3">
+        <div className="grid gap-4 xl:grid-cols-[280px,minmax(0,1fr)]">
+          <div className="space-y-4">
+            <div className="rounded-[1.25rem] border border-border60 bg-parchment-deep20 p-4">
               <p className="mb-3 text-center font-script text-xs italic text-ink-faded">
                 Figura di riferimento interattiva in stile cronaca illustrata.
               </p>
