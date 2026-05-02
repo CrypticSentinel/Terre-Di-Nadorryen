@@ -1235,20 +1235,20 @@ const fantasyZones = [
       const isActive = summary.isExpanded;
 
       const sharedStyle: React.CSSProperties = {
-        strokeWidth: isActive ? 3 : summary.isWounded ? 2.5 : 2,
-        opacity: isActive ? 1 : summary.isWounded ? 0.96 : 0.82,
-        filter: isActive
-          ? "drop-shadow(0 0 6px rgba(120,82,38,0.18))"
-          : summary.isWounded
-            ? "drop-shadow(0 0 4px rgba(120,82,38,0.1))"
-            : undefined,
-      };
+  strokeWidth: isActive ? 4.5 : summary.isWounded ? 2.5 : 2,
+  opacity: isActive ? 1 : summary.isWounded ? 0.96 : 0.82,
+  filter: isActive
+    ? "drop-shadow(0 0 12px rgba(161,45,45,0.45)) drop-shadow(0 0 22px rgba(161,45,45,0.28))"
+    : summary.isWounded
+      ? "drop-shadow(0 0 4px rgba(120,82,38,0.10))"
+      : undefined,
+};
 
       const zoneClassName = isActive
-        ? `${summary.styles.zone} stroke-current`
-        : summary.isWounded
-          ? `${summary.styles.zone} stroke-current`
-          : "fill-background/30 stroke-border";
+  ? "fill-red-700/45 stroke-red-800"
+  : summary.isWounded
+    ? `${summary.styles.zone} stroke-current`
+    : "fill-background/30 stroke-border";
 
       return (
         <g
