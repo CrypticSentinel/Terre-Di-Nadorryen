@@ -32,7 +32,7 @@ const BODY_PARTS = [
   "Piede SX",
 ] as const;
 
-const NATURAL_ARMOR_BY_PART: Record<string, number> = {
+const natural_soglia: Record<string, number> = {
   "Testa": 3,
   "Torace": 5,
   "Braccio DX": 4,
@@ -423,8 +423,8 @@ export const OpenSourceGdrSheet = ({
   let worstPenalty = 0;
 
   for (const part of BODY_PARTS) {
-    const damage = Number(value.ferite?.[part]?.wounds ?? 0) || 0;
-    const threshold = NATURAL_ARMOR_BY_PART[part] ?? 0;
+    const damage = Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0) || 0);
+    const threshold = natural_soglia[part] ?? 0;
     const severity = getWoundSeverity(damage, threshold);
     const penalty = getPenaltyFromSeverity(severity);
 
@@ -918,7 +918,7 @@ export const OpenSourceGdrSheet = ({
 
             const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
             const totalNaturalArmor =
-              (NATURAL_ARMOR_BY_PART[p] ?? 0) + constitutionModifier;
+              (natural_soglia[p] ?? 0) + constitutionModifier;
             const totalArmor = armorByBodyPart[p] ?? 0;
 
             return (
