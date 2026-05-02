@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Coins, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { abilityModifier, formatModifier, magicBaseDamage } from "@/lib/rulesets";
 import { EditableLabel, type LabelOverride } from "@/components/EditableLabel";
 
@@ -298,11 +296,6 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
   };
 }
 
-interface SelectableProfile {
-  id: string;
-  display_name: string;
-}
-
 interface Props {
   value: OsgdrSheet;
   onChange: (next: OsgdrSheet) => void;
@@ -310,8 +303,6 @@ interface Props {
   labelOverrides?: Record<string, LabelOverride>;
   canCustomizeLabels?: boolean;
   onLabelOverrideChange?: (key: string, override: LabelOverride | undefined) => void;
-  assignedUserId?: string;
-  onAssignedUserIdChange?: (next: string | undefined) => void;
 }
 
 type WoundSeverity = "none" | "light" | "grave" | "lethal";
@@ -464,40 +455,8 @@ export const OpenSourceGdrSheet = ({
   labelOverrides = {},
   canCustomizeLabels = false,
   onLabelOverrideChange,
-  assignedUserId,
-  onAssignedUserIdChange,
 }: Props) => {
-  const { user, isAdmin, isActingAsNarrator } = useAuth();
-  const [profiles, setProfiles] = useState<SelectableProfile[]>([]);
   const [bodyPartPopup, setBodyPartPopup] = useState<BodyPartPopupState | null>(null);
-
-  const canAssignCharacter = canEdit && !!onAssignedUserIdChange && (isAdmin || isActingAsNarrator);
-
-  useEffect(() => {
-    if (!canAssignCharacter) return;
-
-    const loadProfiles = async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, display_name")
-        .eq("approval_status", "approved")
-        .order("display_name", { ascending: true });
-
-      if (!error) {
-        setProfiles((data ?? []) as SelectableProfile[]);
-      }
-    };
-
-    void loadProfiles();
-  }, [canAssignCharacter]);
-
-  useEffect(() => {
-    if (!canAssignCharacter) return;
-    if (assignedUserId) return;
-    if (!user?.id) return;
-
-    onAssignedUserIdChange?.(user.id);
-  }, [canAssignCharacter, assignedUserId, onAssignedUserIdChange, user?.id]);
 
   const totalPoints = useMemo(
     () => ABILITIES.reduce((acc, a) => acc + (Number(value.abilities[a.key]) || 0), 0),
@@ -544,11 +503,6 @@ export const OpenSourceGdrSheet = ({
   const setMagic = (school: MagicSchool, raw: string) => {
     const n = Math.max(0, Math.min(99, Number(raw) || 0));
     onChange({ ...value, magic: { ...value.magic, [school]: n } });
-  };
-
-  const setCoin = (key: CoinKey, raw: string) => {
-    const n = Math.max(0, Number(raw) || 0);
-    onChange({ ...value, coins: { ...value.coins, [key]: n } });
   };
 
   const setFeritaValue = (part: string, nextValue: string) => {
@@ -722,63 +676,6 @@ export const OpenSourceGdrSheet = ({
 
   return (
     <div className="osgdr-sheet space-y-5 sm:space-y-6">
-      <section className="space-y-3">
-        {lbl("section.anagrafica", "Anagrafica", "font-display text-xl gold-text", "h3")}
-
-        {canAssignCharacter && (
-          <div className="rounded border border-border/60 bg-parchment-deep/20 p-3">
-            <Label className="font-heading text-xs uppercase tracking-wider text-ink-faded">
-              Assegna scheda a
-            </Label>
-            <select
-              value={assignedUserId ?? user?.id ?? ""}
-              onChange={(e) => onAssignedUserIdChange?.(e.target.value || undefined)}
-              className="mt-2 w-full rounded-md border border-border/60 bg-background px-3 py-2 font-script text-foreground"
-            >
-              <option value="">Seleziona un utente</option>
-              {profiles.map((profile) => (
-                <option key={profile.id} value={profile.id}>
-                  {profile.display_name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {([
-            ["razza", "Razza"],
-            ["provenienza", "Provenienza"],
-            ["eta", "Età"],
-            ["altezza", "Altezza"],
-            ["peso", "Peso"],
-            ["carnagione", "Carnagione"],
-            ["capelli", "Capelli"],
-            ["occhi", "Occhi"],
-          ] as const).map(([k, label]) => (
-            <div key={k} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
-              {lbl(
-                `field.${k}`,
-                label,
-                "font-heading text-xs uppercase tracking-wider text-ink-faded mb-1 block",
-                "label",
-              )}
-              {canEdit ? (
-                <Input
-                  value={(value as any)[k] ?? ""}
-                  onChange={(e) => set(k as any, e.target.value as any)}
-                  className="h-9 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
-                />
-              ) : (
-                <div className="font-script whitespace-pre-wrap text-ink">
-                  {renderText((value as any)[k])}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
       <section className="space-y-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           {lbl("section.caratteristiche", "Caratteristiche", "font-display text-xl gold-text", "h3")}

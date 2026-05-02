@@ -85,9 +85,15 @@ interface CampaignMember {
   role: "narratore" | "giocatore";
 }
 
+interface SelectableProfile {
+  id: string;
+  display_name: string;
+}
+
 const OSGDR_FIELD_ID = "__osgdr_sheet__";
 const LABEL_OVERRIDES_FIELD_ID = "__label_overrides__";
 const BACKGROUND_FIELD_ID = "__background__";
+const [profiles, setProfiles] = useState<SelectableProfile[]>([]);
 
 type LabelOverridesMap = Record<string, LabelOverride>;
 
@@ -342,6 +348,32 @@ const CharacterDetail = () => {
     void load();
   }, [characterId, user?.id, isAdmin, isActingAsNarrator]);
 
+  useEffect(() => {
+    if (!access.canAssignCharacter) return;
+
+    const loadProfiles = async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .eq("approval_status", "approved")
+        .order("display_name", { ascending: true });
+
+      if (!error) {
+        setProfiles((data ?? []) as SelectableProfile[]);
+      }
+    };
+
+    void loadProfiles();
+  }, [access.canAssignCharacter]);
+
+  useEffect(() => {
+    if (!access.canAssignCharacter) return;
+    if (assignedUserId) return;
+    if (!user?.id) return;
+
+    setAssignedUserId(user.id);
+  }, [access.canAssignCharacter, assignedUserId, user?.id]);
+
   const addField = () => {
     setFields((prev) => [
       ...prev,
@@ -553,6 +585,24 @@ const CharacterDetail = () => {
 
       await load();
     }
+  };
+
+  const setSheetField = (
+    key:
+      | "razza"
+      | "provenienza"
+      | "eta"
+      | "altezza"
+      | "peso"
+      | "carnagione"
+      | "capelli"
+      | "occhi",
+    value: string
+  ) => {
+    setOsgdrSheet((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
   };
 
     const setSheetCoin = (key: "oro" | "argento" | "rame", raw: string) => {
@@ -825,7 +875,72 @@ const CharacterDetail = () => {
               )}
             </div>
 
-                        {useOsgdrForm && (
+            {useOsgdrForm && (
+              <div className="parchment-panel p-4">
+                <h3 className="mb-3 font-heading text-lg">Anagrafica</h3>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                  {([
+                    ["razza", "Razza"],
+                    ["provenienza", "Provenienza"],
+                    ["eta", "Età"],
+                    ["altezza", "Altezza"],
+                    ["peso", "Peso"],
+                    ["carnagione", "Carnagione"],
+                    ["capelli", "Capelli"],
+                    ["occhi", "Occhi"],
+                  ] as const).map(([key, label]) => (
+                    <div
+                      key={key}
+                      className="rounded border border-border/60 bg-parchment-deep/20 p-3"
+                    >
+                      <Label className="mb-1 block font-heading text-xs uppercase tracking-wider text-ink-faded">
+                        {label}
+                      </Label>
+
+                      {access.canEdit ? (
+                        <Input
+                          value={osgdrSheet[key] ?? ""}
+                          onChange={(e) => setSheetField(key, e.target.value)}
+                          className="h-9 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
+                        />
+                      ) : (
+                        <div className="font-script whitespace-pre-wrap text-ink">
+                          {osgdrSheet[key] || "—"}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+                        {access.canAssignCharacter && (
+              <div className="parchment-panel p-4">
+                <h3 className="mb-3 font-heading text-lg">Assegnazione</h3>
+
+                <div className="rounded border border-border/60 bg-parchment-deep/20 p-3">
+                  <Label className="mb-2 block font-heading text-xs uppercase tracking-wider text-ink-faded">
+                    Assegna scheda a
+                  </Label>
+
+                  <select
+                    value={assignedUserId ?? user?.id ?? ""}
+                    onChange={(e) => setAssignedUserId(e.target.value || undefined)}
+                    className="w-full rounded-md border border-border/60 bg-background px-3 py-2 font-script text-foreground"
+                  >
+                    <option value="">Seleziona un utente</option>
+                    {profiles.map((profile) => (
+                      <option key={profile.id} value={profile.id}>
+                        {profile.display_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {useOsgdrForm && (
               <div className="parchment-panel p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <Coins className="h-4 w-4 text-primary" />
@@ -1054,8 +1169,6 @@ const CharacterDetail = () => {
                         labelOverrides={labelOverrides}
                         canCustomizeLabels={isAdmin}
                         onLabelOverrideChange={persistLabelOverride}
-                        assignedUserId={assignedUserId}
-                        onAssignedUserIdChange={setAssignedUserId}
                       />
 
                       {access.canEdit && (
