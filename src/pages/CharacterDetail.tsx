@@ -1070,6 +1070,7 @@ const CharacterDetail = () => {
                         </div>
                       </div>
                     </section>
+                    </section>
                   </>
                 )}
 
