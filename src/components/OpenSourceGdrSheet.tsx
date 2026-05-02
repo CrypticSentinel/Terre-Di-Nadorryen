@@ -905,10 +905,10 @@ export const OpenSourceGdrSheet = ({
       <section className="space-y-4">
   {(() => {
     const woundedParts = BODY_PARTS.filter(
-      (part) => Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0)) > 0
-    );
+  (part) => Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0)) > 0
+);
 
-    const hitLocations = {
+const hitLocations = {
   Alta: [
     { location: "Testa", roll: "1 - 10", key: "Testa" },
     { location: "Braccio SX", roll: "11 - 20", key: "Braccio SX" },
@@ -926,222 +926,236 @@ export const OpenSourceGdrSheet = ({
   ],
 } as const;
 
-    const getSeverityStyles = (severity: WoundSeverity) => {
-      if (severity === "light") {
-        return {
-          badge: "border-amber-600/30 bg-amber-500/10 text-amber-700",
-          zone: "fill-amber-500/25 stroke-amber-700",
-          row: "border-amber-600/20 bg-amber-500/5",
-        };
-      }
-
-      if (severity === "grave") {
-        return {
-          badge: "border-destructive/30 bg-destructive/10 text-destructive",
-          zone: "fill-destructive/22 stroke-destructive",
-          row: "border-destructive/25 bg-destructive/5",
-        };
-      }
-
-      if (severity === "lethal") {
-        return {
-          badge: "border-destructive/40 bg-destructive/15 text-destructive",
-          zone: "fill-destructive/38 stroke-destructive",
-          row: "border-destructive/35 bg-destructive/10",
-        };
-      }
-
-      return {
-        badge: "border-border60 bg-background/40 text-ink-faded",
-        zone: "fill-muted/15 stroke-border",
-        row: "border-border40 bg-background/20",
-      };
+const getSeverityStyles = (severity: WoundSeverity) => {
+  if (severity === "light") {
+    return {
+      badge: "border-amber-600/30 bg-amber-500/10 text-amber-700",
+      zone: "fill-amber-500/25 text-amber-700",
+      row: "border-amber-600/20 bg-amber-500/5",
+      accent: "text-amber-700",
     };
+  }
 
-    const getSeverityLabel = (severity: WoundSeverity) => {
-      if (severity === "light") return "Leggera";
-      if (severity === "grave") return "Grave";
-      if (severity === "lethal") return "Letale";
-      return "Integro";
+  if (severity === "grave") {
+    return {
+      badge: "border-destructive/30 bg-destructive/10 text-destructive",
+      zone: "fill-destructive/22 text-destructive",
+      row: "border-destructive/25 bg-destructive/5",
+      accent: "text-destructive",
     };
+  }
 
-    const getPartDamage = (part: string) =>
-      Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0));
-
-    const getPartThreshold = (part: string) => natural_soglia[part] ?? 0;
-
-    const getPartProtection = (part: string) => {
-      const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
-      const naturalThreshold = getPartThreshold(part);
-      const totalNaturalArmor = naturalThreshold + constitutionModifier;
-      const totalArmor = armorByBodyPart[part] ?? 0;
-      return {
-        totalNaturalArmor,
-        totalArmor,
-        totalProtection: totalNaturalArmor + totalArmor,
-      };
+  if (severity === "lethal") {
+    return {
+      badge: "border-destructive/40 bg-destructive/15 text-destructive",
+      zone: "fill-destructive/38 text-destructive",
+      row: "border-destructive/35 bg-destructive/10",
+      accent: "text-destructive",
     };
+  }
 
-    const bodyZoneMap = [
-      {
-        key: "Testa",
-        label: "Testa",
-        render: (className: string, style: React.CSSProperties) => (
-          <ellipse cx="110" cy="42" rx="24" ry="28" className={className} style={style} />
-        ),
-      },
-      {
-        key: "Collo",
-        label: "Collo",
-        render: (className: string, style: React.CSSProperties) => (
-          <rect x="102" y="68" width="16" height="16" rx="6" className={className} style={style} />
-        ),
-      },
-      {
-        key: "Torace",
-        label: "Torace",
-        render: (className: string, style: React.CSSProperties) => (
-          <path
-            d="M78 88 C84 76, 96 72, 110 72 C124 72, 136 76, 142 88 L146 132 C136 144, 124 150, 110 150 C96 150, 84 144, 74 132 Z"
-            className={className}
-            style={style}
-          />
-        ),
-      },
-      {
-        key: "Addome",
-        label: "Addome",
-        render: (className: string, style: React.CSSProperties) => (
-          <path
-            d="M82 150 C90 144, 100 142, 110 142 C120 142, 130 144, 138 150 L132 192 C124 198, 118 202, 110 202 C102 202, 96 198, 88 192 Z"
-            className={className}
-            style={style}
-          />
-        ),
-      },
-      {
-        key: "Spalla SX",
-        label: "Spalla SX",
-        render: (className: string, style: React.CSSProperties) => (
-          <ellipse cx="63" cy="96" rx="15" ry="18" className={className} style={style} />
-        ),
-      },
-      {
-        key: "Spalla DX",
-        label: "Spalla DX",
-        render: (className: string, style: React.CSSProperties) => (
-          <ellipse cx="157" cy="96" rx="15" ry="18" className={className} style={style} />
-        ),
-      },
-      {
-        key: "Braccio SX",
-        label: "Braccio SX",
-        render: (className: string, style: React.CSSProperties) => (
-          <path
-            d="M44 112 C40 124, 38 138, 40 154 C42 166, 46 176, 52 184 L66 178 C60 164, 58 150, 58 136 C58 126, 60 116, 64 106 Z"
-            className={className}
-            style={style}
-          />
-        ),
-      },
-      {
-        key: "Braccio DX",
-        label: "Braccio DX",
-        render: (className: string, style: React.CSSProperties) => (
-          <path
-            d="M176 112 C180 124, 182 138, 180 154 C178 166, 174 176, 168 184 L154 178 C160 164, 162 150, 162 136 C162 126, 160 116, 156 106 Z"
-            className={className}
-            style={style}
-          />
-        ),
-      },
-      {
-        key: "Mano SX",
-        label: "Mano SX",
-        render: (className: string, style: React.CSSProperties) => (
-          <ellipse cx="52" cy="196" rx="12" ry="10" className={className} style={style} />
-        ),
-      },
-      {
-        key: "Mano DX",
-        label: "Mano DX",
-        render: (className: string, style: React.CSSProperties) => (
-          <ellipse cx="168" cy="196" rx="12" ry="10" className={className} style={style} />
-        ),
-      },
-      {
-        key: "Gamba SX",
-        label: "Gamba SX",
-        render: (className: string, style: React.CSSProperties) => (
-          <path
-            d="M98 202 C92 216, 88 228, 86 244 C85 254, 86 266, 88 278 L100 278 C102 266, 104 254, 106 242 C108 230, 110 216, 112 202 Z"
-            className={className}
-            style={style}
-          />
-        ),
-      },
-      {
-        key: "Gamba DX",
-        label: "Gamba DX",
-        render: (className: string, style: React.CSSProperties) => (
-          <path
-            d="M122 202 C128 216, 132 228, 134 244 C135 254, 134 266, 132 278 L120 278 C118 266, 116 254, 114 242 C112 230, 110 216, 108 202 Z"
-            className={className}
-            style={style}
-          />
-        ),
-      },
-      {
-        key: "Stinco SX",
-        label: "Stinco SX",
-        render: (className: string, style: React.CSSProperties) => (
-          <rect x="88" y="238" width="18" height="44" rx="8" className={className} style={style} />
-        ),
-      },
-      {
-        key: "Stinco DX",
-        label: "Stinco DX",
-        render: (className: string, style: React.CSSProperties) => (
-          <rect x="114" y="238" width="18" height="44" rx="8" className={className} style={style} />
-        ),
-      },
-      {
-        key: "Ginocchio SX",
-        label: "Ginocchio SX",
-        render: (className: string, style: React.CSSProperties) => (
-          <circle cx="97" cy="236" r="9" className={className} style={style} />
-        ),
-      },
-      {
-        key: "Ginocchio DX",
-        label: "Ginocchio DX",
-        render: (className: string, style: React.CSSProperties) => (
-          <circle cx="123" cy="236" r="9" className={className} style={style} />
-        ),
-      },
-      {
-        key: "Piede SX",
-        label: "Piede SX",
-        render: (className: string, style: React.CSSProperties) => (
-          <path
-            d="M82 282 C90 280, 100 280, 108 284 L106 294 C98 296, 88 296, 80 292 Z"
-            className={className}
-            style={style}
-          />
-        ),
-      },
-      {
-        key: "Piede DX",
-        label: "Piede DX",
-        render: (className: string, style: React.CSSProperties) => (
-          <path
-            d="M112 284 C120 280, 130 280, 138 282 L140 292 C132 296, 122 296, 114 294 Z"
-            className={className}
-            style={style}
-          />
-        ),
-      },
-    ] as const;
+  return {
+    badge: "border-border60 bg-background/40 text-ink-faded",
+    zone: "fill-background/35 text-border",
+    row: "border-border30 bg-background/15",
+    accent: "text-ink-faded",
+  };
+};
+
+const getSeverityLabel = (severity: WoundSeverity) => {
+  if (severity === "light") return "Leggera";
+  if (severity === "grave") return "Grave";
+  if (severity === "lethal") return "Letale";
+  return "Integro";
+};
+
+const getPartDamage = (part: string) =>
+  Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0));
+
+const getPartThreshold = (part: string) => natural_soglia[part] ?? 0;
+
+const getPartSeverity = (part: string): WoundSeverity =>
+  getWoundSeverity(getPartDamage(part), getPartThreshold(part));
+
+const getPartPenalty = (part: string) =>
+  getPenaltyFromSeverity(getPartSeverity(part));
+
+const getPartProtection = (part: string) => {
+  const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
+  const naturalThreshold = getPartThreshold(part);
+  const totalNaturalArmor = naturalThreshold + constitutionModifier;
+  const totalArmor = armorByBodyPart[part] ?? 0;
+
+  return {
+    totalNaturalArmor,
+    totalArmor,
+    totalProtection: totalNaturalArmor + totalArmor,
+  };
+};
+
+const bodyPartSummaries = BODY_PARTS.map((part) => {
+  const damage = getPartDamage(part);
+  const threshold = getPartThreshold(part);
+  const severity = getPartSeverity(part);
+  const penalty = getPartPenalty(part);
+  const protection = getPartProtection(part);
+  const styles = getSeverityStyles(severity);
+
+  return {
+    part,
+    damage,
+    threshold,
+    severity,
+    severityLabel: getSeverityLabel(severity),
+    penalty,
+    protection,
+    styles,
+    isWounded: damage > 0,
+    isExpanded: expandedBodyPart === part,
+  };
+});
+
+const fantasyZones = [
+  {
+    key: "Testa",
+    render: (className: string, style: React.CSSProperties) => (
+      <ellipse cx="120" cy="48" rx="24" ry="28" className={className} style={style} />
+    ),
+  },
+  {
+    key: "Torace",
+    render: (className: string, style: React.CSSProperties) => (
+      <path
+        d="M86 94
+           C92 82, 104 76, 120 76
+           C136 76, 148 82, 154 94
+           L158 142
+           C149 153, 137 159, 120 159
+           C103 159, 91 153, 82 142 Z"
+        className={className}
+        style={style}
+      />
+    ),
+  },
+  {
+    key: "Braccio SX",
+    render: (className: string, style: React.CSSProperties) => (
+      <path
+        d="M72 112
+           C64 128, 61 145, 62 163
+           C63 176, 67 189, 74 201
+           L87 195
+           C82 181, 79 166, 79 151
+           C79 137, 82 123, 89 109 Z"
+        className={className}
+        style={style}
+      />
+    ),
+  },
+  {
+    key: "Braccio DX",
+    render: (className: string, style: React.CSSProperties) => (
+      <path
+        d="M168 112
+           C176 128, 179 145, 178 163
+           C177 176, 173 189, 166 201
+           L153 195
+           C158 181, 161 166, 161 151
+           C161 137, 158 123, 151 109 Z"
+        className={className}
+        style={style}
+      />
+    ),
+  },
+  {
+    key: "Mano SX",
+    render: (className: string, style: React.CSSProperties) => (
+      <path
+        d="M70 205
+           C63 207, 58 213, 58 219
+           C58 226, 64 231, 71 231
+           C77 231, 82 226, 82 220
+           C82 213, 77 207, 70 205 Z"
+        className={className}
+        style={style}
+      />
+    ),
+  },
+  {
+    key: "Mano DX",
+    render: (className: string, style: React.CSSProperties) => (
+      <path
+        d="M170 205
+           C177 207, 182 213, 182 219
+           C182 226, 176 231, 169 231
+           C163 231, 158 226, 158 220
+           C158 213, 163 207, 170 205 Z"
+        className={className}
+        style={style}
+      />
+    ),
+  },
+  {
+    key: "Gamba SX",
+    render: (className: string, style: React.CSSProperties) => (
+      <path
+        d="M105 160
+           C98 181, 94 200, 92 223
+           C91 242, 93 262, 98 285
+           L110 285
+           C112 263, 114 243, 117 223
+           C120 201, 123 180, 127 160 Z"
+        className={className}
+        style={style}
+      />
+    ),
+  },
+  {
+    key: "Gamba DX",
+    render: (className: string, style: React.CSSProperties) => (
+      <path
+        d="M135 160
+           C142 181, 146 200, 148 223
+           C149 242, 147 262, 142 285
+           L130 285
+           C128 263, 126 243, 123 223
+           C120 201, 117 180, 113 160 Z"
+        className={className}
+        style={style}
+      />
+    ),
+  },
+  {
+    key: "Piede SX",
+    render: (className: string, style: React.CSSProperties) => (
+      <path
+        d="M95 289
+           C88 289, 82 291, 77 295
+           L78 304
+           C87 307, 99 307, 109 304
+           L108 295
+           C104 291, 100 289, 95 289 Z"
+        className={className}
+        style={style}
+      />
+    ),
+  },
+  {
+    key: "Piede DX",
+    render: (className: string, style: React.CSSProperties) => (
+      <path
+        d="M145 289
+           C150 289, 154 291, 158 295
+           L157 304
+           C147 307, 135 307, 126 304
+           L127 295
+           C132 291, 138 289, 145 289 Z"
+        className={className}
+        style={style}
+      />
+    ),
+  },
+] as const;
 
     return (
       <>
