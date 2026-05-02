@@ -1451,32 +1451,33 @@ const fantasyZones = [
           setSelectedHitZone(getHitZoneFromBodyPart(entry.key));
           setExpandedBodyPart((prev) => (prev === entry.key ? null : entry.key));
         }}
-        className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border px-3 py-3 text-left transition-all ${
+        className={`grid w-full grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-xl border px-3 py-3 text-left transition-all ${
           isActive
             ? "border-red-800 bg-red-700/15 shadow-[0_0_0_1px_rgba(127,29,29,0.35),0_0_18px_rgba(127,29,29,0.18)]"
             : "border-border40 bg-background/20 hover:border-border60 hover:bg-background/35"
         }`}
       >
-        <div className="min-w-0">
-  <div className="font-heading text-sm leading-5 text-ink">
-    {entry.location}
-  </div>
-</div>
+        <div className="min-w-0 self-center">
+          <div className="font-heading text-sm leading-5 text-ink">
+            {entry.location}
+          </div>
+        </div>
 
-<div className="flex flex-col items-end gap-1 text-right">
-  <span className="font-display text-sm leading-5 text-primary">
-    {entry.roll}
-  </span>
-  <span
-    className={`rounded-md px-2 py-1 text-[10px] leading-none font-heading uppercase tracking-[0.12em] ${
-      isActive
-        ? "border border-red-800/40 bg-red-700/15 text-red-900"
-        : zoneStyles.badge
-    }`}
-  >
-    {summary ? summary.severityLabel : "Integro"}
-  </span>
-</div>
+        <div className="flex min-w-[88px] flex-col items-end justify-center gap-1 self-center text-right">
+          <span className="font-display text-sm leading-5 text-primary">
+            {entry.roll}
+          </span>
+
+          <span
+            className={`rounded-md px-2 py-1 text-[10px] leading-none font-heading uppercase tracking-[0.12em] ${
+              isActive
+                ? "border border-red-800/40 bg-red-700/15 text-red-900"
+                : zoneStyles.badge
+            }`}
+          >
+            {summary ? summary.severityLabel : "Integro"}
+          </span>
+        </div>
       </button>
     );
   })}
