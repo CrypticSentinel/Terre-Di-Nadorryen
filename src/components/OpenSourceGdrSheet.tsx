@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2 } from "lucide-react";
+import { Coins, Plus, Trash2 } from "lucide-react";
 import { abilityModifier, formatModifier, magicBaseDamage } from "@/lib/rulesets";
 import { EditableLabel, type LabelOverride } from "@/components/EditableLabel";
 
@@ -938,35 +938,6 @@ export const OpenSourceGdrSheet = ({
               </div>
             );
           })}
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        {lbl("section.monete", "Monete", "font-display text-xl gold-text", "h3")}
-        <div className="grid grid-cols-3 gap-2">
-          {COIN_TYPES.map((c) => (
-            <div key={c.key} className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center">
-              {lbl(
-                `coin.${c.key}`,
-                c.label,
-                "font-heading text-xs uppercase tracking-wider text-ink-faded",
-                "label",
-              )}
-              {canEdit ? (
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  min={0}
-                  value={value.coins[c.key] ?? 0}
-                  onChange={(e) => setCoin(c.key, e.target.value)}
-                  className="h-9 border-0 bg-transparent px-0 text-center font-display text-xl focus-visible:ring-0"
-                />
-              ) : (
-                <div className="font-display text-xl">{value.coins[c.key] ?? 0}</div>
-              )}
-            </div>
-          ))}
         </div>
       </section>
 
