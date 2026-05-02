@@ -826,8 +826,8 @@ const CharacterDetail = () => {
             : "Scheda condivisa della campagna."}
         </div>
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
-                    <aside className="space-y-4 lg:self-start">
+        <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[300px_minmax(0,1fr)]">
+          <aside className="order-2 space-y-4 lg:order-1 lg:self-start">
             <div className="parchment-panel overflow-hidden p-4 sm:p-5">
               <div className="space-y-5">
                 <section className="space-y-4">
@@ -1070,7 +1070,6 @@ const CharacterDetail = () => {
                         </div>
                       </div>
                     </section>
-                    </section>
                   </>
                 )}
 
@@ -1168,7 +1167,7 @@ const CharacterDetail = () => {
             </div>
           </aside>
 
-          <div className="space-y-5">
+          <div className="order-1 space-y-5 lg:order-2">
             <div className="parchment-panel p-5 md:p-6">
               <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0 flex-1">
