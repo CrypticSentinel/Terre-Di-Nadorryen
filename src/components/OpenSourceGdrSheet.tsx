@@ -944,13 +944,13 @@ export const OpenSourceGdrSheet = ({
               : "Letale";
 
       const severityClassName =
-        severity === "none"
-          ? "border-border60 bg-background/40 text-ink-faded"
-          : severity === "light"
-            ? "border-primary/30 bg-primary/10 text-primary"
-            : severity === "grave"
-              ? "border-amber-600/30 bg-amber-500/10 text-amber-700"
-              : "border-destructive/30 bg-destructive/10 text-destructive";
+  severity === "none"
+    ? "border-border60 bg-background/40 text-ink-faded"
+    : severity === "light"
+      ? "border-amber-600/30 bg-amber-500/10 text-amber-700"
+      : severity === "grave"
+        ? "border-destructive/30 bg-destructive/10 text-destructive"
+        : "border-destructive/40 bg-destructive/15 text-destructive";
 
       return (
         <div
