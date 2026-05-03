@@ -476,26 +476,26 @@ if (v === 20) {
         </Button>
       )}
 
-                  {lastResult && (
+                        {lastResult && (
         <div
-          className={`rounded-2xl border-2 border-primary/40 bg-parchment-deep/75 px-6 py-6 text-center shadow-[0_12px_34px_rgba(84,58,29,0.18)] ${
+          className={`rounded-xl border border-primary/30 bg-parchment-deep/45 px-4 py-4 text-center shadow-[0_8px_20px_rgba(84,58,29,0.12)] ${
             rolling ? "animate-roll-die" : "animate-fade-up"
           }`}
         >
-          <div className="font-heading text-sm uppercase tracking-[0.24em] text-primary/80">
+          <div className="font-heading text-xs uppercase tracking-[0.2em] text-primary/80">
             Esito del lancio
           </div>
 
-          <div className="mt-2 font-script text-base uppercase tracking-wider text-ink-faded sm:text-lg">
+          <div className="mt-1 font-script text-sm uppercase tracking-wider text-ink-faded">
             {lastResult.expression}
             {lastResult.bonusRolls && lastResult.bonusRolls.length > 0 && (
               <> + {lastResult.bonusRolls.map(() => `d20`).join(" + ")}</>
             )}
           </div>
 
-          <div className="mt-3 font-display text-6xl gold-text sm:text-7xl">{displayedTotal}</div>
+          <div className="mt-2 font-display text-5xl gold-text sm:text-6xl">{displayedTotal}</div>
 
-          <div className="mt-3 break-words px-2 font-script text-base text-ink-faded sm:text-lg">
+          <div className="mt-2 break-words px-2 font-script text-sm text-ink-faded sm:text-base">
             {lastResult.dice.map((d, i) => (
               <span key={i}>
                 {i > 0 && " + "}
@@ -524,20 +524,20 @@ if (v === 20) {
           </div>
 
           {typeof penaltyTotal === "number" && penaltyTotal > 0 && (
-            <div className="mt-5 rounded-xl border-2 border-destructive/40 bg-destructive/10 px-4 py-4 shadow-sm">
-              <div className="font-heading text-sm uppercase tracking-[0.22em] text-destructive">
-                Attenzione: applica il malus
+            <div className="mt-4 rounded-lg border border-destructive/35 bg-destructive/8 px-3 py-3">
+              <div className="font-heading text-xs uppercase tracking-[0.18em] text-destructive">
+                Applica il malus
               </div>
 
-              <div className="mt-2 font-script text-base italic leading-relaxed text-foreground sm:text-lg">
+              <div className="mt-2 font-script text-sm italic leading-relaxed text-foreground sm:text-base">
                 {penaltyReminder || "Ricorda: sottrai Penalità Ferite + Penalità Aggiuntive + Fatica"}
               </div>
 
-              <div className="mt-3 font-display text-4xl text-destructive sm:text-5xl">
+              <div className="mt-2 font-display text-3xl text-destructive sm:text-4xl">
                 -{penaltyTotal}
               </div>
 
-              <div className="mt-1 font-heading text-sm uppercase tracking-[0.18em] text-destructive/85">
+              <div className="mt-1 font-heading text-xs uppercase tracking-[0.14em] text-destructive/85">
                 Malus da sottrarre
               </div>
             </div>

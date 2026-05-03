@@ -61,7 +61,7 @@ export const CampaignDiceNotifications = () => {
               table: "dice_rolls",
               filter: `campaign_id=eq.${campaignId}`,
             },
-                        (payload) => {
+                                    (payload) => {
               const row = payload.new as DiceRollRow;
               if (seenIdsRef.current.has(row.id)) return;
 
@@ -71,22 +71,22 @@ export const CampaignDiceNotifications = () => {
 
               toast.custom(
                 () => (
-                  <div className="w-[min(92vw,56rem)] rounded-2xl border-2 border-primary/35 bg-parchment-deep/95 px-6 py-5 text-foreground shadow-2xl backdrop-blur-md">
-                    <div className="font-heading text-sm uppercase tracking-[0.24em] text-primary/80">
+                  <div className="w-[min(90vw,42rem)] rounded-xl border border-primary/30 bg-parchment-deep/95 px-5 py-4 text-foreground shadow-xl backdrop-blur-md">
+                    <div className="font-heading text-xs uppercase tracking-[0.2em] text-primary/80">
                       Lancio di dado
                     </div>
 
-                    <div className="mt-2 font-display text-3xl gold-text sm:text-4xl">
+                    <div className="mt-2 font-display text-2xl gold-text sm:text-3xl">
                       {summary.actor}
                     </div>
 
                     {summary.player && (
-                      <div className="mt-1 font-script text-base italic text-ink-faded sm:text-lg">
+                      <div className="mt-1 font-script text-sm italic text-ink-faded sm:text-base">
                         Giocatore: {summary.player}
                       </div>
                     )}
 
-                    <div className="mt-4 rounded-xl border border-border/60 bg-background/50 px-4 py-4 font-script text-lg leading-relaxed text-foreground sm:text-xl">
+                    <div className="mt-3 rounded-lg border border-border/60 bg-background/45 px-4 py-3 font-script text-base leading-relaxed text-foreground sm:text-lg">
                       {summary.detail}
                     </div>
                   </div>
