@@ -1771,67 +1771,80 @@ const fantasyZones = [
 </section>
 
 <section className="space-y-3">
-        {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
-        <div className="grid gap-3 sm:grid-cols-2">
-          {EQUIPMENT_SECTIONS.map((sec) => {
-            const items = sortEquipmentAlphabetically(value.equipment[sec.key] ?? []);
+  {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
 
-            return (
-              <div
-                key={sec.key}
-                className="space-y-1 rounded border border-border/60 bg-parchment-deep/20 p-3"
+  <div className="grid gap-3 sm:grid-cols-2">
+    {EQUIPMENT_SECTIONS.map((sec) => {
+      const items = sortEquipmentAlphabetically(value.equipment[sec.key] ?? []);
+      const filledItems = items.filter((it) => it.text.trim().length > 0);
+      const emptyItems = items.filter((it) => it.text.trim().length === 0);
+
+      return (
+        <div
+          key={sec.key}
+          className="rounded-lg border border-border60 bg-parchment-deep20 p-3"
+        >
+          <div className="mb-2 flex items-center justify-between gap-2">
+            {lbl(
+              `equip.${sec.key}`,
+              sec.label,
+              "font-heading text-sm uppercase tracking-wider text-ink-faded",
+              "h3"
+            )}
+
+            {canEdit ? (
+              <button
+                type="button"
+                onClick={() => addEquipItem(sec.key)}
+                className={`${iconButtonClass} text-primary hover:bg-primary/10`}
+                aria-label={`Aggiungi item a ${sec.label}`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  {lbl(
-                    `equip.${sec.key}`,
-                    sec.label,
-                    "font-heading text-sm uppercase tracking-wider text-ink-faded",
-                    "h3",
-                  )}
-                  {canEdit && (
-                    <button
-                      type="button"
-                      onClick={() => addEquipItem(sec.key)}
-                      className={`${iconButtonClass} text-primary hover:bg-primary/10`}
-                      aria-label={`Aggiungi item a ${sec.label}`}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  )}
+                <Plus className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
+
+          {items.length === 0 && !canEdit ? (
+            <p className="text-xs font-script italic text-ink-faded">
+              Nessun elemento in questa categoria.
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {[...filledItems, ...emptyItems].map((it) => (
+                <div
+                  key={it.id}
+                  className="flex items-center gap-2 rounded-md border border-border40 bg-background/20 px-2.5 py-2"
+                >
+                  {canEdit ? (
+                    <>
+                      <Input
+                        value={it.text}
+                        onChange={(e) => setEquipItem(sec.key, it.id, e.target.value)}
+                        className="h-8 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
+                        placeholder={`Aggiungi ${sec.label.toLowerCase()}`}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => removeEquipItem(sec.key, it.id)}
+                        className={`${iconButtonClass} h-8 w-8 text-destructive hover:bg-destructive/10`}
+                        aria-label={`Rimuovi item da ${sec.label}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </>
+                  ) : it.text.trim() ? (
+                    <span className="font-script text-sm text-ink">{it.text}</span>
+                  ) : null}
                 </div>
-
-                {items.length === 0 && !canEdit && (
-                  <p className="text-xs font-script italic text-ink-faded">—</p>
-                )}
-
-                {items.map((it) => (
-                  <div key={it.id} className="group flex items-center gap-1">
-                    {canEdit ? (
-                      <>
-                        <Input
-                          value={it.text}
-                          onChange={(e) => setEquipItem(sec.key, it.id, e.target.value)}
-                          className="h-9 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeEquipItem(sec.key, it.id)}
-                          className={`${iconButtonClass} text-destructive opacity-90 hover:bg-destructive/10`}
-                          aria-label={`Rimuovi item da ${sec.label}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </>
-                    ) : (
-                      <span className="font-script">• {it.text}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          )}
         </div>
-      </section>
+      );
+    })}
+  </div>
+</section>
 
 <section className="space-y-3">
         {lbl("section.magia", "Magia", "font-display text-xl gold-text", "h3")}
