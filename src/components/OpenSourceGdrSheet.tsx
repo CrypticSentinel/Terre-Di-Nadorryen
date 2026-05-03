@@ -1173,7 +1173,7 @@ const fantasyZones = [
           <div className="space-y-4">
             <div className="rounded-[1.25rem] border border-border60 bg-parchment-deep20 p-4">
               <p className="mb-3 text-center font-script text-xs italic text-ink-faded">
-                Figura di riferimento interattiva in stile cronaca illustrata.
+                Locazioni interattive.
               </p>
 
               <div className="mx-auto flex max-w-[230px] justify-center">
