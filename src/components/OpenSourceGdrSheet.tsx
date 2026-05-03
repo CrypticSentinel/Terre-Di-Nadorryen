@@ -19,6 +19,7 @@ const ABILITIES = [
 const BODY_PARTS = [
   "Testa",
   "Torace",
+  "Addome",
   "Braccio DX",
   "Braccio SX",
   "Mano DX",
@@ -32,6 +33,7 @@ const BODY_PARTS = [
 const natural_soglia: Record<string, number> = {
   Testa: 3,
   Torace: 5,
+  Addome: 4,
   "Braccio DX": 4,
   "Braccio SX": 4,
   "Mano DX": 3,
@@ -371,11 +373,11 @@ const base = {
 };
 
   const isHead = part === "Testa";
-  const isTorso = part === "Torace";
-  const isArm = part === "Braccio DX" || part === "Braccio SX";
-  const isHand = part === "Mano DX" || part === "Mano SX";
-  const isLeg = part === "Gamba DX" || part === "Gamba SX";
-  const isFoot = part === "Piede DX" || part === "Piede SX";
+const isTorso = part === "Torace" || part === "Addome";
+const isArm = part === "Braccio DX" || part === "Braccio SX";
+const isHand = part === "Mano DX" || part === "Mano SX";
+const isLeg = part === "Gamba DX" || part === "Gamba SX";
+const isFoot = part === "Piede DX" || part === "Piede SX";
 
   if (severity === "none") {
     return {
@@ -407,10 +409,12 @@ const base = {
 
     if (isTorso) {
       return {
-        ...base,
-        title: "Torace: ferita grave",
+       ...base,
+        title: `${part}: ferita grave`,
         description:
-          "La ferita può causare difficoltà respiratorie, dolore intenso o emorragie interne. Il personaggio subisce -5 a tutte le azioni dal round successivo.",
+      part === "Torace"
+        ? "La ferita può causare difficoltà respiratorie, dolore intenso o emorragie interne. Il personaggio subisce -5 a tutte le azioni dal round successivo."
+        : "La ferita può compromettere organi interni, equilibrio e resistenza al dolore. Il personaggio subisce -5 a tutte le azioni dal round successivo.",
       };
     }
 
@@ -859,22 +863,22 @@ const setFeritaValue = (part: string, nextValue: string) => {
           );
 
           const hitLocations = {
-            Alta: [
-              { locations: "Testa", roll: "1 - 10", key: "Testa" },
-              { locations: "Braccio SX", roll: "11 - 20", key: "Braccio SX" },
-              { locations: "Braccio DX", roll: "21 - 30", key: "Braccio DX" },
-              { locations: "Mano SX", roll: "31 - 35", key: "Mano SX" },
-              { locations: "Mano DX", roll: "36 - 40", key: "Mano DX" },
-              { locations: "Torace", roll: "41 - 100", key: "Torace" },
-            ],
-            Bassa: [
-              { locations: "Piede SX", roll: "1 - 5", key: "Piede SX" },
-              { locations: "Piede DX", roll: "6 - 10", key: "Piede DX" },
-              { locations: "Gamba SX", roll: "11 - 35", key: "Gamba SX" },
-              { locations: "Gamba DX", roll: "36 - 60", key: "Gamba DX" },
-              { locations: "Torace", roll: "61 - 100", key: "Torace" },
-            ],
-          } as const;
+  Alta: [
+    { locations: "Testa", roll: "1 - 10", key: "Testa" },
+    { locations: "Braccio SX", roll: "11 - 20", key: "Braccio SX" },
+    { locations: "Braccio DX", roll: "21 - 30", key: "Braccio DX" },
+    { locations: "Mano SX", roll: "31 - 35", key: "Mano SX" },
+    { locations: "Mano DX", roll: "36 - 40", key: "Mano DX" },
+    { locations: "Torace", roll: "41 - 100", key: "Torace" },
+  ],
+  Bassa: [
+    { locations: "Piede SX", roll: "1 - 5", key: "Piede SX" },
+    { locations: "Piede DX", roll: "6 - 10", key: "Piede DX" },
+    { locations: "Gamba SX", roll: "11 - 35", key: "Gamba SX" },
+    { locations: "Gamba DX", roll: "36 - 60", key: "Gamba DX" },
+    { locations: "Addome", roll: "61 - 100", key: "Addome" },
+  ],
+} as const;
 
           const getHitZoneFromBodyPart = (part: string): "Alta" | "Bassa" => {
             const upperParts = ["Testa", "Torace", "Braccio SX", "Braccio DX", "Mano SX", "Mano DX"];
@@ -981,20 +985,35 @@ const setFeritaValue = (part: string, nextValue: string) => {
               ),
             },
             {
-              key: "Torace",
-              render: (className: string, style: React.CSSProperties) => (
-                <path
-                  d="M86 94
-                     C92 82, 104 76, 120 76
-                     C136 76, 148 82, 154 94
-                     L158 142
-                     C149 153, 137 159, 120 159
-                     C103 159, 91 153, 82 142 Z"
-                  className={className}
-                  style={style}
-                />
-              ),
-            },
+  key: "Torace",
+  render: (className: string, style: React.CSSProperties) => (
+    <path
+      d="M86 88
+         C92 78, 104 72, 120 72
+         C136 72, 148 78, 154 88
+         L152 118
+         C144 125, 134 129, 120 129
+         C106 129, 96 125, 88 118 Z"
+      className={className}
+      style={style}
+    />
+  ),
+},
+{
+  key: "Addome",
+  render: (className: string, style: React.CSSProperties) => (
+    <path
+      d="M88 118
+         C96 126, 106 130, 120 130
+         C134 130, 144 126, 152 118
+         L158 154
+         C148 163, 136 168, 120 168
+         C104 168, 92 163, 82 154 Z"
+      className={className}
+      style={style}
+    />
+  ),
+},
             {
               key: "Braccio SX",
               render: (className: string, style: React.CSSProperties) => (
