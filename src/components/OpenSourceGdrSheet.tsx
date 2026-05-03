@@ -679,60 +679,54 @@ export const OpenSourceGdrSheet = ({
   return (
     <div className="osgdr-sheet space-y-5 sm:space-y-6">
       <section className="space-y-3">
-  <div className="flex flex-wrap items-baseline justify-between gap-2">
-    {lbl("section.caratteristiche", "Caratteristiche", "font-display text-xl gold-text", "h3")}
-    <p className="font-script text-xs italic text-ink-faded">
-      Totale punti distribuiti: <strong>{totalPoints}</strong>
-    </p>
-  </div>
-
-  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-    {ABILITIES.map((a) => {
-      const v = value.abilities[a.key] ?? 0;
-      const mod = abilityModifier(v);
-
-      return (
-        <div
-          key={a.key}
-          className="rounded-lg border border-border60 bg-parchment-deep20 p-2.5 text-center"
-        >
-          <div className="space-y-0.5">
-            {lbl(
-              `ability.${a.key}`,
-              a.label,
-              "font-heading text-xs uppercase tracking-wider text-ink-faded",
-              "div"
-            )}
-            <div className="text-[11px] font-script italic text-ink-faded">
-              {a.full}
-            </div>
-          </div>
-
-          <div className="mt-2">
-            {canEdit ? (
-              <Input
-                type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                min={1}
-                max={30}
-                value={v}
-                onChange={(e) => setAbility(a.key, e.target.value)}
-                className="h-10 border-0 bg-transparent px-0 text-center font-display text-2xl text-primary focus-visible:ring-0"
-              />
-            ) : (
-              <div className="font-display text-2xl text-primary">{v}</div>
-            )}
-          </div>
-
-          <div className="mt-1 text-xs font-script italic text-ink-faded">
-            Mod. {formatModifier(mod)}
-          </div>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          {lbl("section.caratteristiche", "Caratteristiche", "font-display text-xl gold-text", "h3")}
+          <p className="font-script text-xs italic text-ink-faded">
+            Totale punti distribuiti: <strong>{totalPoints}</strong>
+          </p>
         </div>
-      );
-    })}
-  </div>
-</section>
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {ABILITIES.map((a) => {
+            const v = value.abilities[a.key] ?? 0;
+            const mod = abilityModifier(v);
+
+            return (
+              <div
+                key={a.key}
+                className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
+              >
+                {lbl(
+                  `ability.${a.key}`,
+                  a.label,
+                  "font-heading text-xs uppercase tracking-wider text-ink-faded",
+                  "div",
+                )}
+                {canEdit ? (
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    min={1}
+                    max={30}
+                    value={v}
+                    onChange={(e) => setAbility(a.key, e.target.value)}
+                    className="h-10 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
+                    style={{ fontSize: "18px" }}
+                  />
+                ) : (
+                  <div className="font-display" style={{ fontSize: "18px" }}>
+                    {v}
+                  </div>
+                )}
+                <div className="mt-1 font-script text-xs text-primary" style={{ fontSize: "22px" }}>
+                  {formatModifier(mod)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
 <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
