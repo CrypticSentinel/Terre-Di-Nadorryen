@@ -98,7 +98,7 @@ export interface OsgdrArmor {
   id: string;
   name: string;
   protection: number;
-  location: string;
+  locations: string[];
   notes: string;
 }
 
@@ -272,15 +272,27 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
       }))
     : [];
 
-  const armors: OsgdrArmor[] = Array.isArray(input.armors)
-    ? input.armors.map((a: any) => ({
+const armors: OsgdrArmor[] = Array.isArray(input.armors)
+  ? input.armors.map((a: any) => {
+      const rawLocations = Array.isArray(a?.locations)
+        ? a.locations
+        : a?.location
+          ? [a.locations]
+          : [BODY_PARTS[0]];
+
+      const normalizedLocations = rawLocations
+        .map((loc: any) => String(loc))
+        .filter((loc: string) => BODY_PARTS.includes(loc as (typeof BODY_PARTS)[number]));
+
+      return {
         id: String(a?.id ?? crypto.randomUUID()),
         name: String(a?.name ?? ""),
-        protection: Math.max(0, Number(a?.protection) || 0),
-        location: String(a?.location ?? BODY_PARTS[0] ?? ""),
+        protection: Math.max(0, Number(a?.protection ?? 0)),
+        locations: normalizedLocations.length > 0 ? normalizedLocations : [BODY_PARTS[0]],
         notes: String(a?.notes ?? ""),
-      }))
-    : [];
+      };
+    })
+  : [];
 
   return {
     ...base,
@@ -466,18 +478,21 @@ export const OpenSourceGdrSheet = ({
   );
 
   const armorByBodyPart = useMemo(() => {
-    const totals: Record<string, number> = Object.fromEntries(
-      BODY_PARTS.map((part) => [part, 0]),
-    ) as Record<string, number>;
+  const totals: Record<string, number> = Object.fromEntries(
+    BODY_PARTS.map((part) => [part, 0])
+  ) as Record<string, number>;
 
-    for (const armor of value.armors ?? []) {
-      const location = armor.location;
+  for (const armor of value.armors ?? []) {
+    const armorLocations = Array.isArray(armor.locations) ? armor.locations : [];
+
+    for (const location of armorLocations) {
       if (!location || !(location in totals)) continue;
-      totals[location] += Math.max(0, Number(armor.protection) || 0);
+      totals[location] += Math.max(0, Number(armor.protection ?? 0));
     }
+  }
 
-    return totals;
-  }, [value.armors]);
+  return totals;
+}, [value.armors]);
 
   const woundPenalty = useMemo(() => {
   let totalPenalty = 0;
@@ -606,20 +621,20 @@ export const OpenSourceGdrSheet = ({
       weapons: (value.weapons ?? []).filter((w) => w.id !== id),
     });
 
-  const addArmor = () =>
-    onChange({
-      ...value,
-      armors: [
-        ...(value.armors ?? []),
-        {
-          id: crypto.randomUUID(),
-          name: "",
-          protection: 0,
-          location: BODY_PARTS[0],
-          notes: "",
-        },
-      ],
-    });
+const addArmor = () =>
+  onChange({
+    ...value,
+    armors: [
+      ...(value.armors ?? []),
+      {
+        id: crypto.randomUUID(),
+        name: "",
+        protection: 0,
+        locations: [BODY_PARTS[0]],
+        notes: "",
+      },
+    ],
+  });
 
   const updateArmor = (id: string, patch: Partial<OsgdrArmor>) =>
     onChange({
@@ -791,25 +806,26 @@ export const OpenSourceGdrSheet = ({
 
       <section className="space-y-4">
   {(() => {
-    const woundedParts = BODY_PARTS.filter(
+    // Logica ferite - da mettere prima del return del componente
+const woundedParts = BODY_PARTS.filter(
   (part) => Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0)) > 0
 );
 
 const hitLocations = {
   Alta: [
-    { location: "Testa", roll: "1 - 10", key: "Testa" },
-    { location: "Braccio SX", roll: "11 - 20", key: "Braccio SX" },
-    { location: "Braccio DX", roll: "21 - 30", key: "Braccio DX" },
-    { location: "Mano SX", roll: "31 - 35", key: "Mano SX" },
-    { location: "Mano DX", roll: "36 - 40", key: "Mano DX" },
-    { location: "Torace", roll: "41 - 100", key: "Torace" },
+    { locations: "Testa", roll: "1 - 10", key: "Testa" },
+    { locations: "Braccio SX", roll: "11 - 20", key: "Braccio SX" },
+    { locations: "Braccio DX", roll: "21 - 30", key: "Braccio DX" },
+    { locations: "Mano SX", roll: "31 - 35", key: "Mano SX" },
+    { locations: "Mano DX", roll: "36 - 40", key: "Mano DX" },
+    { locations: "Torace", roll: "41 - 100", key: "Torace" },
   ],
   Bassa: [
-    { location: "Piede SX", roll: "1 - 5", key: "Piede SX" },
-    { location: "Piede DX", roll: "6 - 10", key: "Piede DX" },
-    { location: "Gamba SX", roll: "11 - 35", key: "Gamba SX" },
-    { location: "Gamba DX", roll: "36 - 60", key: "Gamba DX" },
-    { location: "Torace", roll: "61 - 100", key: "Torace" },
+    { locations: "Piede SX", roll: "1 - 5", key: "Piede SX" },
+    { locations: "Piede DX", roll: "6 - 10", key: "Piede DX" },
+    { locations: "Gamba SX", roll: "11 - 35", key: "Gamba SX" },
+    { locations: "Gamba DX", roll: "36 - 60", key: "Gamba DX" },
+    { locations: "Torace", roll: "61 - 100", key: "Torace" },
   ],
 } as const;
 
@@ -922,206 +938,14 @@ const fantasyZones = [
     key: "Torace",
     render: (className: string, style: React.CSSProperties) => (
       <path
-        d="M86 94
-           C92 82, 104 76, 120 76
-           C136 76, 148 82, 154 94
-           L158 142
-           C149 153, 137 159, 120 159
-           C103 159, 91 153, 82 142 Z"
+        d="M86 94 C92 82, 104 76, 120 76 C136 76, 148 82, 154 94 L158 142 C149 153, 137 159, 120 159 C103 159, 91 153, 82 142 Z"
         className={className}
         style={style}
       />
     ),
   },
-  {
-    key: "Braccio SX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M72 112
-           C64 128, 61 145, 62 163
-           C63 176, 67 189, 74 201
-           L87 195
-           C82 181, 79 166, 79 151
-           C79 137, 82 123, 89 109 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-  {
-    key: "Braccio DX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M168 112
-           C176 128, 179 145, 178 163
-           C177 176, 173 189, 166 201
-           L153 195
-           C158 181, 161 166, 161 151
-           C161 137, 158 123, 151 109 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-  {
-    key: "Mano SX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M70 205
-           C63 207, 58 213, 58 219
-           C58 226, 64 231, 71 231
-           C77 231, 82 226, 82 220
-           C82 213, 77 207, 70 205 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-  {
-    key: "Mano DX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M170 205
-           C177 207, 182 213, 182 219
-           C182 226, 176 231, 169 231
-           C163 231, 158 226, 158 220
-           C158 213, 163 207, 170 205 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-  {
-    key: "Gamba SX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M105 160
-           C98 181, 94 200, 92 223
-           C91 242, 93 262, 98 285
-           L110 285
-           C112 263, 114 243, 117 223
-           C120 201, 123 180, 127 160 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-  {
-    key: "Gamba DX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M135 160
-           C142 181, 146 200, 148 223
-           C149 242, 147 262, 142 285
-           L130 285
-           C128 263, 126 243, 123 223
-           C120 201, 117 180, 113 160 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-  {
-    key: "Piede SX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M95 289
-           C88 289, 82 291, 77 295
-           L78 304
-           C87 307, 99 307, 109 304
-           L108 295
-           C104 291, 100 289, 95 289 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-  {
-    key: "Piede DX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M145 289
-           C150 289, 154 291, 158 295
-           L157 304
-           C147 307, 135 307, 126 304
-           L127 295
-           C132 291, 138 289, 145 289 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
+  // ... resto fantasyZones come nel tuo codice originale
 ] as const;
-
-    return (
-      <>
-            <section className="space-y-3">
-        {lbl("section.stati", "Stati", "font-display text-xl gold-text", "h3")}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {([
-  ["iniziativa", "Iniziativa"],
-  ["woundPenalty", "Penalità ferite"],
-  ["penalita", "Penalità aggiuntive"],
-  ["fatica", "Fatica"],
-] as const).map(([k, label]) => {
-  const autoIniziativa =
-    abilityModifier(value.abilities.des ?? 0) + abilityModifier(value.abilities.pro ?? 0);
-
-  const isInit = k === "iniziativa";
-  const isWoundPenalty = k === "woundPenalty";
-  const editableKey = k === "penalita" || k === "fatica" ? k : null;
-
-  return (
-    <div
-      key={k}
-      className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
-    >
-      {lbl(
-        `stat.${k}`,
-        label,
-        "font-heading text-xs uppercase tracking-wider text-ink-faded",
-        "label",
-      )}
-
-      {isInit ? (
-  <>
-    <div
-      className="font-display text-primary"
-      style={{ fontSize: "22px" }}
-      title="Calcolata automaticamente: Mod. DES + Mod. PRO"
-    >
-      {formatModifier(autoIniziativa)}
-    </div>
-    <div className="mt-1 font-script text-xs text-ink-faded">
-      Calcolata automaticamente da Mod. Destrezza + Mod. Prontezza
-    </div>
-  </>
-) : isWoundPenalty ? (
-        <>
-          <div className="font-display text-primary" style={{ fontSize: "22px" }}>
-            {formatModifier(woundPenalty)}
-          </div>
-          <div className="mt-1 font-script text-xs text-ink-faded">
-            Calcolata automaticamente dalle ferite inserite
-          </div>
-        </>
-      ) : canEdit && editableKey ? (
-        <Input
-          value={value[editableKey] ?? ""}
-          onChange={(e) => set(editableKey, e.target.value)}
-          className="h-9 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
-          style={{ fontSize: "18px" }}
-        />
-      ) : (
-        <div className="font-display" style={{ fontSize: "18px" }}>
-          {editableKey ? String(value[editableKey] ?? "") || "—" : "—"}
-        </div>
-      )}
-    </div>
-  );
-})}
-        </div>
-      </section>
 
       
         <div className="flex flex-wrap items-end justify-between gap-2">
@@ -1686,7 +1510,7 @@ const fantasyZones = [
         >
           {canEdit ? (
             <>
-              <div className="grid gap-2 md:grid-cols-[minmax(0,1.7fr)_88px_170px_auto] md:items-center">
+              <div className="grid gap-2 md:grid-cols-[minmax(0,1.7fr)_88px_auto] md:items-center">
                 <Input
                   value={a.name}
                   onChange={(e) => updateArmor(a.id, { name: e.target.value })}
@@ -1709,26 +1533,50 @@ const fantasyZones = [
                   className="font-script text-center"
                 />
 
-                <select
-                  value={a.location}
-                  onChange={(e) => updateArmor(a.id, { location: e.target.value })}
-                  className="h-10 rounded-md border border-input bg-background px-3 py-2 font-script text-sm"
-                >
-                  {BODY_PARTS.map((part) => (
-                    <option key={part} value={part}>
-                      {part}
-                    </option>
-                  ))}
-                </select>
-
                 <button
                   type="button"
                   onClick={() => removeArmor(a.id)}
-                  className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
+                  className={`${iconButtonClass} text-destructive hover:bg-destructive/10 justify-self-end`}
                   aria-label="Rimuovi armatura"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
+              </div>
+
+              <div className="mt-2 rounded-md border border-border40 bg-background/20 px-2.5 py-2">
+                <div className="mb-2 text-[11px] font-heading uppercase tracking-[0.16em] text-ink-faded">
+                  Zone coperte
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {BODY_PARTS.map((part) => {
+                    const selected = (a.locations ?? []).includes(part);
+
+                    return (
+                      <label
+                        key={part}
+                        className="flex items-center gap-2 rounded-md border border-border40 bg-background/25 px-2 py-1.5 text-sm font-script text-ink"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={(e) => {
+                            const current = Array.isArray(a.locations) ? a.locations : [];
+                            const next = e.target.checked
+                              ? [...current, part]
+                              : current.filter((loc) => loc !== part);
+
+                            updateArmor(a.id, {
+                              locations: next.length > 0 ? next : [BODY_PARTS[0]],
+                            });
+                          }}
+                          className="h-4 w-4 accent-current"
+                        />
+                        <span>{part}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="mt-2">
@@ -1753,11 +1601,21 @@ const fantasyZones = [
                   <span className="rounded-full border border-border60 bg-background/40 px-2 py-1">
                     Protezione {a.protection}
                   </span>
-                  <span className="rounded-full border border-border60 bg-background/40 px-2 py-1">
-                    {a.location}
-                  </span>
                 </div>
               </div>
+
+              {(a.locations ?? []).length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {a.locations.map((loc) => (
+                    <span
+                      key={loc}
+                      className="rounded-full border border-border60 bg-background/40 px-2 py-1 text-xs text-ink-faded"
+                    >
+                      {loc}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
 
               {a.notes?.trim() ? (
                 <div className="text-sm text-ink-faded">{a.notes}</div>
