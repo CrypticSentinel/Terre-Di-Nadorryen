@@ -20,14 +20,14 @@ const formatRollSummary = (row: DiceRollRow) => {
   const actor = row.character_name || row.user_display_name || "Anonimo";
   const player =
     row.character_name && row.user_display_name
-      ? ` · giocatore: ${row.user_display_name}`
-      : "";
+      ? row.user_display_name
+      : null;
 
   const detail = row.message?.trim()
     ? row.message
     : `${row.expression} → ${row.total}`;
 
-  return `🎲 ${actor}: ${detail}${player}`;
+  return { actor, player, detail };
 };
 
 export const CampaignDiceNotifications = () => {
@@ -61,12 +61,40 @@ export const CampaignDiceNotifications = () => {
               table: "dice_rolls",
               filter: `campaign_id=eq.${campaignId}`,
             },
-            (payload) => {
+                        (payload) => {
               const row = payload.new as DiceRollRow;
               if (seenIdsRef.current.has(row.id)) return;
 
               seenIdsRef.current.add(row.id);
-              toast(formatRollSummary(row));
+
+              const summary = formatRollSummary(row);
+
+              toast.custom(
+                () => (
+                  <div className="w-[min(92vw,56rem)] rounded-2xl border-2 border-primary/35 bg-parchment-deep/95 px-6 py-5 text-foreground shadow-2xl backdrop-blur-md">
+                    <div className="font-heading text-sm uppercase tracking-[0.24em] text-primary/80">
+                      Lancio di dado
+                    </div>
+
+                    <div className="mt-2 font-display text-3xl gold-text sm:text-4xl">
+                      {summary.actor}
+                    </div>
+
+                    {summary.player && (
+                      <div className="mt-1 font-script text-base italic text-ink-faded sm:text-lg">
+                        Giocatore: {summary.player}
+                      </div>
+                    )}
+
+                    <div className="mt-4 rounded-xl border border-border/60 bg-background/50 px-4 py-4 font-script text-lg leading-relaxed text-foreground sm:text-xl">
+                      {summary.detail}
+                    </div>
+                  </div>
+                ),
+                {
+                  duration: 10000,
+                }
+              );
             }
           )
           .subscribe();
