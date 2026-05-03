@@ -61,7 +61,7 @@ export const CampaignDiceNotifications = () => {
               table: "dice_rolls",
               filter: `campaign_id=eq.${campaignId}`,
             },
-                                    (payload) => {
+                                                (payload) => {
               const row = payload.new as DiceRollRow;
               if (seenIdsRef.current.has(row.id)) return;
 
@@ -71,22 +71,22 @@ export const CampaignDiceNotifications = () => {
 
               toast.custom(
                 () => (
-                  <div className="w-[min(90vw,42rem)] rounded-xl border border-primary/30 bg-parchment-deep/95 px-5 py-4 text-foreground shadow-xl backdrop-blur-md">
-                    <div className="font-heading text-xs uppercase tracking-[0.2em] text-primary/80">
+                  <div className="w-[min(86vw,32rem)] rounded-lg border border-primary/25 bg-parchment-deep/95 px-4 py-3 text-foreground shadow-lg backdrop-blur-md">
+                    <div className="font-heading text-[11px] uppercase tracking-[0.16em] text-primary/80">
                       Lancio di dado
                     </div>
 
-                    <div className="mt-2 font-display text-2xl gold-text sm:text-3xl">
+                    <div className="mt-1.5 font-display text-xl gold-text sm:text-2xl">
                       {summary.actor}
                     </div>
 
                     {summary.player && (
-                      <div className="mt-1 font-script text-sm italic text-ink-faded sm:text-base">
+                      <div className="mt-1 font-script text-xs italic text-ink-faded sm:text-sm">
                         Giocatore: {summary.player}
                       </div>
                     )}
 
-                    <div className="mt-3 rounded-lg border border-border/60 bg-background/45 px-4 py-3 font-script text-base leading-relaxed text-foreground sm:text-lg">
+                    <div className="mt-3 rounded-md border border-border/60 bg-background/45 px-3 py-2.5 font-script text-sm leading-relaxed text-foreground sm:text-base">
                       {summary.detail}
                     </div>
                   </div>
