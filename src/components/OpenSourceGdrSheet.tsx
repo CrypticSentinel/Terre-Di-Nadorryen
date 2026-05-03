@@ -516,17 +516,28 @@ const armorByBodyPart = useMemo(() => {
     onChange({ ...value, [k]: v });
 
   const setAbility = (key: Ability, raw: string) => {
-    const n = Math.max(0, Math.min(30, Number(raw) || 0));
-    onChange({ ...value, abilities: { ...value.abilities, [key]: n } });
-  };
+  if (raw === "") {
+    onChange({ ...value, abilities: { ...value.abilities, [key]: 0 } });
+    return;
+  }
+
+  const n = Math.max(0, Math.min(30, Number(raw)));
+  onChange({ ...value, abilities: { ...value.abilities, [key]: Number.isFinite(n) ? n : 0 } });
+};
 
   const setMagic = (school: MagicSchool, raw: string) => {
-    const n = Math.max(0, Math.min(99, Number(raw) || 0));
-    onChange({ ...value, magic: { ...value.magic, [school]: n } });
-  };
+  if (raw === "") {
+    onChange({ ...value, magic: { ...value.magic, [school]: 0 } });
+    return;
+  }
+
+  const n = Math.max(0, Math.min(99, Number(raw)));
+  onChange({ ...value, magic: { ...value.magic, [school]: Number.isFinite(n) ? n : 0 } });
+};
 
   const setFeritaValue = (part: string, nextValue: string) => {
-  const damage = Math.max(0, Math.abs(Number(nextValue) || 0));
+  const numericValue = nextValue === "" ? 0 : Number(nextValue);
+  const damage = Math.max(0, Math.abs(Number.isFinite(numericValue) ? numericValue : 0));
   const threshold = natural_soglia[part] ?? 0;
   const severity = getWoundSeverity(damage, threshold);
 
@@ -722,16 +733,17 @@ const armorByBodyPart = useMemo(() => {
                 )}
                 {canEdit ? (
                   <Input
-                    type="number"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    min={1}
-                    max={30}
-                    value={v}
-                    onChange={(e) => setAbility(a.key, e.target.value)}
-                    className="h-10 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
-                    style={{ fontSize: "18px" }}
-                  />
+  type="text"
+  inputMode="numeric"
+  pattern="[0-9]*"
+  value={String(v)}
+  onChange={(e) => {
+    const raw = e.target.value.replace(/\D/g, "");
+    setAbility(a.key, raw);
+  }}
+  className="h-10 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
+  style={{ fontSize: "18px" }}
+/>
                 ) : (
                   <div className="font-display" style={{ fontSize: "18px" }}>
                     {v}
@@ -773,19 +785,18 @@ const armorByBodyPart = useMemo(() => {
                       className="h-9 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
                     />
                     <Input
-                      type="number"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      min={0}
-                      max={20}
-                      value={s.grade}
-                      onChange={(e) =>
-                        updateSkill(s.id, {
-                          grade: Math.max(0, Math.min(20, Number(e.target.value) || 0)),
-                        })
-                      }
-                      className="h-9 w-16 border border-border/60 px-0 text-center font-display focus-visible:ring-0"
-                    />
+  type="text"
+  inputMode="numeric"
+  pattern="[0-9]*"
+  value={String(s.grade)}
+  onChange={(e) => {
+    const raw = e.target.value.replace(/\D/g, "");
+    updateSkill(s.id, {
+      grade: raw === "" ? 0 : Math.max(0, Math.min(20, Number(raw))),
+    });
+  }}
+  className="h-9 w-16 border border-border/60 px-0 text-center font-display focus-visible:ring-0"
+/>
                     <button
                       type="button"
                       onClick={() => removeSkill(s.id)}
@@ -1711,19 +1722,19 @@ const fantasyZones = [
 
   <div className="lg:col-span-1">
     <Input
-      type="number"
-      inputMode="numeric"
-      pattern="[0-9]*"
-      min={0}
-      value={a.protection}
-      onChange={(e) =>
-        updateArmor(a.id, {
-          protection: Math.max(0, Number(e.target.value) || 0),
-        })
-      }
-      placeholder="Protezione"
-      className="font-script"
-    />
+  type="text"
+  inputMode="numeric"
+  pattern="[0-9]*"
+  value={String(a.protection)}
+  onChange={(e) => {
+    const raw = e.target.value.replace(/\D/g, "");
+    updateArmor(a.id, {
+      protection: raw === "" ? 0 : Math.max(0, Number(raw)),
+    });
+  }}
+  placeholder="Protezione"
+  className="font-script"
+/>
   </div>
 
   <div className="sm:col-span-2 lg:col-span-4 rounded-md border border-input bg-background px-3 py-2">
@@ -1902,15 +1913,16 @@ const fantasyZones = [
                 )}
                 {canEdit ? (
                   <Input
-                    type="number"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    min={0}
-                    max={99}
-                    value={grade}
-                    onChange={(e) => setMagic(school, e.target.value)}
-                    className="h-9 border-0 bg-transparent px-0 text-center font-display text-xl focus-visible:ring-0"
-                  />
+  type="text"
+  inputMode="numeric"
+  pattern="[0-9]*"
+  value={String(grade)}
+  onChange={(e) => {
+    const raw = e.target.value.replace(/\D/g, "");
+    setMagic(school, raw);
+  }}
+  className="h-9 border-0 bg-transparent px-0 text-center font-display text-xl focus-visible:ring-0"
+/>
                 ) : (
                   <div className="font-display text-xl">{grade}</div>
                 )}
