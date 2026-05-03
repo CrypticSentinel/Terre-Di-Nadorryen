@@ -74,8 +74,13 @@ const formatExpression = (groups: DiceGroup[], modifier: number) => {
 };
 
 const formatRollSummary = (row: DiceRollRow) => {
-  const who = row.character_name || row.user_display_name || "Anonimo";
-  return `🎲 ${who}: ${row.expression} → ${row.total}`;
+  const actor = row.character_name || row.user_display_name || "Anonimo";
+  const player =
+    row.character_name && row.user_display_name
+      ? ` · giocatore: ${row.user_display_name}`
+      : "";
+
+  return `🎲 ${actor}: ${row.expression} → ${row.total}${player}`;
 };
 
 export const DiceRoller = ({
@@ -140,9 +145,7 @@ export const DiceRoller = ({
           seenIdsRef.current.add(row.id);
           setHistory((prev) => [row, ...prev].slice(0, 200));
 
-          if (row.user_id !== user?.id) {
-            toast(formatRollSummary(row));
-          }
+          toast(formatRollSummary(row));
         }
       )
       .on(
@@ -272,24 +275,20 @@ export const DiceRoller = ({
 
       let message = "";
 
-      if (isSingleD20) {
-        const v = dice[0].value;
+if (isSingleD20) {
+  const v = dice[0].value;
 
-        if (v === 1) {
-          message = "💀 Fallimento critico!";
-          toast.error(message);
-        } else if (v === 20) {
-          message = "✨ 20 Naturale, ritira e ricordati di aggiungere 1 PE";
-          toast.success(message);
-          setPendingBonusD20(true);
-        } else {
-          message = `🎲 d20 → ${v}${modifier ? ` (totale ${total})` : ""}`;
-          toast(message);
-        }
-      } else {
-        message = `🎲 ${expression} → ${total}`;
-        toast(message);
-      }
+  if (v === 1) {
+    message = "💀 Fallimento critico!";
+  } else if (v === 20) {
+    message = "✨ 20 Naturale, ritira e ricordati di aggiungere 1 PE";
+    setPendingBonusD20(true);
+  } else {
+    message = `🎲 d20 → ${v}${modifier ? ` (totale ${total})` : ""}`;
+  }
+} else {
+  message = `🎲 ${expression} → ${total}`;
+}
 
       publishRoll({ expression, dice, modifier, total, message });
     }, 500);
@@ -317,19 +316,16 @@ export const DiceRoller = ({
 
       let message = "";
 
-      if (v === 20) {
-        message = `✨ Ancora 20! Ritira di nuovo · cumulato ${newCumulative}`;
-        toast.success(message);
-        setPendingBonusD20(true);
-      } else if (v === 1) {
-        message = `💀 Ritiro = 1 · cumulato ${newCumulative}`;
-        toast.error(message);
-        setPendingBonusD20(false);
-      } else {
-        message = `🎲 Ritiro d20 → ${v} · cumulato ${newCumulative}`;
-        toast(message);
-        setPendingBonusD20(false);
-      }
+if (v === 20) {
+  message = `✨ Ancora 20! Ritira di nuovo · cumulato ${newCumulative}`;
+  setPendingBonusD20(true);
+} else if (v === 1) {
+  message = `💀 Ritiro = 1 · cumulato ${newCumulative}`;
+  setPendingBonusD20(false);
+} else {
+  message = `🎲 Ritiro d20 → ${v} · cumulato ${newCumulative}`;
+  setPendingBonusD20(false);
+}
 
       const dice: RolledDie[] = [{ sides: 20, value: v }];
 
