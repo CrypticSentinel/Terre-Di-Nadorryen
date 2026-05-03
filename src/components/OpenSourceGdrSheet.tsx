@@ -479,6 +479,8 @@ export const OpenSourceGdrSheet = ({
   
   const [armorProtectionDrafts, setArmorProtectionDrafts] = useState<Record<string, string>>({});
 
+  const [skillGradeDrafts, setSkillGradeDrafts] = useState<Record<string, string>>({});
+  
   const totalPoints = useMemo(
     () => ABILITIES.reduce((acc, a) => acc + (Number(value.abilities[a.key]) || 0), 0),
     [value.abilities],
@@ -801,17 +803,33 @@ const setFeritaValue = (part: string, nextValue: string) => {
                       onChange={(e) => updateSkill(s.id, { name: e.target.value })}
                       className="h-9 flex-1 border-0 bg-transparent px-0 font-script focus-visible:ring-0"
                     />
-                    <Input
+<Input
   type="text"
   inputMode="numeric"
   pattern="[0-9]*"
-  value={s.grade === 0 ? "" : String(s.grade)}
+  value={skillGradeDrafts[s.id] ?? String(s.grade)}
   onChange={(e) => {
     const raw = e.target.value.replace(/\D/g, "");
+
+    setSkillGradeDrafts((prev) => ({
+      ...prev,
+      [s.id]: raw,
+    }));
+
     if (raw === "") return;
-    updateSkill(s.id, { grade: Math.max(0, Math.min(20, Number(raw))) });
+
+    updateSkill(s.id, {
+      grade: Math.max(0, Math.min(20, Number(raw))),
+    });
   }}
-  className="h-9 w-16 border border-border/60 px-0 text-center font-display focus-visible:ring-0"
+  onBlur={() => {
+    setSkillGradeDrafts((prev) => {
+      const next = { ...prev };
+      delete next[s.id];
+      return next;
+    });
+  }}
+  className="h-9 w-16 border border-border60 px-0 text-center font-display focus-visible:ring-0"
 />
                     <button
                       type="button"
