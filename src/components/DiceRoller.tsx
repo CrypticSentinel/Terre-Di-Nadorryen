@@ -75,6 +75,11 @@ const formatExpression = (groups: DiceGroup[], modifier: number) => {
   return expr;
 };
 
+const formatPenaltyNote = (penaltyTotal?: number) => {
+  if (!penaltyTotal || penaltyTotal <= 0) return null;
+  return `Ricorda malus: -${penaltyTotal} (Ferite + Penalità Aggiuntive + Fatica)`;
+};
+
 const formatRollSummary = (row: DiceRollRow) => {
   const actor = row.character_name || row.user_display_name || "Anonimo";
   const player =
@@ -194,7 +199,7 @@ export const DiceRoller = ({
   const removeGroup = (id: string) =>
     setGroups((prev) => (prev.length > 1 ? prev.filter((g) => g.id !== id) : prev));
 
-  const publishRoll = async (params: {
+    const publishRoll = async (params: {
     expression: string;
     dice: RolledDie[];
     modifier: number;
@@ -215,6 +220,11 @@ export const DiceRoller = ({
       userName = prof?.display_name ?? null;
     } catch {}
 
+    const penaltyNote = formatPenaltyNote(penaltyTotal);
+    const finalMessage = penaltyNote
+      ? `${params.message} · ${penaltyNote}`
+      : params.message;
+
     const insertRow = {
       campaign_id: campaignId,
       character_id: characterId ?? null,
@@ -225,7 +235,7 @@ export const DiceRoller = ({
       dice: params.dice as any,
       modifier: params.modifier,
       total: params.total,
-      message: params.message,
+      message: finalMessage,
     };
 
     const { data, error } = await supabase
@@ -504,6 +514,16 @@ if (v === 20) {
               </>
             )}
           </div>
+                  {typeof penaltyTotal === "number" && penaltyTotal > 0 && (
+          <div className="mt-3 border-t border-border/50 px-3 pt-2 text-center">
+            <div className="font-script text-[11px] italic text-ink-faded">
+              {penaltyReminder || "Ricorda: sottrai Penalità Ferite + Penalità Aggiuntive + Fatica"}
+            </div>
+            <div className="mt-1 font-heading text-xs text-destructive">
+              Malus da sottrarre: -{penaltyTotal}
+            </div>
+          </div>
+        )}
         </div>
       )}
 

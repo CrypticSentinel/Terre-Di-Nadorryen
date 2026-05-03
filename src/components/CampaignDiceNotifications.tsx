@@ -12,6 +12,7 @@ interface DiceRollRow {
   user_display_name: string | null;
   expression: string;
   total: number;
+  message: string | null;
   created_at: string;
 }
 
@@ -22,7 +23,11 @@ const formatRollSummary = (row: DiceRollRow) => {
       ? ` · giocatore: ${row.user_display_name}`
       : "";
 
-  return `🎲 ${actor}: ${row.expression} → ${row.total}${player}`;
+  const detail = row.message?.trim()
+    ? row.message
+    : `${row.expression} → ${row.total}`;
+
+  return `🎲 ${actor}: ${detail}${player}`;
 };
 
 export const CampaignDiceNotifications = () => {
