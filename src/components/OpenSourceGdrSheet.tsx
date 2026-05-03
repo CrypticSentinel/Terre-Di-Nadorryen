@@ -1853,64 +1853,60 @@ const fantasyZones = [
 </section>
 
 <section className="space-y-3">
-  <div className="space-y-1">
-    {lbl("section.magia", "Magia", "font-display text-xl gold-text", "h3")}
-    <p className="font-script text-xs italic text-ink-faded">
-      Punteggio per ciascuna delle dieci scuole di magia libera.
-    </p>
-  </div>
+        {lbl("section.magia", "Magia", "font-display text-xl gold-text", "h3")}
+        <div className="flex flex-wrap items-center gap-2">
+  <a
+    href="https://crypticsentinel.github.io/Open-Source-GDR/Magia%20Libera/SpellCheck/"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-flex items-center gap-2 rounded-lg border border-border60 bg-parchment-deep20 px-3 py-2 text-sm font-heading text-primary transition-all hover:border-border80 hover:bg-background/40"
+  >
+    <span>Apri Spell Check</span>
+    <span aria-hidden="true">↗</span>
+  </a>
 
-  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-    {MAGIC_SCHOOLS.map((school) => {
-      const grade = value.magic[school] ?? 0;
-      const dmg = magicBaseDamage(grade);
+  <p className="text-xs font-script italic text-ink-faded">
+    Calcolo rapido della difficoltà degli incantesimi.
+  </p>
+</div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          {MAGIC_SCHOOLS.map((school) => {
+            const grade = value.magic[school] ?? 0;
+            const dmg = magicBaseDamage(grade);
 
-      return (
-        <div
-          key={school}
-          className="rounded-lg border border-border60 bg-parchment-deep20 p-2.5 text-left"
-        >
-          <div className="mb-2 flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              {lbl(
-                `magic.${school}`,
-                school,
-                "font-heading text-xs uppercase tracking-wider text-ink-faded",
-                "div"
-              )}
-            </div>
-
-            <div
-              className="shrink-0 rounded-full border border-border50 bg-background/30 px-2 py-0.5 text-[10px] font-heading uppercase tracking-[0.16em] text-primary"
-              title="Danno base di questa scuola"
-            >
-              {formatModifier(dmg)}
-            </div>
-          </div>
-
-          {canEdit ? (
-            <Input
-              type="number"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              min={0}
-              max={99}
-              value={grade}
-              onChange={(e) => setMagic(school, e.target.value)}
-              className="h-10 border-0 bg-transparent px-0 font-display text-2xl text-primary focus-visible:ring-0"
-            />
-          ) : (
-            <div className="font-display text-2xl text-primary">{grade}</div>
-          )}
-
-          <div className="mt-1 text-[11px] font-script italic text-ink-faded">
-            Danno base: {formatModifier(dmg)}
-          </div>
+            return (
+              <div
+                key={school}
+                className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
+              >
+                {lbl(
+                  `magic.${school}`,
+                  school,
+                  "font-heading text-xs uppercase tracking-wider text-ink-faded",
+                  "label",
+                )}
+                {canEdit ? (
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    min={0}
+                    max={99}
+                    value={grade}
+                    onChange={(e) => setMagic(school, e.target.value)}
+                    className="h-9 border-0 bg-transparent px-0 text-center font-display text-xl focus-visible:ring-0"
+                  />
+                ) : (
+                  <div className="font-display text-xl">{grade}</div>
+                )}
+                <div className="mt-1 text-xs font-script text-primary" title="Danno base incantesimo per questa scuola">
+                  Danno base {formatModifier(dmg)}
+                </div>
+              </div>
+            );
+          })}
         </div>
-      );
-    })}
-  </div>
-</section>
+      </section>
 
       <section className="space-y-3">
         {lbl("section.note", "Note", "font-display text-xl gold-text", "h3")}
