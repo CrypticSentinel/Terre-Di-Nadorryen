@@ -98,7 +98,7 @@ export interface OsgdrArmor {
   id: string;
   name: string;
   protection: number;
-  location: string;
+  locations: string[];
   notes: string;
 }
 
@@ -272,15 +272,29 @@ export function normalizeOsgdrSheet(input: any): OsgdrSheet {
       }))
     : [];
 
-  const armors: OsgdrArmor[] = Array.isArray(input.armors)
-    ? input.armors.map((a: any) => ({
+const armors: OsgdrArmor[] = Array.isArray(input.armors)
+  ? input.armors.map((a: any) => {
+      const rawLocations = Array.isArray(a?.locations)
+        ? a.locations
+        : a?.locations
+          ? [a.locations]
+          : [BODY_PARTS[0]];
+
+      const locations = rawLocations
+        .map((loc: any) => String(loc))
+        .filter((loc: string) =>
+          BODY_PARTS.includes(loc as (typeof BODY_PARTS)[number]),
+        );
+
+      return {
         id: String(a?.id ?? crypto.randomUUID()),
         name: String(a?.name ?? ""),
         protection: Math.max(0, Number(a?.protection) || 0),
-        location: String(a?.location ?? BODY_PARTS[0] ?? ""),
+        locations: locations.length > 0 ? locations : [BODY_PARTS[0]],
         notes: String(a?.notes ?? ""),
-      }))
-    : [];
+      };
+    })
+  : [];
 
   return {
     ...base,
@@ -465,19 +479,23 @@ export const OpenSourceGdrSheet = ({
     [value.abilities],
   );
 
-  const armorByBodyPart = useMemo(() => {
-    const totals: Record<string, number> = Object.fromEntries(
-      BODY_PARTS.map((part) => [part, 0]),
-    ) as Record<string, number>;
+const armorByBodyPart = useMemo(() => {
+  const totals: Record<string, number> = Object.fromEntries(
+    BODY_PARTS.map((part) => [part, 0]),
+  ) as Record<string, number>;
 
-    for (const armor of value.armors ?? []) {
-      const location = armor.location;
+  for (const armor of value.armors ?? []) {
+    const protection = Math.max(0, Number(armor.protection) || 0);
+    const locations = Array.isArray(armor.locations) ? armor.locations : [];
+
+    for (const location of locations) {
       if (!location || !(location in totals)) continue;
-      totals[location] += Math.max(0, Number(armor.protection) || 0);
+      totals[location] += protection;
     }
+  }
 
-    return totals;
-  }, [value.armors]);
+  return totals;
+}, [value.armors]);
 
   const woundPenalty = useMemo(() => {
   let totalPenalty = 0;
@@ -607,19 +625,19 @@ export const OpenSourceGdrSheet = ({
     });
 
   const addArmor = () =>
-    onChange({
-      ...value,
-      armors: [
-        ...(value.armors ?? []),
-        {
-          id: crypto.randomUUID(),
-          name: "",
-          protection: 0,
-          location: BODY_PARTS[0],
-          notes: "",
-        },
-      ],
-    });
+  onChange({
+    ...value,
+    armors: [
+      ...(value.armors ?? []),
+      {
+        id: crypto.randomUUID(),
+        name: "",
+        protection: 0,
+        locations: [BODY_PARTS[0]],
+        notes: "",
+      },
+    ],
+  });
 
   const updateArmor = (id: string, patch: Partial<OsgdrArmor>) =>
     onChange({
@@ -797,19 +815,19 @@ export const OpenSourceGdrSheet = ({
 
 const hitLocations = {
   Alta: [
-    { location: "Testa", roll: "1 - 10", key: "Testa" },
-    { location: "Braccio SX", roll: "11 - 20", key: "Braccio SX" },
-    { location: "Braccio DX", roll: "21 - 30", key: "Braccio DX" },
-    { location: "Mano SX", roll: "31 - 35", key: "Mano SX" },
-    { location: "Mano DX", roll: "36 - 40", key: "Mano DX" },
-    { location: "Torace", roll: "41 - 100", key: "Torace" },
+    { locations: "Testa", roll: "1 - 10", key: "Testa" },
+    { locations: "Braccio SX", roll: "11 - 20", key: "Braccio SX" },
+    { locations: "Braccio DX", roll: "21 - 30", key: "Braccio DX" },
+    { locations: "Mano SX", roll: "31 - 35", key: "Mano SX" },
+    { locations: "Mano DX", roll: "36 - 40", key: "Mano DX" },
+    { locations: "Torace", roll: "41 - 100", key: "Torace" },
   ],
   Bassa: [
-    { location: "Piede SX", roll: "1 - 5", key: "Piede SX" },
-    { location: "Piede DX", roll: "6 - 10", key: "Piede DX" },
-    { location: "Gamba SX", roll: "11 - 35", key: "Gamba SX" },
-    { location: "Gamba DX", roll: "36 - 60", key: "Gamba DX" },
-    { location: "Torace", roll: "61 - 100", key: "Torace" },
+    { locations: "Piede SX", roll: "1 - 5", key: "Piede SX" },
+    { locations: "Piede DX", roll: "6 - 10", key: "Piede DX" },
+    { locations: "Gamba SX", roll: "11 - 35", key: "Gamba SX" },
+    { locations: "Gamba DX", roll: "36 - 60", key: "Gamba DX" },
+    { locations: "Torace", roll: "61 - 100", key: "Torace" },
   ],
 } as const;
 
@@ -1667,12 +1685,11 @@ const fantasyZones = [
       <section className="space-y-3">
   <div className="flex items-center justify-between gap-2">
     {lbl("section.armors", "Armature", "font-display text-xl gold-text", "h3")}
-    {canEdit ? (
+    {canEdit && (
       <Button variant="outline" size="sm" onClick={addArmor} className="font-heading">
-        <Plus className="mr-1 h-4 w-4" />
-        Aggiungi
+        <Plus className="mr-1 h-4 w-4" /> Aggiungi
       </Button>
-    ) : null}
+    )}
   </div>
 
   {!value.armors || value.armors.length === 0 ? (
@@ -1680,47 +1697,69 @@ const fantasyZones = [
   ) : (
     <div className="space-y-2">
       {value.armors.map((a) => (
-        <div
-          key={a.id}
-          className="rounded-lg border border-border60 bg-parchment-deep20 p-2.5"
-        >
+        <div key={a.id} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
           {canEdit ? (
-            <>
-              <div className="grid gap-2 md:grid-cols-[minmax(0,1.7fr)_88px_170px_auto] md:items-center">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <Input
+                value={a.name}
+                onChange={(e) => updateArmor(a.id, { name: e.target.value })}
+                placeholder="Nome armatura"
+                className="font-script"
+              />
+
+              <Input
+                type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                min={0}
+                value={a.protection}
+                onChange={(e) =>
+                  updateArmor(a.id, {
+                    protection: Math.max(0, Number(e.target.value) || 0),
+                  })
+                }
+                placeholder="Protezione"
+                className="font-script"
+              />
+
+              <div className="rounded-md border border-input bg-background px-3 py-2 sm:col-span-2 lg:col-span-2">
+                <div className="mb-2 font-heading text-xs uppercase tracking-wider text-ink-faded">
+                  Zone coperte
+                </div>
+                <div className="grid grid-cols-2 gap-1">
+                  {BODY_PARTS.map((part) => {
+                    const selected = (a.locations ?? []).includes(part);
+
+                    return (
+                      <label key={part} className="flex items-center gap-2 font-script text-sm">
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={(e) => {
+                            const current = Array.isArray(a.locations) ? a.locations : [];
+                            const next = e.target.checked
+                              ? [...current, part]
+                              : current.filter((loc) => loc !== part);
+
+                            updateArmor(a.id, {
+                              locations: next.length > 0 ? next : [BODY_PARTS[0]],
+                            });
+                          }}
+                        />
+                        <span>{part}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex gap-2 sm:col-span-2 lg:col-span-4">
                 <Input
-                  value={a.name}
-                  onChange={(e) => updateArmor(a.id, { name: e.target.value })}
-                  placeholder="Nome armatura"
+                  value={a.notes}
+                  onChange={(e) => updateArmor(a.id, { notes: e.target.value })}
+                  placeholder="Note"
                   className="font-script"
                 />
-
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  min={0}
-                  value={a.protection}
-                  onChange={(e) =>
-                    updateArmor(a.id, {
-                      protection: Math.max(0, Number(e.target.value) || 0),
-                    })
-                  }
-                  placeholder="Prot."
-                  className="font-script text-center"
-                />
-
-                <select
-                  value={a.location}
-                  onChange={(e) => updateArmor(a.id, { location: e.target.value })}
-                  className="h-10 rounded-md border border-input bg-background px-3 py-2 font-script text-sm"
-                >
-                  {BODY_PARTS.map((part) => (
-                    <option key={part} value={part}>
-                      {part}
-                    </option>
-                  ))}
-                </select>
-
                 <button
                   type="button"
                   onClick={() => removeArmor(a.id)}
@@ -1730,38 +1769,16 @@ const fantasyZones = [
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
-
-              <div className="mt-2">
-                <Input
-                  value={a.notes}
-                  onChange={(e) => updateArmor(a.id, { notes: e.target.value })}
-                  placeholder="Note"
-                  className="font-script"
-                />
-              </div>
-            </>
+            </div>
           ) : (
-            <div className="space-y-1.5 font-script">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <strong className="font-heading text-ink">
-                    {a.name?.trim() || "Armatura senza nome"}
-                  </strong>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 text-xs text-ink-faded">
-                  <span className="rounded-full border border-border60 bg-background/40 px-2 py-1">
-                    Protezione {a.protection}
-                  </span>
-                  <span className="rounded-full border border-border60 bg-background/40 px-2 py-1">
-                    {a.location}
-                  </span>
-                </div>
+            <div className="space-y-1 font-script">
+              <div>
+                <strong className="font-heading text-ink">{a.name || "—"}</strong>
               </div>
-
-              {a.notes?.trim() ? (
-                <div className="text-sm text-ink-faded">{a.notes}</div>
-              ) : null}
+              <div className="text-sm text-ink-faded">
+                Protezione: {a.protection} · Zone: {(a.locations ?? []).join(", ") || "—"}
+              </div>
+              {a.notes && <div className="text-sm text-ink-faded">{a.notes}</div>}
             </div>
           )}
         </div>
