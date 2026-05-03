@@ -61,6 +61,8 @@ interface DiceRollerProps {
   characterName?: string;
   variant?: "panel" | "embedded";
   onClose?: () => void;
+  penaltyReminder?: string;
+  penaltyTotal?: number;
 }
 
 const formatExpression = (groups: DiceGroup[], modifier: number) => {
@@ -89,6 +91,8 @@ export const DiceRoller = ({
   characterName,
   variant = "panel",
   onClose,
+  penaltyReminder,
+  penaltyTotal,
 }: DiceRollerProps) => {
   const { user } = useAuth();
   const [groups, setGroups] = useState<DiceGroup[]>([
@@ -559,6 +563,8 @@ interface DockProps {
   campaignId?: string;
   characterId?: string;
   characterName?: string;
+  penaltyReminder?: string;
+  penaltyTotal?: number;
 }
 
 export const DiceRollerDock = (props: DockProps) => {

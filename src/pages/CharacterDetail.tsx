@@ -37,6 +37,7 @@ import {
   OpenSourceGdrSheet,
   EMPTY_OSGDR_SHEET,
   normalizeOsgdrSheet,
+  getTotalWoundPenalty,
   type OsgdrSheet,
 } from "@/components/OpenSourceGdrSheet";
 import { EditableLabel, type LabelOverride } from "@/components/EditableLabel";
@@ -180,6 +181,15 @@ const CharacterDetail = () => {
   const [concept, setConcept] = useState("");
   const [fields, setFields] = useState<CustomField[]>([]);
   const [osgdrSheet, setOsgdrSheet] = useState<OsgdrSheet>(EMPTY_OSGDR_SHEET);
+  const woundPenalty = useMemo(() => getTotalWoundPenalty(osgdrSheet), [osgdrSheet]);
+const additionalPenalty = Number(osgdrSheet.penalita || 0);
+const fatiguePenalty = Number(osgdrSheet.fatica || 0);
+const totalPenaltyReminder = Math.abs(woundPenalty) + additionalPenalty + fatiguePenalty;
+
+const penaltyReminder =
+  totalPenaltyReminder > 0
+    ? `Ricorda: sottrai Penalità Ferite + Penalità Aggiuntive + Fatica = -${totalPenaltyReminder}`
+    : "Ricorda: sottrai Penalità Ferite + Penalità Aggiuntive + Fatica";
   const [labelOverrides, setLabelOverrides] = useState<LabelOverridesMap>({});
   const [background, setBackground] = useState<string>("");
   const [assignedUserId, setAssignedUserId] = useState<string | undefined>(undefined);
@@ -1220,6 +1230,8 @@ useUnsavedChangesWarning({
                 campaignId={character.campaign_id}
                 characterId={character.id}
                 characterName={character.name}
+                penaltyReminder={penaltyReminder}
+                penaltyTotal={totalPenaltyReminder}
               />
             </div>
           </aside>

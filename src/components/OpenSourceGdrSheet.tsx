@@ -341,7 +341,7 @@ const getWoundSeverity = (damage: number, threshold: number): WoundSeverity => {
   return "none";
 };
 
-const getPenaltyFromSeverity = (severity: WoundSeverity): number => {
+export const getPenaltyFromSeverity = (severity: WoundSeverity): number => {
   switch (severity) {
     case "light":
       return -2;
@@ -352,6 +352,21 @@ const getPenaltyFromSeverity = (severity: WoundSeverity): number => {
     default:
       return 0;
   }
+};
+
+export const getTotalWoundPenalty = (sheet: OsgdrSheet): number => {
+  let totalPenalty = 0;
+
+  for (const part of BODY_PARTS) {
+    const damage = Math.max(0, Number(sheet.ferite?.[part]?.wounds ?? 0) || 0);
+    const threshold = natural_soglia[part] ?? 0;
+    const severity = getWoundSeverity(damage, threshold);
+    const penalty = getPenaltyFromSeverity(severity);
+
+    totalPenalty += penalty;
+  }
+
+  return totalPenalty;
 };
 
 const getBodyPartPopupInfo = (
@@ -508,20 +523,7 @@ const armorByBodyPart = useMemo(() => {
   return totals;
 }, [value.armors]);
 
-  const woundPenalty = useMemo(() => {
-  let totalPenalty = 0;
-
-  for (const part of BODY_PARTS) {
-    const damage = Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0) || 0);
-    const threshold = natural_soglia[part] ?? 0;
-    const severity = getWoundSeverity(damage, threshold);
-    const penalty = getPenaltyFromSeverity(severity);
-
-    totalPenalty += penalty;
-  }
-
-  return totalPenalty;
-}, [value.ferite]);
+  const woundPenalty = useMemo(() => getTotalWoundPenalty(value), [value]);
 
   const set = <K extends keyof OsgdrSheet>(k: K, v: OsgdrSheet[K]) =>
     onChange({ ...value, [k]: v });
