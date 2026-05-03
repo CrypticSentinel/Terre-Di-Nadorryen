@@ -1629,8 +1629,8 @@ const fantasyZones = [
   })()}
 </section>
 
-      <section className="space-y-3">
-  <div className="flex items-center justify-between gap-2">
+      <section className="grid gap-4 xl:grid-cols-2 xl:items-start">
+  <div className="space-y-3 min-w-0">
     {lbl("section.weapons", "Armi", "font-display text-xl gold-text", "h3")}
     {canEdit ? (
       <Button variant="outline" size="sm" onClick={addWeapon} className="font-heading">
@@ -1727,7 +1727,7 @@ const fantasyZones = [
   )}
 </section>
 
-      <section className="space-y-3">
+      <section className="space-y-3 min-w-0">
   <div className="flex items-center justify-between gap-2">
     {lbl("section.armors", "Armature", "font-display text-xl gold-text", "h3")}
     {canEdit && (
