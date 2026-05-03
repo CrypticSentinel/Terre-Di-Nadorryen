@@ -144,8 +144,6 @@ export const DiceRoller = ({
 
           seenIdsRef.current.add(row.id);
           setHistory((prev) => [row, ...prev].slice(0, 200));
-
-          toast(formatRollSummary(row));
         }
       )
       .on(
