@@ -1629,225 +1629,156 @@ const fantasyZones = [
   })()}
 </section>
 
-      <section className="grid gap-4 xl:grid-cols-2 xl:items-start">
-  <div className="space-y-3 min-w-0">
-    {lbl("section.weapons", "Armi", "font-display text-xl gold-text", "h3")}
-    {canEdit ? (
-      <Button variant="outline" size="sm" onClick={addWeapon} className="font-heading">
-        <Plus className="mr-1 h-4 w-4" />
-        Aggiungi
-      </Button>
-    ) : null}
-  </div>
-
-  {!value.weapons || value.weapons.length === 0 ? (
-    <p className="text-sm font-script italic text-ink-faded">Nessuna arma inserita.</p>
-  ) : (
-    <div className="space-y-2">
-      {value.weapons.map((w) => (
-        <div
-          key={w.id}
-          className="rounded-lg border border-border60 bg-parchment-deep20 p-2.5"
-        >
-          {canEdit ? (
-            <>
-              <div className="grid gap-2 md:grid-cols-[minmax(0,1.7fr)_130px_130px_auto] md:items-center">
-                <Input
-                  value={w.name}
-                  onChange={(e) => updateWeapon(w.id, { name: e.target.value })}
-                  placeholder="Nome arma"
-                  className="font-script"
-                />
-
-                <Input
-                  value={w.damage}
-                  onChange={(e) => updateWeapon(w.id, { damage: e.target.value })}
-                  placeholder="Danno"
-                  className="font-script text-center"
-                />
-
-                <Input
-                  value={w.range}
-                  onChange={(e) => updateWeapon(w.id, { range: e.target.value })}
-                  placeholder="Gittata"
-                  className="font-script text-center"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => removeWeapon(w.id)}
-                  className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
-                  aria-label="Rimuovi arma"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="mt-2">
-                <Input
-                  value={w.notes}
-                  onChange={(e) => updateWeapon(w.id, { notes: e.target.value })}
-                  placeholder="Note"
-                  className="font-script"
-                />
-              </div>
-            </>
-          ) : (
-            <div className="space-y-1.5 font-script">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <strong className="font-heading text-ink">
-                    {w.name?.trim() || "Arma senza nome"}
-                  </strong>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 text-xs text-ink-faded">
-                  {w.damage?.trim() ? (
-                    <span className="rounded-full border border-border60 bg-background/40 px-2 py-1">
-                      Danno {w.damage}
-                    </span>
-                  ) : null}
-
-                  {w.range?.trim() ? (
-                    <span className="rounded-full border border-border60 bg-background/40 px-2 py-1">
-                      Gittata {w.range}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-
-              {w.notes?.trim() ? (
-                <div className="text-sm text-ink-faded">{w.notes}</div>
-              ) : null}
-            </div>
-          )}
-        </div>
-      ))}
+      <div className="grid gap-6 xl:grid-cols-2 items-start">
+  <section className="space-y-3">
+    <div className="flex items-center justify-between gap-2">
+      {lbl("section.weapons", "Armi", "font-display text-xl gold-text", "h3")}
+      {canEdit ? (
+        <Button variant="outline" size="sm" onClick={addWeapon} className="font-heading">
+          <Plus className="mr-1 h-4 w-4" />
+          Aggiungi
+        </Button>
+      ) : null}
     </div>
-  )}
-</section>
 
-      <section className="space-y-3 min-w-0">
-  <div className="flex items-center justify-between gap-2">
-    {lbl("section.armors", "Armature", "font-display text-xl gold-text", "h3")}
-    {canEdit && (
-      <Button variant="outline" size="sm" onClick={addArmor} className="font-heading">
-        <Plus className="mr-1 h-4 w-4" /> Aggiungi
-      </Button>
+    {!value.weapons || value.weapons.length === 0 ? (
+      <p className="text-sm font-script italic text-ink-faded">Nessuna arma inserita.</p>
+    ) : (
+      <div className="space-y-2">
+        {value.weapons.map((w) => (
+          <div key={w.id} className="rounded-lg border border-border60 bg-parchment-deep20 p-2.5">
+            {canEdit ? (
+              <>
+                <div className="grid gap-2 md:grid-cols-[minmax(0,1.7fr)_130px_130px_auto] md:items-center">
+                  <Input value={w.name} onChange={(e) => updateWeapon(w.id, { name: e.target.value })} placeholder="Nome arma" className="font-script" />
+                  <Input value={w.damage} onChange={(e) => updateWeapon(w.id, { damage: e.target.value })} placeholder="Danno" className="font-script text-center" />
+                  <Input value={w.range} onChange={(e) => updateWeapon(w.id, { range: e.target.value })} placeholder="Gittata" className="font-script text-center" />
+                  <button type="button" onClick={() => removeWeapon(w.id)} className={`${iconButtonClass} text-destructive hover:bg-destructive/10`} aria-label="Rimuovi arma">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="mt-2">
+                  <Input value={w.notes} onChange={(e) => updateWeapon(w.id, { notes: e.target.value })} placeholder="Note" className="font-script" />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-1.5 font-script">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <strong className="font-heading text-ink">{w.name?.trim() || "Arma senza nome"}</strong>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-ink-faded">
+                    {w.damage?.trim() ? <span className="rounded-full border border-border60 bg-background40 px-2 py-1">Danno {w.damage}</span> : null}
+                    {w.range?.trim() ? <span className="rounded-full border border-border60 bg-background40 px-2 py-1">Gittata {w.range}</span> : null}
+                  </div>
+                </div>
+                {w.notes?.trim() ? <div className="text-sm text-ink-faded">{w.notes}</div> : null}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     )}
-  </div>
+  </section>
 
-  {!value.armors || value.armors.length === 0 ? (
-    <p className="text-sm font-script italic text-ink-faded">Nessuna armatura inserita.</p>
-  ) : (
-    <div className="space-y-2">
-      {value.armors.map((a) => (
-        <div key={a.id} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
-          {canEdit ? (
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-  <div className="lg:col-span-3">
-    <Input
-      value={a.name}
-      onChange={(e) => updateArmor(a.id, { name: e.target.value })}
-      placeholder="Nome armatura"
-      className="font-script"
-    />
-  </div>
-
-  <div className="lg:col-span-1">
-    <Input
-  type="text"
-  inputMode="numeric"
-  pattern="[0-9]*"
-  value={armorProtectionDrafts[a.id] ?? String(a.protection)}
-  onChange={(e) => {
-    const raw = e.target.value.replace(/\D/g, "");
-
-    setArmorProtectionDrafts((prev) => ({
-      ...prev,
-      [a.id]: raw,
-    }));
-
-    if (raw === "") return;
-
-    updateArmor(a.id, { protection: Math.max(0, Number(raw)) });
-  }}
-  onBlur={() => {
-    setArmorProtectionDrafts((prev) => {
-      const next = { ...prev };
-      delete next[a.id];
-      return next;
-    });
-  }}
-  placeholder="Protezione"
-  className="font-script"
-/>
-  </div>
-
-  <div className="sm:col-span-2 lg:col-span-4 rounded-md border border-input bg-background px-3 py-2">
-    <div className="mb-2 font-heading text-xs uppercase tracking-wider text-ink-faded">
-      Zone coperte
+  <section className="space-y-3">
+    <div className="flex items-center justify-between gap-2">
+      {lbl("section.armors", "Armature", "font-display text-xl gold-text", "h3")}
+      {canEdit ? (
+        <Button variant="outline" size="sm" onClick={addArmor} className="font-heading">
+          <Plus className="mr-1 h-4 w-4" />
+          Aggiungi
+        </Button>
+      ) : null}
     </div>
-    <div className="grid grid-cols-2 gap-1 lg:grid-cols-5">
-      {BODY_PARTS.map((part) => {
-        const selected = (a.locations ?? []).includes(part);
 
-        return (
-          <label key={part} className="flex items-center gap-2 font-script text-sm">
-            <input
-              type="checkbox"
-              checked={selected}
-              onChange={(e) => {
-                const current = Array.isArray(a.locations) ? a.locations : [];
-                const next = e.target.checked
-                  ? [...current, part]
-                  : current.filter((loc) => loc !== part);
+    {!value.armors || value.armors.length === 0 ? (
+      <p className="text-sm font-script italic text-ink-faded">Nessuna armatura inserita.</p>
+    ) : (
+      <div className="space-y-2">
+        {value.armors.map((a) => (
+          <div key={a.id} className="rounded border border-border60 bg-parchment-deep20 p-3">
+            {canEdit ? (
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="lg:col-span-3">
+                  <Input value={a.name} onChange={(e) => updateArmor(a.id, { name: e.target.value })} placeholder="Nome armatura" className="font-script" />
+                </div>
+                <div className="lg:col-span-1">
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={armorProtectionDrafts[a.id] ?? String(a.protection)}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, "");
+                      setArmorProtectionDrafts((prev) => ({ ...prev, [a.id]: raw }));
+                      if (raw === "") return;
+                      updateArmor(a.id, { protection: Math.max(0, Number(raw)) });
+                    }}
+                    onBlur={() => {
+                      setArmorProtectionDrafts((prev) => {
+                        const next = { ...prev };
+                        delete next[a.id];
+                        return next;
+                      });
+                    }}
+                    placeholder="Protezione"
+                    className="font-script"
+                  />
+                </div>
 
-                updateArmor(a.id, {
-                  locations: next.length > 0 ? next : [BODY_PARTS[0]],
-                });
-              }}
-            />
-            <span>{part}</span>
-          </label>
-        );
-      })}
-    </div>
-  </div>
+                <div className="sm:col-span-2 lg:col-span-4 rounded-md border border-input bg-background px-3 py-2">
+                  <div className="mb-2 font-heading text-xs uppercase tracking-wider text-ink-faded">Zone coperte</div>
+                  <div className="grid grid-cols-2 gap-1 lg:grid-cols-5">
+                    {BODY_PARTS.map((part) => {
+                      const selected = (a.locations ?? []).includes(part);
+                      return (
+                        <label key={part} className="flex items-center gap-2 font-script text-sm">
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={(e) => {
+                              const current = Array.isArray(a.locations) ? a.locations : [];
+                              const next = e.target.checked
+                                ? [...current, part]
+                                : current.filter((loc) => loc !== part);
 
-  <div className="flex gap-2 sm:col-span-2 lg:col-span-4">
-    <Input
-      value={a.notes}
-      onChange={(e) => updateArmor(a.id, { notes: e.target.value })}
-      placeholder="Note"
-      className="font-script"
-    />
-    <button
-      type="button"
-      onClick={() => removeArmor(a.id)}
-      className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
-      aria-label="Rimuovi armatura"
-    >
-      <Trash2 className="h-4 w-4" />
-    </button>
-  </div>
+                              updateArmor(a.id, {
+                                locations: next.length > 0 ? next : [BODY_PARTS[0]],
+                              });
+                            }}
+                          />
+                          <span>{part}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex gap-2 sm:col-span-2 lg:col-span-4">
+                  <Input value={a.notes} onChange={(e) => updateArmor(a.id, { notes: e.target.value })} placeholder="Note" className="font-script" />
+                  <button type="button" onClick={() => removeArmor(a.id)} className={`${iconButtonClass} text-destructive hover:bg-destructive/10`} aria-label="Rimuovi armatura">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1 font-script">
+                <div>
+                  <strong className="font-heading text-ink">{a.name}</strong>
+                </div>
+                <div className="text-sm text-ink-faded">
+                  Protezione {a.protection} · Zone {(a.locations ?? []).join(", ")}
+                </div>
+                {a.notes ? <div className="text-sm text-ink-faded">{a.notes}</div> : null}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    )}
+  </section>
 </div>
-          ) : (
-            <div className="space-y-1 font-script">
-              <div>
-                <strong className="font-heading text-ink">{a.name || "—"}</strong>
-              </div>
-              <div className="text-sm text-ink-faded">
-                Protezione: {a.protection} · Zone: {(a.locations ?? []).join(", ") || "—"}
-              </div>
-              {a.notes && <div className="text-sm text-ink-faded">{a.notes}</div>}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  )}
-</section>
 
 <section className="space-y-3">
   {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
