@@ -1231,104 +1231,137 @@ const setFeritaValue = (part: string, nextValue: string) => {
                       <svg viewBox="0 0 220 320" className="h-auto w-full">
   <defs>
     <linearGradient id="bodyFillSoft" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stopColor="rgba(248, 241, 221, 0.98)" />
-      <stop offset="52%" stopColor="rgba(233, 218, 186, 0.95)" />
-      <stop offset="100%" stopColor="rgba(210, 186, 146, 0.9)" />
+      <stop offset="0%" stopColor="rgba(249, 242, 223, 0.99)" />
+      <stop offset="48%" stopColor="rgba(233, 220, 191, 0.96)" />
+      <stop offset="100%" stopColor="rgba(202, 176, 132, 0.92)" />
     </linearGradient>
 
-    <linearGradient id="bodyHighlight" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stopColor="rgba(255,255,255,0.42)" />
+    <linearGradient id="bodyRimLight" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stopColor="rgba(255,255,255,0.55)" />
+      <stop offset="45%" stopColor="rgba(255,248,235,0.16)" />
       <stop offset="100%" stopColor="rgba(255,255,255,0)" />
     </linearGradient>
 
-    <filter id="bodyShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="rgba(70,48,27,0.18)" />
+    <radialGradient id="bodyGlow" cx="50%" cy="18%" r="70%">
+      <stop offset="0%" stopColor="rgba(255,248,233,0.38)" />
+      <stop offset="100%" stopColor="rgba(255,248,233,0)" />
+    </radialGradient>
+
+    <filter id="bodyShadow" x="-24%" y="-20%" width="148%" height="148%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="rgba(75, 48, 22, 0.16)" />
     </filter>
   </defs>
 
   <g filter="url(#bodyShadow)">
-    <g className="text-border/70" fill="none" stroke="currentColor">
+    <g className="text-border/75" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
       <path
         d="M110 16
-           C124 18, 136 30, 139 46
-           C141 60, 136 72, 126 81
-           C139 87, 149 98, 155 112
-           C161 127, 164 145, 162 165
-           C159 166, 155 166, 152 165
-           C148 148, 143 133, 134 121
-           L130 139
-           C128 150, 128 162, 129 175
-           C131 194, 134 216, 136 242
-           C137 264, 136 285, 133 306
-           L121 306
-           C120 286, 117 261, 113 228
+           C123 17, 135 28, 139 44
+           C142 58, 138 71, 128 81
+           C142 87, 153 98, 159 113
+           C164 126, 165 141, 163 156
+           C160 160, 156 161, 151 160
+           C147 145, 142 132, 134 121
+           C131 132, 129 144, 129 156
+           C130 181, 134 206, 137 236
+           C139 260, 138 283, 134 306
+           L122 306
+           C121 286, 118 262, 113 228
            L107 228
-           C103 261, 100 286, 99 306
-           L87 306
-           C84 285, 83 264, 84 242
-           C86 216, 89 194, 91 175
-           C92 162, 92 150, 90 139
-           L86 121
-           C77 133, 72 148, 68 165
-           C65 166, 61 166, 58 165
-           C56 145, 59 127, 65 112
-           C71 98, 81 87, 94 81
-           C84 72, 79 60, 81 46
-           C84 30, 96 18, 110 16 Z"
-        strokeWidth="2.3"
+           C102 262, 99 286, 98 306
+           L86 306
+           C82 283, 81 260, 83 236
+           C86 206, 90 181, 91 156
+           C91 144, 89 132, 86 121
+           C78 132, 73 145, 69 160
+           C64 161, 60 160, 57 156
+           C55 141, 56 126, 61 113
+           C67 98, 78 87, 92 81
+           C82 71, 78 58, 81 44
+           C85 28, 97 17, 110 16 Z"
+        strokeWidth="2.35"
       />
 
       <path
-        d="M96 78
-           C101 74, 106 72, 110 72
-           C114 72, 119 74, 124 78"
-        strokeWidth="1.1"
-        className="text-border/35"
+        d="M97 77
+           C101 72, 106 70, 110 70
+           C114 70, 119 72, 123 77"
+        strokeWidth="1.2"
+        className="text-border/38"
       />
       <path
-        d="M92 94
-           C98 90, 104 88, 110 88
-           C116 88, 122 90, 128 94"
-        strokeWidth="0.95"
-        className="text-border/25"
-      />
-      <path
-        d="M95 147
-           C101 151, 119 151, 125 147"
+        d="M90 93
+           C97 88, 103 86, 110 86
+           C117 86, 123 88, 130 93"
         strokeWidth="1"
-        className="text-border/30"
+        className="text-border/28"
       />
       <path
-        d="M102 186
-           C104 183, 107 181, 110 181
-           C113 181, 116 183, 118 186"
-        strokeWidth="0.9"
-        className="text-border/20"
+        d="M95 113
+           C100 108, 105 106, 110 106
+           C115 106, 120 108, 125 113"
+        strokeWidth="0.95"
+        className="text-border/22"
       />
       <path
-        d="M101 246
-           C99 252, 98 261, 98 270"
+        d="M96 146
+           C101 150, 119 150, 124 146"
+        strokeWidth="1.05"
+        className="text-border/34"
+      />
+      <path
+        d="M101 182
+           C103 178, 107 176, 110 176
+           C113 176, 117 178, 119 182"
+        strokeWidth="0.95"
+        className="text-border/22"
+      />
+      <path
+        d="M110 186
+           C110 197, 110 210, 110 225"
+        strokeWidth="0.85"
+        className="text-border/18"
+      />
+      <path
+        d="M98 242
+           C97 252, 97 262, 98 272"
         strokeWidth="0.8"
         className="text-border/18"
       />
       <path
-        d="M119 246
-           C121 252, 122 261, 122 270"
+        d="M122 242
+           C123 252, 123 262, 122 272"
         strokeWidth="0.8"
         className="text-border/18"
+      />
+      <path
+        d="M88 120
+           C83 130, 79 142, 77 154"
+        strokeWidth="0.7"
+        className="text-border/16"
+      />
+      <path
+        d="M132 120
+           C137 130, 141 142, 143 154"
+        strokeWidth="0.7"
+        className="text-border/16"
       />
     </g>
 
-    <g fill="url(#bodyFillSoft)" stroke="currentColor" className="text-border/80">
+    <g opacity="0.85" pointerEvents="none">
+      <ellipse cx="110" cy="70" rx="48" ry="70" fill="url(#bodyGlow)" />
+    </g>
+
+    <g fill="url(#bodyFillSoft)" stroke="currentColor" className="text-border/85" strokeLinecap="round" strokeLinejoin="round">
       {fantasyZones.map((zone) => {
         const summary = bodyPartSummaryMap[zone.key];
         const isActive = summary.isExpanded;
 
         const sharedStyle: React.CSSProperties = {
-          strokeWidth: isActive ? 4.2 : summary.isWounded ? 2.5 : 1.9,
-          opacity: isActive ? 1 : summary.isWounded ? 0.97 : 0.88,
+          strokeWidth: isActive ? 4.15 : summary.isWounded ? 2.45 : 1.85,
+          opacity: isActive ? 1 : summary.isWounded ? 0.97 : 0.9,
           filter: isActive
-            ? "drop-shadow(0 0 10px rgba(13,148,136,0.28)) drop-shadow(0 0 16px rgba(15,118,110,0.2))"
+            ? "drop-shadow(0 0 10px rgba(13,148,136,0.28)) drop-shadow(0 0 16px rgba(15,118,110,0.18))"
             : summary.isWounded
               ? "drop-shadow(0 0 4px rgba(120,82,38,0.12))"
               : undefined,
@@ -1352,21 +1385,25 @@ const setFeritaValue = (part: string, nextValue: string) => {
           >
             {zone.key === "Testa" && (
               <>
-                <ellipse
-                  cx="110"
-                  cy="46"
-                  rx="20"
-                  ry="24"
+                <path
+                  d="M110 22
+                     C121 22, 130 31, 132 44
+                     C134 57, 130 68, 122 74
+                     C118 77, 114 79, 110 79
+                     C106 79, 102 77, 98 74
+                     C90 68, 86 57, 88 44
+                     C90 31, 99 22, 110 22 Z"
                   className={zoneClassName}
                   style={sharedStyle}
                 />
-                <ellipse
-                  cx="104"
-                  cy="39"
-                  rx="7"
-                  ry="9"
-                  fill="url(#bodyHighlight)"
-                  opacity="0.45"
+                <path
+                  d="M99 31
+                     C103 28, 107 27, 110 27
+                     C113 27, 117 28, 121 31"
+                  fill="none"
+                  stroke="url(#bodyRimLight)"
+                  strokeWidth="1.6"
+                  opacity="0.55"
                   pointerEvents="none"
                 />
               </>
@@ -1374,12 +1411,15 @@ const setFeritaValue = (part: string, nextValue: string) => {
 
             {zone.key === "Torace" && (
               <path
-                d="M84 83
-                   C90 74, 100 69, 110 69
-                   C120 69, 130 74, 136 83
-                   L139 118
-                   C131 127, 122 131, 110 131
-                   C98 131, 89 127, 81 118 Z"
+                d="M82 82
+                   C88 73, 98 67, 110 67
+                   C122 67, 132 73, 138 82
+                   C140 90, 140 98, 139 108
+                   C136 119, 128 126, 118 129
+                   C115 130, 112 131, 110 131
+                   C108 131, 105 130, 102 129
+                   C92 126, 84 119, 81 108
+                   C80 98, 80 90, 82 82 Z"
                 className={zoneClassName}
                 style={sharedStyle}
               />
@@ -1387,12 +1427,14 @@ const setFeritaValue = (part: string, nextValue: string) => {
 
             {zone.key === "Addome" && (
               <path
-                d="M81 118
-                   C89 127, 98 132, 110 132
-                   C122 132, 131 127, 139 118
-                   L143 161
-                   C134 170, 123 176, 110 176
-                   C97 176, 86 170, 77 161 Z"
+                d="M82 116
+                   C89 126, 98 132, 110 132
+                   C122 132, 131 126, 138 116
+                   L144 157
+                   C138 165, 131 171, 122 174
+                   C118 176, 114 177, 110 177
+                   C106 177, 102 176, 98 174
+                   C89 171, 82 165, 76 157 Z"
                 className={zoneClassName}
                 style={sharedStyle}
               />
@@ -1400,12 +1442,12 @@ const setFeritaValue = (part: string, nextValue: string) => {
 
             {zone.key === "Braccio SX" && (
               <path
-                d="M67 107
-                   C60 119, 57 133, 58 149
-                   C59 163, 63 176, 70 188
-                   L81 183
-                   C76 170, 74 156, 74 141
-                   C74 128, 77 116, 83 104 Z"
+                d="M66 106
+                   C59 118, 56 132, 57 148
+                   C58 164, 63 178, 70 191
+                   L81 185
+                   C76 171, 73 157, 73 142
+                   C73 129, 76 117, 82 105 Z"
                 className={zoneClassName}
                 style={sharedStyle}
               />
@@ -1413,34 +1455,36 @@ const setFeritaValue = (part: string, nextValue: string) => {
 
             {zone.key === "Braccio DX" && (
               <path
-                d="M153 107
-                   C160 119, 163 133, 162 149
-                   C161 163, 157 176, 150 188
-                   L139 183
-                   C144 170, 146 156, 146 141
-                   C146 128, 143 116, 137 104 Z"
+                d="M154 106
+                   C161 118, 164 132, 163 148
+                   C162 164, 157 178, 150 191
+                   L139 185
+                   C144 171, 147 157, 147 142
+                   C147 129, 144 117, 138 105 Z"
                 className={zoneClassName}
                 style={sharedStyle}
               />
             )}
 
             {zone.key === "Mano SX" && (
-              <ellipse
-                cx="69"
-                cy="202"
-                rx="11"
-                ry="12.5"
+              <path
+                d="M61 193
+                   C66 188, 74 188, 79 192
+                   C83 196, 83 205, 78 210
+                   C73 214, 65 214, 61 210
+                   C56 205, 56 197, 61 193 Z"
                 className={zoneClassName}
                 style={sharedStyle}
               />
             )}
 
             {zone.key === "Mano DX" && (
-              <ellipse
-                cx="151"
-                cy="202"
-                rx="11"
-                ry="12.5"
+              <path
+                d="M141 192
+                   C146 188, 154 188, 159 193
+                   C164 197, 164 205, 159 210
+                   C155 214, 147 214, 142 210
+                   C137 205, 137 196, 141 192 Z"
                 className={zoneClassName}
                 style={sharedStyle}
               />
@@ -1448,12 +1492,12 @@ const setFeritaValue = (part: string, nextValue: string) => {
 
             {zone.key === "Gamba SX" && (
               <path
-                d="M99 176
-                   C93 194, 89 214, 88 236
-                   C87 252, 89 268, 93 281
-                   L104 281
-                   C106 261, 108 239, 111 218
-                   C114 201, 117 188, 120 176 Z"
+                d="M99 177
+                   C94 193, 90 212, 88 233
+                   C87 251, 88 267, 92 282
+                   L103 282
+                   C105 262, 107 241, 111 219
+                   C114 202, 117 189, 120 177 Z"
                 className={zoneClassName}
                 style={sharedStyle}
               />
@@ -1461,12 +1505,12 @@ const setFeritaValue = (part: string, nextValue: string) => {
 
             {zone.key === "Gamba DX" && (
               <path
-                d="M121 176
-                   C127 194, 131 214, 132 236
-                   C133 252, 131 268, 127 281
-                   L116 281
-                   C114 261, 112 239, 109 218
-                   C106 201, 103 188, 100 176 Z"
+                d="M121 177
+                   C126 193, 130 212, 132 233
+                   C133 251, 132 267, 128 282
+                   L117 282
+                   C115 262, 113 241, 109 219
+                   C106 202, 103 189, 100 177 Z"
                 className={zoneClassName}
                 style={sharedStyle}
               />
@@ -1474,12 +1518,12 @@ const setFeritaValue = (part: string, nextValue: string) => {
 
             {zone.key === "Piede SX" && (
               <path
-                d="M90 284
-                   C82 284, 76 287, 72 291
-                   L73 298
-                   C82 301, 94 301, 104 298
-                   L103 291
-                   C99 287, 95 284, 90 284 Z"
+                d="M89 286
+                   C81 286, 75 289, 71 293
+                   L72 300
+                   C81 303, 94 303, 105 300
+                   L104 293
+                   C99 289, 94 286, 89 286 Z"
                 className={zoneClassName}
                 style={sharedStyle}
               />
@@ -1487,12 +1531,12 @@ const setFeritaValue = (part: string, nextValue: string) => {
 
             {zone.key === "Piede DX" && (
               <path
-                d="M130 284
-                   C135 284, 139 287, 143 291
-                   L142 298
-                   C132 301, 120 301, 111 298
-                   L112 291
-                   C116 287, 122 284, 130 284 Z"
+                d="M131 286
+                   C136 286, 141 289, 146 293
+                   L145 300
+                   C134 303, 121 303, 112 300
+                   L113 293
+                   C117 289, 123 286, 131 286 Z"
                 className={zoneClassName}
                 style={sharedStyle}
               />
@@ -1504,8 +1548,8 @@ const setFeritaValue = (part: string, nextValue: string) => {
       })}
     </g>
 
-    <g className="text-primary/18" fill="none" stroke="currentColor">
-      <path d="M110 24 L110 304" strokeWidth="0.8" strokeDasharray="3 5" />
+    <g className="text-primary/15" fill="none" stroke="currentColor" strokeLinecap="round">
+      <path d="M110 22 L110 305" strokeWidth="0.8" strokeDasharray="3 5" />
     </g>
   </g>
 </svg>
