@@ -979,6 +979,20 @@ const CharacterDetail = () => {
                       </div>
                     </section>
 
+{access.canEdit && (
+  <div className="flex justify-end border-t border-border40 pt-3">
+    <Button
+      size="sm"
+      onClick={handleSave}
+      disabled={saving}
+      className="font-heading"
+    >
+      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
+      Salva anagrafica
+    </Button>
+  </div>
+)}
+
                     <div className="h-px bg-border/50" />
 
                     <section className="space-y-3">
