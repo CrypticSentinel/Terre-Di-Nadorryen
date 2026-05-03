@@ -852,763 +852,774 @@ const setFeritaValue = (part: string, nextValue: string) => {
         )}
       </section>
 
-      <section className="space-y-4">
-  {(() => {
-    const woundedParts = BODY_PARTS.filter(
-  (part) => Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0)) > 0
-);
+            <section className="space-y-4">
+        {(() => {
+          const woundedParts = BODY_PARTS.filter(
+            (part) => Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0)) > 0,
+          );
 
-const hitLocations = {
-  Alta: [
-    { locations: "Testa", roll: "1 - 10", key: "Testa" },
-    { locations: "Braccio SX", roll: "11 - 20", key: "Braccio SX" },
-    { locations: "Braccio DX", roll: "21 - 30", key: "Braccio DX" },
-    { locations: "Mano SX", roll: "31 - 35", key: "Mano SX" },
-    { locations: "Mano DX", roll: "36 - 40", key: "Mano DX" },
-    { locations: "Torace", roll: "41 - 100", key: "Torace" },
-  ],
-  Bassa: [
-    { locations: "Piede SX", roll: "1 - 5", key: "Piede SX" },
-    { locations: "Piede DX", roll: "6 - 10", key: "Piede DX" },
-    { locations: "Gamba SX", roll: "11 - 35", key: "Gamba SX" },
-    { locations: "Gamba DX", roll: "36 - 60", key: "Gamba DX" },
-    { locations: "Torace", roll: "61 - 100", key: "Torace" },
-  ],
-} as const;
+          const hitLocations = {
+            Alta: [
+              { locations: "Testa", roll: "1 - 10", key: "Testa" },
+              { locations: "Braccio SX", roll: "11 - 20", key: "Braccio SX" },
+              { locations: "Braccio DX", roll: "21 - 30", key: "Braccio DX" },
+              { locations: "Mano SX", roll: "31 - 35", key: "Mano SX" },
+              { locations: "Mano DX", roll: "36 - 40", key: "Mano DX" },
+              { locations: "Torace", roll: "41 - 100", key: "Torace" },
+            ],
+            Bassa: [
+              { locations: "Piede SX", roll: "1 - 5", key: "Piede SX" },
+              { locations: "Piede DX", roll: "6 - 10", key: "Piede DX" },
+              { locations: "Gamba SX", roll: "11 - 35", key: "Gamba SX" },
+              { locations: "Gamba DX", roll: "36 - 60", key: "Gamba DX" },
+              { locations: "Torace", roll: "61 - 100", key: "Torace" },
+            ],
+          } as const;
 
-const getHitZoneFromBodyPart = (part: string): "Alta" | "Bassa" => {
-  const upperParts = ["Testa", "Torace", "Braccio SX", "Braccio DX", "Mano SX", "Mano DX"];
-  return upperParts.includes(part) ? "Alta" : "Bassa";
-};
+          const getHitZoneFromBodyPart = (part: string): "Alta" | "Bassa" => {
+            const upperParts = ["Testa", "Torace", "Braccio SX", "Braccio DX", "Mano SX", "Mano DX"];
+            return upperParts.includes(part) ? "Alta" : "Bassa";
+          };
 
-const getSeverityStyles = (severity: WoundSeverity) => {
-  if (severity === "light") {
-    return {
-      badge: "border-amber-600/30 bg-amber-500/10 text-amber-700",
-      zone: "fill-amber-500/25 text-amber-700",
-      row: "border-amber-600/20 bg-amber-500/5",
-      accent: "text-amber-700",
-    };
-  }
+          const getSeverityStyles = (severity: WoundSeverity) => {
+            if (severity === "light") {
+              return {
+                badge: "border-amber-600/30 bg-amber-500/10 text-amber-700",
+                zone: "fill-amber-500/25 text-amber-700",
+                row: "border-amber-600/20 bg-amber-500/5",
+                accent: "text-amber-700",
+              };
+            }
 
-  if (severity === "grave") {
-    return {
-      badge: "border-destructive/30 bg-destructive/10 text-destructive",
-      zone: "fill-destructive/22 text-destructive",
-      row: "border-destructive/25 bg-destructive/5",
-      accent: "text-destructive",
-    };
-  }
+            if (severity === "grave") {
+              return {
+                badge: "border-destructive/30 bg-destructive/10 text-destructive",
+                zone: "fill-destructive/22 text-destructive",
+                row: "border-destructive/25 bg-destructive/5",
+                accent: "text-destructive",
+              };
+            }
 
-  if (severity === "lethal") {
-    return {
-      badge: "border-destructive/40 bg-destructive/15 text-destructive",
-      zone: "fill-destructive/38 text-destructive",
-      row: "border-destructive/35 bg-destructive/10",
-      accent: "text-destructive",
-    };
-  }
+            if (severity === "lethal") {
+              return {
+                badge: "border-destructive/40 bg-destructive/15 text-destructive",
+                zone: "fill-destructive/38 text-destructive",
+                row: "border-destructive/35 bg-destructive/10",
+                accent: "text-destructive",
+              };
+            }
 
-  return {
-    badge: "border-border60 bg-background/40 text-ink-faded",
-    zone: "fill-background/35 text-border",
-    row: "border-border30 bg-background/15",
-    accent: "text-ink-faded",
-  };
-};
+            return {
+              badge: "border-border60 bg-background/40 text-ink-faded",
+              zone: "fill-background/35 text-border",
+              row: "border-border30 bg-background/15",
+              accent: "text-ink-faded",
+            };
+          };
 
-const getSeverityLabel = (severity: WoundSeverity) => {
-  if (severity === "light") return "Leggera";
-  if (severity === "grave") return "Grave";
-  if (severity === "lethal") return "Letale";
-  return "Integro";
-};
+          const getSeverityLabel = (severity: WoundSeverity) => {
+            if (severity === "light") return "Leggera";
+            if (severity === "grave") return "Grave";
+            if (severity === "lethal") return "Letale";
+            return "Integro";
+          };
 
-const getPartDamage = (part: string) =>
-  Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0));
+          const getPartDamage = (part: string) =>
+            Math.max(0, Number(value.ferite?.[part]?.wounds ?? 0));
 
-const getPartThreshold = (part: string) => natural_soglia[part] ?? 0;
+          const getPartThreshold = (part: string) => natural_soglia[part] ?? 0;
 
-const getPartSeverity = (part: string): WoundSeverity =>
-  getWoundSeverity(getPartDamage(part), getPartThreshold(part));
+          const getPartSeverity = (part: string): WoundSeverity =>
+            getWoundSeverity(getPartDamage(part), getPartThreshold(part));
 
-const getPartPenalty = (part: string) =>
-  getPenaltyFromSeverity(getPartSeverity(part));
+          const getPartPenalty = (part: string) =>
+            getPenaltyFromSeverity(getPartSeverity(part));
 
-const getPartProtection = (part: string) => {
-  const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
-  const totalArmor = armorByBodyPart[part] ?? 0;
+          const getPartProtection = (part: string) => {
+            const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
+            const totalArmor = armorByBodyPart[part] ?? 0;
+            const naturalThreshold = getPartThreshold(part);
 
-  return {
-    constitutionModifier,
-    totalArmor,
-    totalProtection: constitutionModifier + totalArmor,
-  };
-};
+            return {
+              naturalThreshold,
+              constitutionModifier,
+              totalNaturalArmor: naturalThreshold + constitutionModifier,
+              totalArmor,
+              totalProtection: naturalThreshold + constitutionModifier + totalArmor,
+            };
+          };
 
-const bodyPartSummaries = BODY_PARTS.map((part) => {
-  const damage = getPartDamage(part);
-  const threshold = getPartThreshold(part);
-  const severity = getPartSeverity(part);
-  const penalty = getPartPenalty(part);
-  const protection = getPartProtection(part);
-  const styles = getSeverityStyles(severity);
+          const bodyPartSummaries = BODY_PARTS.map((part) => {
+            const damage = getPartDamage(part);
+            const threshold = getPartThreshold(part);
+            const severity = getPartSeverity(part);
+            const penalty = getPartPenalty(part);
+            const protection = getPartProtection(part);
+            const styles = getSeverityStyles(severity);
 
-  return {
-    part,
-    damage,
-    threshold,
-    severity,
-    severityLabel: getSeverityLabel(severity),
-    penalty,
-    protection,
-    styles,
-    isWounded: damage > 0,
-    isExpanded: expandedBodyPart === part,
-  };
-});
+            return {
+              part,
+              damage,
+              threshold,
+              severity,
+              severityLabel: getSeverityLabel(severity),
+              penalty,
+              protection,
+              styles,
+              isWounded: damage > 0,
+              isExpanded: expandedBodyPart === part,
+            };
+          });
 
-const bodyPartSummaryMap = Object.fromEntries(
-  bodyPartSummaries.map((summary) => [summary.part, summary])
-) as Record<(typeof BODY_PARTS)[number], (typeof bodyPartSummaries)[number]>;
+          const bodyPartSummaryMap = Object.fromEntries(
+            bodyPartSummaries.map((summary) => [summary.part, summary]),
+          ) as Record<(typeof BODY_PARTS)[number], (typeof bodyPartSummaries)[number]>;
 
-const fantasyZones = [
-  {
-    key: "Testa",
-    render: (className: string, style: React.CSSProperties) => (
-      <ellipse cx="120" cy="48" rx="24" ry="28" className={className} style={style} />
-    ),
-  },
-  {
-    key: "Torace",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M86 94
-           C92 82, 104 76, 120 76
-           C136 76, 148 82, 154 94
-           L158 142
-           C149 153, 137 159, 120 159
-           C103 159, 91 153, 82 142 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-  {
-    key: "Braccio SX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M72 112
-           C64 128, 61 145, 62 163
-           C63 176, 67 189, 74 201
-           L87 195
-           C82 181, 79 166, 79 151
-           C79 137, 82 123, 89 109 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-  {
-    key: "Braccio DX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M168 112
-           C176 128, 179 145, 178 163
-           C177 176, 173 189, 166 201
-           L153 195
-           C158 181, 161 166, 161 151
-           C161 137, 158 123, 151 109 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-  {
-    key: "Mano SX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M70 205
-           C63 207, 58 213, 58 219
-           C58 226, 64 231, 71 231
-           C77 231, 82 226, 82 220
-           C82 213, 77 207, 70 205 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-  {
-    key: "Mano DX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M170 205
-           C177 207, 182 213, 182 219
-           C182 226, 176 231, 169 231
-           C163 231, 158 226, 158 220
-           C158 213, 163 207, 170 205 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-  {
-    key: "Gamba SX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M105 160
-           C98 181, 94 200, 92 223
-           C91 242, 93 262, 98 285
-           L110 285
-           C112 263, 114 243, 117 223
-           C120 201, 123 180, 127 160 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-  {
-    key: "Gamba DX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M135 160
-           C142 181, 146 200, 148 223
-           C149 242, 147 262, 142 285
-           L130 285
-           C128 263, 126 243, 123 223
-           C120 201, 117 180, 113 160 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-  {
-    key: "Piede SX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M95 289
-           C88 289, 82 291, 77 295
-           L78 304
-           C87 307, 99 307, 109 304
-           L108 295
-           C104 291, 100 289, 95 289 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-  {
-    key: "Piede DX",
-    render: (className: string, style: React.CSSProperties) => (
-      <path
-        d="M145 289
-           C150 289, 154 291, 158 295
-           L157 304
-           C147 307, 135 307, 126 304
-           L127 295
-           C132 291, 138 289, 145 289 Z"
-        className={className}
-        style={style}
-      />
-    ),
-  },
-] as const;
+          const fantasyZones = [
+            {
+              key: "Testa",
+              render: (className: string, style: React.CSSProperties) => (
+                <ellipse cx="120" cy="48" rx="24" ry="28" className={className} style={style} />
+              ),
+            },
+            {
+              key: "Torace",
+              render: (className: string, style: React.CSSProperties) => (
+                <path
+                  d="M86 94
+                     C92 82, 104 76, 120 76
+                     C136 76, 148 82, 154 94
+                     L158 142
+                     C149 153, 137 159, 120 159
+                     C103 159, 91 153, 82 142 Z"
+                  className={className}
+                  style={style}
+                />
+              ),
+            },
+            {
+              key: "Braccio SX",
+              render: (className: string, style: React.CSSProperties) => (
+                <path
+                  d="M72 112
+                     C64 128, 61 145, 62 163
+                     C63 176, 67 189, 74 201
+                     L87 195
+                     C82 181, 79 166, 79 151
+                     C79 137, 82 123, 89 109 Z"
+                  className={className}
+                  style={style}
+                />
+              ),
+            },
+            {
+              key: "Braccio DX",
+              render: (className: string, style: React.CSSProperties) => (
+                <path
+                  d="M168 112
+                     C176 128, 179 145, 178 163
+                     C177 176, 173 189, 166 201
+                     L153 195
+                     C158 181, 161 166, 161 151
+                     C161 137, 158 123, 151 109 Z"
+                  className={className}
+                  style={style}
+                />
+              ),
+            },
+            {
+              key: "Mano SX",
+              render: (className: string, style: React.CSSProperties) => (
+                <path
+                  d="M70 205
+                     C63 207, 58 213, 58 219
+                     C58 226, 64 231, 71 231
+                     C77 231, 82 226, 82 220
+                     C82 213, 77 207, 70 205 Z"
+                  className={className}
+                  style={style}
+                />
+              ),
+            },
+            {
+              key: "Mano DX",
+              render: (className: string, style: React.CSSProperties) => (
+                <path
+                  d="M170 205
+                     C177 207, 182 213, 182 219
+                     C182 226, 176 231, 169 231
+                     C163 231, 158 226, 158 220
+                     C158 213, 163 207, 170 205 Z"
+                  className={className}
+                  style={style}
+                />
+              ),
+            },
+            {
+              key: "Gamba SX",
+              render: (className: string, style: React.CSSProperties) => (
+                <path
+                  d="M105 160
+                     C98 181, 94 200, 92 223
+                     C91 242, 93 262, 98 285
+                     L110 285
+                     C112 263, 114 243, 117 223
+                     C120 201, 123 180, 127 160 Z"
+                  className={className}
+                  style={style}
+                />
+              ),
+            },
+            {
+              key: "Gamba DX",
+              render: (className: string, style: React.CSSProperties) => (
+                <path
+                  d="M135 160
+                     C142 181, 146 200, 148 223
+                     C149 242, 147 262, 142 285
+                     L130 285
+                     C128 263, 126 243, 123 223
+                     C120 201, 117 180, 113 160 Z"
+                  className={className}
+                  style={style}
+                />
+              ),
+            },
+            {
+              key: "Piede SX",
+              render: (className: string, style: React.CSSProperties) => (
+                <path
+                  d="M95 289
+                     C88 289, 82 291, 77 295
+                     L78 304
+                     C87 307, 99 307, 109 304
+                     L108 295
+                     C104 291, 100 289, 95 289 Z"
+                  className={className}
+                  style={style}
+                />
+              ),
+            },
+            {
+              key: "Piede DX",
+              render: (className: string, style: React.CSSProperties) => (
+                <path
+                  d="M145 289
+                     C150 289, 154 291, 158 295
+                     L157 304
+                     C147 307, 135 307, 126 304
+                     L127 295
+                     C132 291, 138 289, 145 289 Z"
+                  className={className}
+                  style={style}
+                />
+              ),
+            },
+          ] as const;
 
-    return (
-      <>
-            <section className="space-y-3">
-        {lbl("section.stati", "Stati", "font-display text-xl gold-text", "h3")}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {([
-  ["iniziativa", "Iniziativa"],
-  ["woundPenalty", "Penalità ferite"],
-  ["penalita", "Penalità aggiuntive"],
-  ["fatica", "Fatica"],
-] as const).map(([k, label]) => {
-  const autoIniziativa =
-    abilityModifier(value.abilities.des ?? 0) + abilityModifier(value.abilities.pro ?? 0);
+          return (
+            <>
+              <section className="space-y-3">
+                {lbl("section.stati", "Stati", "font-display text-xl gold-text", "h3")}
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {([
+                    ["iniziativa", "Iniziativa"],
+                    ["woundPenalty", "Penalità ferite"],
+                    ["penalita", "Penalità aggiuntive"],
+                    ["fatica", "Fatica"],
+                  ] as const).map(([k, label]) => {
+                    const autoIniziativa =
+                      abilityModifier(value.abilities.des ?? 0) + abilityModifier(value.abilities.pro ?? 0);
 
-  const isInit = k === "iniziativa";
-  const isWoundPenalty = k === "woundPenalty";
-  const editableKey = k === "penalita" || k === "fatica" ? k : null;
+                    const isInit = k === "iniziativa";
+                    const isWoundPenalty = k === "woundPenalty";
+                    const editableKey = k === "penalita" || k === "fatica" ? k : null;
 
-  return (
-    <div
-      key={k}
-      className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
-    >
-      {lbl(
-        `stat.${k}`,
-        label,
-        "font-heading text-xs uppercase tracking-wider text-ink-faded",
-        "label",
-      )}
+                    return (
+                      <div
+                        key={k}
+                        className="rounded border border-border/60 bg-parchment-deep/20 p-3 text-center"
+                      >
+                        {lbl(
+                          `stat.${k}`,
+                          label,
+                          "font-heading text-xs uppercase tracking-wider text-ink-faded",
+                          "label",
+                        )}
 
-      {isInit ? (
-  <>
-    <div
-      className="font-display text-primary"
-      style={{ fontSize: "22px" }}
-      title="Calcolata automaticamente: Mod. DES + Mod. PRO"
-    >
-      {formatModifier(autoIniziativa)}
-    </div>
-    <div className="mt-1 font-script text-xs text-ink-faded">
-      Calcolata automaticamente da Mod. Destrezza + Mod. Prontezza
-    </div>
-  </>
-) : isWoundPenalty ? (
-        <>
-          <div className="font-display text-primary" style={{ fontSize: "22px" }}>
-            {formatModifier(woundPenalty)}
-          </div>
-          <div className="mt-1 font-script text-xs text-ink-faded">
-            Calcolata automaticamente dalle ferite inserite
-          </div>
-        </>
-      ) : canEdit && editableKey ? (
-        <Input
-          value={value[editableKey] ?? ""}
-          onChange={(e) => set(editableKey, e.target.value)}
-          className="h-9 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
-          style={{ fontSize: "18px" }}
-        />
-      ) : (
-        <div className="font-display" style={{ fontSize: "18px" }}>
-          {editableKey ? String(value[editableKey] ?? "") || "—" : "—"}
-        </div>
-      )}
-    </div>
-  );
-})}
-        </div>
+                        {isInit ? (
+                          <>
+                            <div
+                              className="font-display text-primary"
+                              style={{ fontSize: "22px" }}
+                              title="Calcolata automaticamente: Mod. DES + Mod. PRO"
+                            >
+                              {formatModifier(autoIniziativa)}
+                            </div>
+                            <div className="mt-1 font-script text-xs text-ink-faded">
+                              Calcolata automaticamente da Mod. Destrezza + Mod. Prontezza
+                            </div>
+                          </>
+                        ) : isWoundPenalty ? (
+                          <>
+                            <div className="font-display text-primary" style={{ fontSize: "22px" }}>
+                              {formatModifier(woundPenalty)}
+                            </div>
+                            <div className="mt-1 font-script text-xs text-ink-faded">
+                              Calcolata automaticamente dalle ferite inserite
+                            </div>
+                          </>
+                        ) : canEdit && editableKey ? (
+                          <Input
+                            value={value[editableKey] ?? ""}
+                            onChange={(e) => set(editableKey, e.target.value)}
+                            className="h-9 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
+                            style={{ fontSize: "18px" }}
+                          />
+                        ) : (
+                          <div className="font-display" style={{ fontSize: "18px" }}>
+                            {editableKey ? String(value[editableKey] ?? "") || "—" : "—"}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                {lbl("section.ferite", "Ferite & Stato del corpo", "font-display text-xl gold-text", "h3")}
+
+                <div className="flex flex-wrap gap-2 text-xs font-script italic text-ink-faded">
+                  <span className="rounded-full border border-border60 bg-parchment-deep20 px-3 py-1.5">
+                    Zone ferite:{" "}
+                    <strong className="font-heading text-ink">{woundedParts.length}</strong>/{BODY_PARTS.length}
+                  </span>
+
+                  <span className="rounded-full border border-border60 bg-parchment-deep20 px-3 py-1.5">
+                    Penalità totale:{" "}
+                    <strong className="font-heading text-primary">{formatModifier(woundPenalty)}</strong>
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid gap-4 xl:grid-cols-2 xl:items-stretch">
+                  <div className="rounded-[1.25rem] border border-border60 bg-parchment-deep20 p-4 h-full">
+                    <p className="mb-3 text-center font-script text-xs italic text-ink-faded">
+                      Locazioni interattive.
+                    </p>
+
+                    <div className="mx-auto flex max-w-[230px] justify-center">
+                      <svg viewBox="0 0 220 320" className="h-auto w-full">
+                        <defs>
+                          <linearGradient id="bodyFillSoft" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="rgba(246, 238, 214, 0.96)" />
+                            <stop offset="100%" stopColor="rgba(222, 201, 162, 0.92)" />
+                          </linearGradient>
+                        </defs>
+
+                        <g className="text-border/65" fill="none" stroke="currentColor">
+                          <path
+                            d="M110 18
+                               C124 20, 136 31, 138 46
+                               C140 60, 135 73, 126 82
+                               C137 87, 145 96, 151 109
+                               C159 126, 163 146, 162 168
+                               C158 169, 154 169, 150 168
+                               C146 150, 141 134, 132 121
+                               L128 141
+                               C127 157, 127 173, 129 192
+                               C132 211, 135 233, 136 258
+                               C137 275, 136 291, 134 306
+                               L122 306
+                               C122 282, 119 255, 114 223
+                               L106 223
+                               C101 255, 98 282, 98 306
+                               L86 306
+                               C84 291, 83 275, 84 258
+                               C85 233, 88 211, 91 192
+                               C93 173, 93 157, 92 141
+                               L88 121
+                               C79 134, 74 150, 70 168
+                               C66 169, 62 169, 58 168
+                               C57 146, 61 126, 69 109
+                               C75 96, 83 87, 94 82
+                               C85 73, 80 60, 82 46
+                               C84 31, 96 20, 110 18 Z"
+                            strokeWidth="2.2"
+                          />
+                          <path d="M101 73 C104 76, 116 76, 119 73" strokeWidth="1.2" className="text-border/40" />
+                          <path d="M96 148 C101 151, 119 151, 124 148" strokeWidth="1.1" className="text-border/30" />
+                        </g>
+
+                        <g fill="url(#bodyFillSoft)" stroke="currentColor" className="text-border/80">
+                          {fantasyZones.map((zone) => {
+                            const summary = bodyPartSummaryMap[zone.key];
+                            const isActive = summary.isExpanded;
+
+                            const sharedStyle: React.CSSProperties = {
+                              strokeWidth: isActive ? 4.5 : summary.isWounded ? 2.5 : 2,
+                              opacity: isActive ? 1 : summary.isWounded ? 0.96 : 0.82,
+                              filter: isActive
+                                ? "drop-shadow(0 0 10px rgba(13,148,136,0.30)) drop-shadow(0 0 18px rgba(15,118,110,0.22))"
+                                : summary.isWounded
+                                  ? "drop-shadow(0 0 4px rgba(120,82,38,0.10))"
+                                  : undefined,
+                            };
+
+                            const zoneClassName = isActive
+                              ? "fill-teal-700/35 stroke-teal-800"
+                              : summary.isWounded
+                                ? `${summary.styles.zone} stroke-current`
+                                : "fill-background/30 stroke-border";
+
+                            return (
+                              <g
+                                key={zone.key}
+                                onClick={() => {
+                                  setSelectedHitZone(getHitZoneFromBodyPart(zone.key));
+                                  setExpandedBodyPart((prev) => (prev === zone.key ? null : zone.key));
+                                }}
+                                className="cursor-pointer transition-all"
+                              >
+                                {zone.key === "Testa" && (
+                                  <ellipse
+                                    cx="110"
+                                    cy="46"
+                                    rx="21"
+                                    ry="25"
+                                    className={zoneClassName}
+                                    style={sharedStyle}
+                                  />
+                                )}
+
+                                {zone.key === "Torace" && (
+                                  <path
+                                    d="M84 82
+                                       C90 73, 99 69, 110 69
+                                       C121 69, 130 73, 136 82
+                                       L140 132
+                                       C132 142, 122 148, 110 148
+                                       C98 148, 88 142, 80 132 Z"
+                                    className={zoneClassName}
+                                    style={sharedStyle}
+                                  />
+                                )}
+
+                                {zone.key === "Braccio SX" && (
+                                  <path
+                                    d="M68 106
+                                       C61 120, 58 135, 59 151
+                                       C60 163, 64 175, 70 186
+                                       L81 181
+                                       C76 167, 74 153, 74 139
+                                       C74 127, 77 115, 83 103 Z"
+                                    className={zoneClassName}
+                                    style={sharedStyle}
+                                  />
+                                )}
+
+                                {zone.key === "Braccio DX" && (
+                                  <path
+                                    d="M152 106
+                                       C159 120, 162 135, 161 151
+                                       C160 163, 156 175, 150 186
+                                       L139 181
+                                       C144 167, 146 153, 146 139
+                                       C146 127, 143 115, 137 103 Z"
+                                    className={zoneClassName}
+                                    style={sharedStyle}
+                                  />
+                                )}
+
+                                {zone.key === "Mano SX" && (
+                                  <ellipse
+                                    cx="69"
+                                    cy="201"
+                                    rx="11"
+                                    ry="12"
+                                    className={zoneClassName}
+                                    style={sharedStyle}
+                                  />
+                                )}
+
+                                {zone.key === "Mano DX" && (
+                                  <ellipse
+                                    cx="151"
+                                    cy="201"
+                                    rx="11"
+                                    ry="12"
+                                    className={zoneClassName}
+                                    style={sharedStyle}
+                                  />
+                                )}
+
+                                {zone.key === "Gamba SX" && (
+                                  <path
+                                    d="M98 148
+                                       C92 167, 89 187, 88 209
+                                       C87 228, 89 250, 93 279
+                                       L104 279
+                                       C106 252, 108 229, 111 207
+                                       C114 186, 117 166, 120 148 Z"
+                                    className={zoneClassName}
+                                    style={sharedStyle}
+                                  />
+                                )}
+
+                                {zone.key === "Gamba DX" && (
+                                  <path
+                                    d="M122 148
+                                       C128 167, 131 187, 132 209
+                                       C133 228, 131 250, 127 279
+                                       L116 279
+                                       C114 252, 112 229, 109 207
+                                       C106 186, 103 166, 100 148 Z"
+                                    className={zoneClassName}
+                                    style={sharedStyle}
+                                  />
+                                )}
+
+                                {zone.key === "Piede SX" && (
+                                  <path
+                                    d="M90 282
+                                       C82 282, 76 285, 72 289
+                                       L73 297
+                                       C82 300, 94 300, 104 297
+                                       L103 289
+                                       C99 285, 95 282, 90 282 Z"
+                                    className={zoneClassName}
+                                    style={sharedStyle}
+                                  />
+                                )}
+
+                                {zone.key === "Piede DX" && (
+                                  <path
+                                    d="M130 282
+                                       C135 282, 139 285, 143 289
+                                       L142 297
+                                       C132 300, 120 300, 111 297
+                                       L112 289
+                                       C116 285, 122 282, 130 282 Z"
+                                    className={zoneClassName}
+                                    style={sharedStyle}
+                                  />
+                                )}
+
+                                <title>{zone.key}</title>
+                              </g>
+                            );
+                          })}
+                        </g>
+
+                        <g className="text-primary/20" fill="none" stroke="currentColor">
+                          <path d="M110 24 L110 304" strokeWidth="0.8" strokeDasharray="3 5" />
+                        </g>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div className="rounded-[1.25rem] border border-border60 bg-parchment-deep20 p-3 h-full flex flex-col">
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={selectedHitZone === "Alta" ? "default" : "outline"}
+                        className="font-heading"
+                        onClick={() => setSelectedHitZone("Alta")}
+                      >
+                        Zona alta
+                      </Button>
+
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={selectedHitZone === "Bassa" ? "default" : "outline"}
+                        className="font-heading"
+                        onClick={() => setSelectedHitZone("Bassa")}
+                      >
+                        Zona bassa
+                      </Button>
+                    </div>
+
+                    <div className="flex-1 overflow-hidden rounded-lg border border-border40 bg-background/10 p-2">
+                      <div className="grid h-full auto-rows-fr gap-2">
+                        {hitLocations[selectedHitZone].map((entry) => {
+                          const isActive = expandedBodyPart === entry.key;
+                          const summary = bodyPartSummaryMap[entry.key];
+                          const zoneStyles = summary?.styles ?? getSeverityStyles("none");
+
+                          return (
+                            <button
+                              key={`${selectedHitZone}-${entry.key}`}
+                              type="button"
+                              onClick={() => {
+                                setSelectedHitZone(getHitZoneFromBodyPart(entry.key));
+                                setExpandedBodyPart((prev) => (prev === entry.key ? null : entry.key));
+                              }}
+                              className={`grid w-full grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-xl border px-3 py-3 text-left transition-all ${
+                                isActive
+                                  ? "border-teal-800 bg-teal-700/10 shadow-[0_0_0_1px_rgba(13,148,136,0.28),0_0_16px_rgba(13,148,136,0.16)]"
+                                  : "border-border40 bg-background/20 hover:border-border60 hover:bg-background/35"
+                              }`}
+                            >
+                              <div className="min-w-0 self-center">
+                                <div className="font-heading text-sm leading-5 text-ink">
+                                  {entry.locations}
+                                </div>
+                              </div>
+
+                              <div className="flex min-w-[88px] flex-col items-end justify-center gap-1 self-center text-right">
+                                <span className="font-display text-sm leading-5 text-primary">
+                                  {entry.roll}
+                                </span>
+
+                                <span
+                                  className={`rounded-md px-2 py-1 text-[10px] leading-none font-heading uppercase tracking-[0.12em] ${
+                                    isActive
+                                      ? "border border-teal-800/40 bg-teal-700/10 text-teal-900"
+                                      : zoneStyles.badge
+                                  }`}
+                                >
+                                  {summary ? summary.severityLabel : "Integro"}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {bodyPartSummaries.map((summary) => {
+                    const {
+                      part,
+                      damage,
+                      threshold,
+                      severityLabel,
+                      penalty,
+                      protection,
+                      styles,
+                      isWounded,
+                      isExpanded,
+                    } = summary;
+
+                    return (
+                      <div
+                        key={part}
+                        className={`rounded-xl border transition-all ${
+                          isExpanded
+                            ? "border-teal-800 bg-teal-700/10 shadow-[0_0_0_1px_rgba(13,148,136,0.20)]"
+                            : isWounded
+                              ? "border-border60 bg-parchment-deep20"
+                              : "border-border30 bg-background/15 opacity-80"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedHitZone(getHitZoneFromBodyPart(part));
+                            setExpandedBodyPart((prev) => (prev === part ? null : part));
+                          }}
+                          className="flex w-full flex-col items-start gap-2 px-3 py-3 text-left sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div className="min-w-0">
+                            <div className="font-heading text-[13px] uppercase tracking-[0.14em] text-ink">
+                              {part}
+                              <span className="ml-2 normal-case tracking-normal text-ink-faded">
+                                - Soglia {threshold}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="min-w-[54px] text-right font-display text-sm text-primary">
+                              {damage > 0 ? -damage : "—"}
+                            </div>
+
+                            <span
+                              className={`rounded-md px-2 py-1 text-[11px] font-heading uppercase tracking-[0.12em] ${styles.badge}`}
+                            >
+                              {severityLabel}
+                            </span>
+                          </div>
+                        </button>
+
+                        {isExpanded && (
+                          <div className="border-t border-border40 px-3 pb-3 pt-2">
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                              <div className="rounded-lg border border-border40 bg-background/35 p-2 text-center">
+                                <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
+                                  Ferite
+                                </div>
+                                {canEdit ? (
+                                  <Input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={damage > 0 ? String(-damage) : ""}
+                                    onChange={(e) => setFeritaValue(part, e.target.value)}
+                                    placeholder="-0"
+                                    className="mt-1 h-7 border-0 bg-transparent px-0 text-center font-display text-base text-primary focus-visible:ring-0"
+                                  />
+                                ) : (
+                                  <div className="mt-1 h-7 font-display text-base leading-7 text-primary">
+                                    {damage > 0 ? -damage : ""}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="rounded-lg border border-border40 bg-background/35 p-2 text-center">
+                                <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
+                                  Soglia
+                                </div>
+                                <div className="mt-1 h-7 font-display text-base leading-7 text-primary">
+                                  {threshold}
+                                </div>
+                              </div>
+
+                              <div className="rounded-lg border border-border40 bg-background/35 p-2 text-center">
+                                <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
+                                  Naturale
+                                </div>
+                                <div className="mt-1 h-7 font-display text-base leading-7 text-primary">
+                                  {protection.totalNaturalArmor}
+                                </div>
+                              </div>
+
+                              <div className="rounded-lg border border-border40 bg-background/35 p-2 text-center">
+                                <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
+                                  Armatura
+                                </div>
+                                <div
+                                  className="mt-1 h-7 font-display text-base leading-7 text-primary"
+                                  title={`Protezione totale ${protection.totalProtection} = Naturale ${protection.totalNaturalArmor} + Armatura ${protection.totalArmor}`}
+                                >
+                                  {protection.totalArmor}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-2 text-xs font-script italic text-ink-faded">
+                              Penalità della zona{" "}
+                              <strong className="font-heading text-ink">{formatModifier(penalty)}</strong>
+                              {" · "}
+                              Protezione totale{" "}
+                              <strong className="font-heading text-ink">{protection.totalProtection}</strong>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          );
+        })()}
       </section>
-
-      
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          {lbl("section.ferite", "Ferite & Stato del corpo", "font-display text-xl gold-text", "h3")}
-
-          <div className="flex flex-wrap gap-2 text-xs font-script italic text-ink-faded">
-            <span className="rounded-full border border-border60 bg-parchment-deep20 px-3 py-1.5">
-              Zone ferite:{" "}
-              <strong className="font-heading text-ink">{woundedParts.length}</strong>/{BODY_PARTS.length}
-            </span>
-
-            <span className="rounded-full border border-border60 bg-parchment-deep20 px-3 py-1.5">
-              Penalità totale:{" "}
-              <strong className="font-heading text-primary">{formatModifier(woundPenalty)}</strong>
-            </span>
-          </div>
-        </div>
-
-        <div className="grid gap-4 xl:grid-cols-[280px,minmax(0,1fr)]">
-          <div className="space-y-4">
-            <div className="rounded-[1.25rem] border border-border60 bg-parchment-deep20 p-4">
-              <p className="mb-3 text-center font-script text-xs italic text-ink-faded">
-                Locazioni interattive.
-              </p>
-
-              <div className="mx-auto flex max-w-[230px] justify-center">
-                <svg viewBox="0 0 220 320" className="h-auto w-full">
-  <defs>
-    <linearGradient id="bodyFillSoft" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stopColor="rgba(246, 238, 214, 0.96)" />
-      <stop offset="100%" stopColor="rgba(222, 201, 162, 0.92)" />
-    </linearGradient>
-  </defs>
-
-  <g className="text-border/65" fill="none" stroke="currentColor">
-    <path
-      d="M110 18
-         C124 20, 136 31, 138 46
-         C140 60, 135 73, 126 82
-         C137 87, 145 96, 151 109
-         C159 126, 163 146, 162 168
-         C158 169, 154 169, 150 168
-         C146 150, 141 134, 132 121
-         L128 141
-         C127 157, 127 173, 129 192
-         C132 211, 135 233, 136 258
-         C137 275, 136 291, 134 306
-         L122 306
-         C122 282, 119 255, 114 223
-         L106 223
-         C101 255, 98 282, 98 306
-         L86 306
-         C84 291, 83 275, 84 258
-         C85 233, 88 211, 91 192
-         C93 173, 93 157, 92 141
-         L88 121
-         C79 134, 74 150, 70 168
-         C66 169, 62 169, 58 168
-         C57 146, 61 126, 69 109
-         C75 96, 83 87, 94 82
-         C85 73, 80 60, 82 46
-         C84 31, 96 20, 110 18 Z"
-      strokeWidth="2.2"
-    />
-    <path d="M101 73 C104 76, 116 76, 119 73" strokeWidth="1.2" className="text-border/40" />
-    <path d="M96 148 C101 151, 119 151, 124 148" strokeWidth="1.1" className="text-border/30" />
-  </g>
-
-  <g fill="url(#bodyFillSoft)" stroke="currentColor" className="text-border/80">
-    {fantasyZones.map((zone) => {
-      const summary = bodyPartSummaryMap[zone.key];
-      const isActive = summary.isExpanded;
-
-      const sharedStyle: React.CSSProperties = {
-  strokeWidth: isActive ? 4.5 : summary.isWounded ? 2.5 : 2,
-  opacity: isActive ? 1 : summary.isWounded ? 0.96 : 0.82,
-  filter: isActive
-  ? "drop-shadow(0 0 10px rgba(13,148,136,0.30)) drop-shadow(0 0 18px rgba(15,118,110,0.22))"
-  : summary.isWounded
-    ? "drop-shadow(0 0 4px rgba(120,82,38,0.10))"
-    : undefined,
-};
-
-      const zoneClassName = isActive
-  ? "fill-teal-700/35 stroke-teal-800"
-  : summary.isWounded
-    ? `${summary.styles.zone} stroke-current`
-    : "fill-background/30 stroke-border";
-
-      return (
-        <g
-          key={zone.key}
-          onClick={() => {
-  setSelectedHitZone(getHitZoneFromBodyPart(zone.key));
-  setExpandedBodyPart((prev) => (prev === zone.key ? null : zone.key));
-}}
-          className="cursor-pointer transition-all"
-        >
-          {zone.key === "Testa" && (
-            <ellipse
-              cx="110"
-              cy="46"
-              rx="21"
-              ry="25"
-              className={zoneClassName}
-              style={sharedStyle}
-            />
-          )}
-
-          {zone.key === "Torace" && (
-            <path
-              d="M84 82
-                 C90 73, 99 69, 110 69
-                 C121 69, 130 73, 136 82
-                 L140 132
-                 C132 142, 122 148, 110 148
-                 C98 148, 88 142, 80 132 Z"
-              className={zoneClassName}
-              style={sharedStyle}
-            />
-          )}
-
-          {zone.key === "Braccio SX" && (
-            <path
-              d="M68 106
-                 C61 120, 58 135, 59 151
-                 C60 163, 64 175, 70 186
-                 L81 181
-                 C76 167, 74 153, 74 139
-                 C74 127, 77 115, 83 103 Z"
-              className={zoneClassName}
-              style={sharedStyle}
-            />
-          )}
-
-          {zone.key === "Braccio DX" && (
-            <path
-              d="M152 106
-                 C159 120, 162 135, 161 151
-                 C160 163, 156 175, 150 186
-                 L139 181
-                 C144 167, 146 153, 146 139
-                 C146 127, 143 115, 137 103 Z"
-              className={zoneClassName}
-              style={sharedStyle}
-            />
-          )}
-
-          {zone.key === "Mano SX" && (
-            <ellipse
-              cx="69"
-              cy="201"
-              rx="11"
-              ry="12"
-              className={zoneClassName}
-              style={sharedStyle}
-            />
-          )}
-
-          {zone.key === "Mano DX" && (
-            <ellipse
-              cx="151"
-              cy="201"
-              rx="11"
-              ry="12"
-              className={zoneClassName}
-              style={sharedStyle}
-            />
-          )}
-
-          {zone.key === "Gamba SX" && (
-            <path
-              d="M98 148
-                 C92 167, 89 187, 88 209
-                 C87 228, 89 250, 93 279
-                 L104 279
-                 C106 252, 108 229, 111 207
-                 C114 186, 117 166, 120 148 Z"
-              className={zoneClassName}
-              style={sharedStyle}
-            />
-          )}
-
-          {zone.key === "Gamba DX" && (
-            <path
-              d="M122 148
-                 C128 167, 131 187, 132 209
-                 C133 228, 131 250, 127 279
-                 L116 279
-                 C114 252, 112 229, 109 207
-                 C106 186, 103 166, 100 148 Z"
-              className={zoneClassName}
-              style={sharedStyle}
-            />
-          )}
-
-          {zone.key === "Piede SX" && (
-            <path
-              d="M90 282
-                 C82 282, 76 285, 72 289
-                 L73 297
-                 C82 300, 94 300, 104 297
-                 L103 289
-                 C99 285, 95 282, 90 282 Z"
-              className={zoneClassName}
-              style={sharedStyle}
-            />
-          )}
-
-          {zone.key === "Piede DX" && (
-            <path
-              d="M130 282
-                 C135 282, 139 285, 143 289
-                 L142 297
-                 C132 300, 120 300, 111 297
-                 L112 289
-                 C116 285, 122 282, 130 282 Z"
-              className={zoneClassName}
-              style={sharedStyle}
-            />
-          )}
-
-          <title>{zone.key}</title>
-        </g>
-      );
-    })}
-  </g>
-
-  <g className="text-primary/20" fill="none" stroke="currentColor">
-    <path d="M110 24 L110 304" strokeWidth="0.8" strokeDasharray="3 5" />
-  </g>
-</svg>
-              </div>
-            </div>
-
-            <div className="rounded-[1.25rem] border border-border60 bg-parchment-deep20 p-3">
-              <div className="mb-3 flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={selectedHitZone === "Alta" ? "default" : "outline"}
-                  className="font-heading"
-                  onClick={() => setSelectedHitZone("Alta")}
-                >
-                  Zona alta
-                </Button>
-
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={selectedHitZone === "Bassa" ? "default" : "outline"}
-                  className="font-heading"
-                  onClick={() => setSelectedHitZone("Bassa")}
-                >
-                  Zona bassa
-                </Button>
-              </div>
-
-              <div className="overflow-hidden rounded-lg border border-border40">
-                <table className="w-full text-left">
-                  <thead className="bg-background/40">
-                  </thead>
-                  <tbody>
-                    <div className="space-y-2">
-  {hitLocations[selectedHitZone].map((entry) => {
-    const isActive = expandedBodyPart === entry.key;
-    const summary = bodyPartSummaryMap[entry.key];
-    const zoneStyles = summary?.styles ?? getSeverityStyles("none");
-
-    return (
-      <button
-        key={`${selectedHitZone}-${entry.key}`}
-        type="button"
-        onClick={() => {
-          setSelectedHitZone(getHitZoneFromBodyPart(entry.key));
-          setExpandedBodyPart((prev) => (prev === entry.key ? null : entry.key));
-        }}
-        className={`grid w-full grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-xl border px-3 py-3 text-left transition-all ${
-          isActive
-  ? "border-teal-800 bg-teal-700/10 shadow-[0_0_0_1px_rgba(13,148,136,0.28),0_0_16px_rgba(13,148,136,0.16)]"
-  : "border-border40 bg-background/20 hover:border-border60 hover:bg-background/35"
-        }`}
-      >
-        <div className="min-w-0 self-center">
-          <div className="font-heading text-sm leading-5 text-ink">
-            {entry.location}
-          </div>
-        </div>
-
-        <div className="flex min-w-[88px] flex-col items-end justify-center gap-1 self-center text-right">
-          <span className="font-display text-sm leading-5 text-primary">
-            {entry.roll}
-          </span>
-
-          <span
-            className={`rounded-md px-2 py-1 text-[10px] leading-none font-heading uppercase tracking-[0.12em] ${
-              isActive
-  ? "border border-teal-800/40 bg-teal-700/10 text-teal-900"
-  : zoneStyles.badge
-            }`}
-          >
-            {summary ? summary.severityLabel : "Integro"}
-          </span>
-        </div>
-      </button>
-    );
-  })}
-</div>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-  {bodyPartSummaries.map((summary) => {
-    const {
-      part,
-      damage,
-      threshold,
-      severityLabel,
-      penalty,
-      protection,
-      styles,
-      isWounded,
-      isExpanded,
-    } = summary;
-
-    return (
-      <div
-        key={part}
-        className={`rounded-xl border transition-all ${
-          isExpanded
-  ? "border-teal-800 bg-teal-700/10 shadow-[0_0_0_1px_rgba(13,148,136,0.20)]"
-  : isWounded
-    ? "border-border60 bg-parchment-deep20"
-    : "border-border30 bg-background/15 opacity-80"
-        }`}
-      >
-        <button
-          type="button"
-          onClick={() => {
-  setSelectedHitZone(getHitZoneFromBodyPart(part));
-  setExpandedBodyPart((prev) => (prev === part ? null : part));
-}}
-          className="flex w-full flex-col items-start gap-2 px-3 py-3 text-left sm:flex-row sm:items-center sm:justify-between"
-        >
-          <div className="min-w-0">
-            <div className="font-heading text-13px uppercase tracking-[0.14em] text-ink">
-  {part}
-  <span className="ml-2 normal-case tracking-normal text-ink-faded">
-    - Soglia {threshold}
-  </span>
-</div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="min-w-[54px] text-right font-display text-sm text-primary">
-              {damage > 0 ? -damage : "—"}
-            </div>
-
-            <span
-              className={`rounded-md px-2 py-1 text-[11px] font-heading uppercase tracking-[0.12em] ${styles.badge}`}
-            >
-              {severityLabel}
-            </span>
-          </div>
-        </button>
-
-        {isExpanded && (
-          <div className="border-t border-border40 px-3 pb-3 pt-2">
-  <div className="grid grid-cols-2 gap-2">
-    <div className="rounded-lg border border-border40 bg-background35 p-2 text-center">
-      <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
-        Protezione
-      </div>
-      <div
-        className="mt-1 h-7 font-display text-base leading-7 text-primary"
-        title={`Mod. Costituzione + Armatura = ${protection.constitutionModifier} + ${protection.totalArmor}`}
-      >
-        {protection.totalProtection}
-      </div>
-      <div className="mt-1 text-[11px] font-script italic leading-tight text-ink-faded">
-        Mod. Costituzione ({protection.constitutionModifier}) + Armatura ({protection.totalArmor})
-      </div>
-    </div>
-
-    <div className="rounded-lg border border-border40 bg-background35 p-2 text-center">
-      <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
-        Ferite
-      </div>
-      {canEdit ? (
-        <Input
-          type="text"
-          inputMode="numeric"
-          value={damage > 0 ? String(-damage) : ""}
-          onChange={(e) => setFeritaValue(part, e.target.value)}
-          placeholder="-0"
-          className="mt-1 h-7 border-0 bg-transparent px-0 text-center font-display text-base text-primary focus-visible:ring-0"
-        />
-      ) : (
-        <div className="mt-1 h-7 font-display text-base leading-7 text-primary">
-          {damage > 0 ? -damage : ""}
-        </div>
-      )}
-    </div>
-  </div>
-
-  <div className="mt-2 text-xs font-script italic text-ink-faded">
-    Penalità della zona{" "}
-    <strong className="font-heading text-ink">{formatModifier(penalty)}</strong>
-    {" · "}
-    Protezione totale{" "}
-    <strong className="font-heading text-ink">{protection.totalProtection}</strong>
-  </div>
-</div>
-        )}
-      </div>
-    );
-  })}
-</div>
-        </div>
-      </>
-    );
-  })()}
-</section>
 
       <div className="grid gap-6 xl:grid-cols-2 items-start">
   <section className="space-y-3">
