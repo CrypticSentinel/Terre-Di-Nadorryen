@@ -266,24 +266,26 @@ const CharacterDetail = () => {
     }));
   };
 
-  const setSheetCoin = (key: "oro" | "argento" | "rame", raw: string) => {
-    const n = Math.max(0, Number(raw) || 0);
-    setOsgdrSheet((prev) => ({
-      ...prev,
-      coins: {
-        ...prev.coins,
-        [key]: n,
-      },
-    }));
-  };
+const setSheetCoin = (key: "oro" | "argento" | "rame", raw: string) => {
+  const nextValue = raw === "" ? undefined : Math.max(0, Number(raw));
 
-    const setSheetPe = (raw: string) => {
-    const n = Math.max(0, Number(raw) || 0);
-    setOsgdrSheet((prev) => ({
-      ...prev,
-      pe: n,
-    }));
-  };
+  setOsgdrSheet((prev) => ({
+    ...prev,
+    coins: {
+      ...prev.coins,
+      [key]: nextValue,
+    },
+  }));
+};
+
+const setSheetPe = (raw: string) => {
+  const nextValue = raw === "" ? undefined : Math.max(0, Number(raw));
+
+  setOsgdrSheet((prev) => ({
+    ...prev,
+    pe: nextValue,
+  }));
+};
   
   const load = async () => {
     if (!characterId) return;
@@ -1065,7 +1067,7 @@ useUnsavedChangesWarning({
                                 inputMode="numeric"
                                 pattern="[0-9]*"
                                 min={0}
-                                value={osgdrSheet.coins[coin.key] ?? 0}
+                                value={osgdrSheet.coins[coin.key] ?? ""}
                                 onChange={(e) => setSheetCoin(coin.key, e.target.value)}
                                 className="h-8 border-0 bg-transparent px-0 text-center font-display text-lg focus-visible:ring-0"
                               />
@@ -1112,7 +1114,7 @@ useUnsavedChangesWarning({
                               inputMode="numeric"
                               pattern="[0-9]*"
                               min={0}
-                              value={osgdrSheet.pe ?? 0}
+                              value={osgdrSheet.pe ?? ""}
                               onChange={(e) => setSheetPe(e.target.value)}
                               className="h-8 border-0 bg-transparent px-0 text-center font-display text-lg focus-visible:ring-0"
                             />
