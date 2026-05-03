@@ -935,20 +935,18 @@ const setFeritaValue = (part: string, nextValue: string) => {
           const getPartPenalty = (part: string) =>
             getPenaltyFromSeverity(getPartSeverity(part));
 
-          const getPartProtection = (part: string) => {
-            const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
-            const totalArmor = armorByBodyPart[part] ?? 0;
-            const naturalThreshold = getPartThreshold(part);
+			const getPartProtection = (part: string) => {
+			  const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
+			  const totalArmor = Math.max(0, Number(armorByBodyPart[part] ?? 0));
+			  const totalProtection = constitutionModifier + totalArmor;
 
-            return {
-              naturalThreshold,
-              constitutionModifier,
-              totalNaturalArmor: naturalThreshold + constitutionModifier,
-              totalArmor,
-              totalProtection: naturalThreshold + constitutionModifier + totalArmor,
-            };
-          };
-
+			  return {
+				constitutionModifier,
+				totalArmor,
+				totalProtection,
+			  };
+			};
+			
           const bodyPartSummaries = BODY_PARTS.map((part) => {
             const damage = getPartDamage(part);
             const threshold = getPartThreshold(part);
