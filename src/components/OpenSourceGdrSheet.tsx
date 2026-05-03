@@ -1637,87 +1637,110 @@ const fantasyZones = [
       </section>
 
       <section className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          {lbl("section.armors", "Armature", "font-display text-xl gold-text", "h3")}
-          {canEdit && (
-            <Button variant="outline" size="sm" onClick={addArmor} className="font-heading">
-              <Plus className="mr-1 h-4 w-4" /> Aggiungi
-            </Button>
+  <div className="flex items-center justify-between gap-2">
+    {lbl("section.armors", "Armature", "font-display text-xl gold-text", "h3")}
+    {canEdit ? (
+      <Button variant="outline" size="sm" onClick={addArmor} className="font-heading">
+        <Plus className="mr-1 h-4 w-4" />
+        Aggiungi
+      </Button>
+    ) : null}
+  </div>
+
+  {!value.armors || value.armors.length === 0 ? (
+    <p className="text-sm font-script italic text-ink-faded">Nessuna armatura inserita.</p>
+  ) : (
+    <div className="space-y-2">
+      {value.armors.map((a) => (
+        <div
+          key={a.id}
+          className="rounded-lg border border-border60 bg-parchment-deep20 p-2.5"
+        >
+          {canEdit ? (
+            <>
+              <div className="grid gap-2 md:grid-cols-[minmax(0,1.7fr)_88px_170px_auto] md:items-center">
+                <Input
+                  value={a.name}
+                  onChange={(e) => updateArmor(a.id, { name: e.target.value })}
+                  placeholder="Nome armatura"
+                  className="font-script"
+                />
+
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  min={0}
+                  value={a.protection}
+                  onChange={(e) =>
+                    updateArmor(a.id, {
+                      protection: Math.max(0, Number(e.target.value) || 0),
+                    })
+                  }
+                  placeholder="Prot."
+                  className="font-script text-center"
+                />
+
+                <select
+                  value={a.location}
+                  onChange={(e) => updateArmor(a.id, { location: e.target.value })}
+                  className="h-10 rounded-md border border-input bg-background px-3 py-2 font-script text-sm"
+                >
+                  {BODY_PARTS.map((part) => (
+                    <option key={part} value={part}>
+                      {part}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => removeArmor(a.id)}
+                  className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
+                  aria-label="Rimuovi armatura"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-2">
+                <Input
+                  value={a.notes}
+                  onChange={(e) => updateArmor(a.id, { notes: e.target.value })}
+                  placeholder="Note"
+                  className="font-script"
+                />
+              </div>
+            </>
+          ) : (
+            <div className="space-y-1.5 font-script">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <strong className="font-heading text-ink">
+                    {a.name?.trim() || "Armatura senza nome"}
+                  </strong>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs text-ink-faded">
+                  <span className="rounded-full border border-border60 bg-background/40 px-2 py-1">
+                    Protezione {a.protection}
+                  </span>
+                  <span className="rounded-full border border-border60 bg-background/40 px-2 py-1">
+                    {a.location}
+                  </span>
+                </div>
+              </div>
+
+              {a.notes?.trim() ? (
+                <div className="text-sm text-ink-faded">{a.notes}</div>
+              ) : null}
+            </div>
           )}
         </div>
-
-        {!value.armors || value.armors.length === 0 ? (
-          <p className="text-sm font-script italic text-ink-faded">Nessuna armatura inserita.</p>
-        ) : (
-          <div className="space-y-2">
-            {value.armors.map((a) => (
-              <div key={a.id} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
-                {canEdit ? (
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                    <Input
-                      value={a.name}
-                      onChange={(e) => updateArmor(a.id, { name: e.target.value })}
-                      placeholder="Nome armatura"
-                      className="font-script"
-                    />
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      min={0}
-                      value={a.protection}
-                      onChange={(e) =>
-                        updateArmor(a.id, {
-                          protection: Math.max(0, Number(e.target.value) || 0),
-                        })
-                      }
-                      placeholder="Protezione"
-                      className="font-script"
-                    />
-                    <select
-                      value={a.location}
-                      onChange={(e) => updateArmor(a.id, { location: e.target.value })}
-                      className="h-10 rounded-md border border-input bg-background px-3 py-2 font-script text-sm"
-                    >
-                      {BODY_PARTS.map((part) => (
-                        <option key={part} value={part}>
-                          {part}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="flex gap-2">
-                      <Input
-                        value={a.notes}
-                        onChange={(e) => updateArmor(a.id, { notes: e.target.value })}
-                        placeholder="Note"
-                        className="font-script"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeArmor(a.id)}
-                        className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
-                        aria-label="Rimuovi armatura"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-1 font-script">
-                    <div>
-                      <strong className="font-heading text-ink">{a.name || "—"}</strong>
-                    </div>
-                    <div className="text-sm text-ink-faded">
-                      Protezione: {a.protection} · Zona: {a.location || "—"}
-                    </div>
-                    {a.notes && <div className="text-sm text-ink-faded">{a.notes}</div>}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      ))}
+    </div>
+  )}
+</section>
 
 <section className="space-y-3">
         {lbl("section.equip", "Equipaggiamento", "font-display text-xl gold-text", "h3")}
