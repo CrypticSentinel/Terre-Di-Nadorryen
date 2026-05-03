@@ -1548,69 +1548,57 @@ const setFeritaValue = (part: string, nextValue: string) => {
                           </div>
                         </button>
 
-                        {isExpanded && (
-                          <div className="border-t border-border40 px-3 pb-3 pt-2">
-                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                              <div className="rounded-lg border border-border40 bg-background/35 p-2 text-center">
-                                <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
-                                  Ferite
-                                </div>
-                                {canEdit ? (
-                                  <Input
-                                    type="text"
-                                    inputMode="numeric"
-                                    value={damage > 0 ? String(-damage) : ""}
-                                    onChange={(e) => setFeritaValue(part, e.target.value)}
-                                    placeholder="-0"
-                                    className="mt-1 h-7 border-0 bg-transparent px-0 text-center font-display text-base text-primary focus-visible:ring-0"
-                                  />
-                                ) : (
-                                  <div className="mt-1 h-7 font-display text-base leading-7 text-primary">
-                                    {damage > 0 ? -damage : ""}
-                                  </div>
-                                )}
-                              </div>
+                              {isExpanded && (
+          <div className="border-t border-border40 px-3 pb-3 pt-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1.35fr)_minmax(110px,0.65fr)]">
+              <div className="rounded-lg border border-border40 bg-background/35 p-2 text-center">
+                <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
+                  Protezione
+                </div>
 
-                              <div className="rounded-lg border border-border40 bg-background/35 p-2 text-center">
-                                <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
-                                  Soglia
-                                </div>
-                                <div className="mt-1 h-7 font-display text-base leading-7 text-primary">
-                                  {threshold}
-                                </div>
-                              </div>
+                <div
+                  className="mt-1 font-display text-base leading-7 text-primary"
+                  title={`Mod. Costituzione + Armatura = ${protection.constitutionModifier} + ${protection.totalArmor}`}
+                >
+                  {protection.totalProtection}
+                </div>
 
-                              <div className="rounded-lg border border-border40 bg-background/35 p-2 text-center">
-                                <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
-                                  Naturale
-                                </div>
-                                <div className="mt-1 h-7 font-display text-base leading-7 text-primary">
-                                  {protection.totalNaturalArmor}
-                                </div>
-                              </div>
+                <div className="mt-1 text-[11px] font-script italic leading-tight text-ink-faded">
+                  Mod. Costituzione ({protection.constitutionModifier}) + Protezione armatura ({protection.totalArmor})
+                </div>
+              </div>
 
-                              <div className="rounded-lg border border-border40 bg-background/35 p-2 text-center">
-                                <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
-                                  Armatura
-                                </div>
-                                <div
-                                  className="mt-1 h-7 font-display text-base leading-7 text-primary"
-                                  title={`Protezione totale ${protection.totalProtection} = Naturale ${protection.totalNaturalArmor} + Armatura ${protection.totalArmor}`}
-                                >
-                                  {protection.totalArmor}
-                                </div>
-                              </div>
-                            </div>
+              <div className="rounded-lg border border-border40 bg-background/35 p-2 text-center">
+                <div className="font-heading text-[10px] uppercase tracking-wider text-ink-faded">
+                  Ferite
+                </div>
 
-                            <div className="mt-2 text-xs font-script italic text-ink-faded">
-                              Penalità della zona{" "}
-                              <strong className="font-heading text-ink">{formatModifier(penalty)}</strong>
-                              {" · "}
-                              Protezione totale{" "}
-                              <strong className="font-heading text-ink">{protection.totalProtection}</strong>
-                            </div>
-                          </div>
-                        )}
+                {canEdit ? (
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={damage > 0 ? String(-damage) : ""}
+                    onChange={(e) => setFeritaValue(part, e.target.value)}
+                    placeholder="-0"
+                    className="mt-1 h-7 border-0 bg-transparent px-0 text-center font-display text-base text-primary focus-visible:ring-0"
+                  />
+                ) : (
+                  <div className="mt-1 h-7 font-display text-base leading-7 text-primary">
+                    {damage > 0 ? -damage : ""}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-2 text-xs font-script italic text-ink-faded">
+              Penalità della zona{" "}
+              <strong className="font-heading text-ink">{formatModifier(penalty)}</strong>
+              {" · "}
+              Protezione totale{" "}
+              <strong className="font-heading text-ink">{protection.totalProtection}</strong>
+            </div>
+          </div>
+        )}
                       </div>
                     );
                   })}
