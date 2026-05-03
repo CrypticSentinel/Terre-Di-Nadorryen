@@ -41,6 +41,7 @@ import {
 } from "@/components/OpenSourceGdrSheet";
 import { EditableLabel, type LabelOverride } from "@/components/EditableLabel";
 import { Badge } from "@/components/ui/badge";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 
 interface CustomField {
   id: string;
@@ -783,6 +784,59 @@ const CharacterDetail = () => {
     }
   };
 
+const hasUnsavedChanges = useMemo(() => {
+  const snap = dbSnapshotRef.current;
+  if (!snap || !character) return false;
+
+  const nextOwnerId = access.canAssignCharacter
+    ? assignedUserId ?? character.owner_id
+    : character.owner_id;
+
+  const visibleSnapshotFields = snap.fields.filter(
+    (f) =>
+      f.id !== OSGDR_FIELD_ID &&
+      f.id !== LABEL_OVERRIDES_FIELD_ID &&
+      f.id !== BACKGROUND_FIELD_ID
+  );
+
+  const visibleCurrentFields = fields.filter(
+    (f) =>
+      f.id !== OSGDR_FIELD_ID &&
+      f.id !== LABEL_OVERRIDES_FIELD_ID &&
+      f.id !== BACKGROUND_FIELD_ID
+  );
+
+  return (
+    snap.name !== name ||
+    (snap.concept ?? "") !== (concept ?? "") ||
+    JSON.stringify(visibleSnapshotFields) !== JSON.stringify(visibleCurrentFields) ||
+    JSON.stringify(snap.osgdrSheet) !== JSON.stringify(osgdrSheet) ||
+    (snap.background ?? "") !== (background ?? "") ||
+    snap.owner_id !== nextOwnerId ||
+    snap.is_dead !== isDead ||
+    (snap.death_description ?? "") !== (deathDescription ?? "") ||
+    (snap.died_at ?? "") !== (diedAt ?? "")
+  );
+}, [
+  character,
+  access.canAssignCharacter,
+  assignedUserId,
+  name,
+  concept,
+  fields,
+  osgdrSheet,
+  background,
+  isDead,
+  deathDescription,
+  diedAt,
+]);
+
+useUnsavedChangesWarning({
+  when: hasUnsavedChanges,
+  message:
+    "Hai modifiche non salvate. Se lasci ora questa pagina, potresti perderle. Vuoi continuare?",
+});
+
   if (loading || !character) {
     return (
       <div className="min-h-screen">
@@ -978,20 +1032,6 @@ const CharacterDetail = () => {
                         ))}
                       </div>
                     </section>
-
-{access.canEdit && (
-  <div className="flex justify-end border-t border-border40 pt-3">
-    <Button
-      size="sm"
-      onClick={handleSave}
-      disabled={saving}
-      className="font-heading"
-    >
-      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
-      Salva anagrafica
-    </Button>
-  </div>
-)}
 
                     <div className="h-px bg-border/50" />
 
