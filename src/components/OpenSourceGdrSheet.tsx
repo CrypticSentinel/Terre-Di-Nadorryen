@@ -373,11 +373,11 @@ const base = {
 };
 
   const isHead = part === "Testa";
-const isTorso = part === "Torace" || part === "Addome";
-const isArm = part === "Braccio DX" || part === "Braccio SX";
-const isHand = part === "Mano DX" || part === "Mano SX";
-const isLeg = part === "Gamba DX" || part === "Gamba SX";
-const isFoot = part === "Piede DX" || part === "Piede SX";
+  const isTorso = part === "Torace" || part === "Addome";
+  const isArm = part === "Braccio DX" || part === "Braccio SX";
+  const isHand = part === "Mano DX" || part === "Mano SX";
+  const isLeg = part === "Gamba DX" || part === "Gamba SX";
+  const isFoot = part === "Piede DX" || part === "Piede SX";
 
   if (severity === "none") {
     return {
@@ -1324,6 +1324,19 @@ const setFeritaValue = (part: string, nextValue: string) => {
                                   />
                                 )}
 
+                                {zone.key === "Addome" && (
+                                  <path
+                                    d="M80 132
+                                      C88 142, 98 148, 110 148
+                                      C122 148, 132 142, 140 132
+                                      L144 168
+                                      C135 177, 124 182, 110 182
+                                      C96 182, 85 177, 76 168 Z"
+                                    className={zoneClassName}
+                                    style={sharedStyle}
+                                  />
+                                )}
+                                
                                 {zone.key === "Braccio SX" && (
                                   <path
                                     d="M68 106
