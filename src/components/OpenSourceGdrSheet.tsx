@@ -474,7 +474,10 @@ export const OpenSourceGdrSheet = ({
   const [expandedBodyPart, setExpandedBodyPart] = useState<string | null>(null);
   const [selectedHitZone, setSelectedHitZone] = useState<"Alta" | "Bassa">("Alta");
   const [abilityDrafts, setAbilityDrafts] = useState<Partial<Record<Ability, string>>>({});
+  
   const [magicDrafts, setMagicDrafts] = useState<Partial<Record<MagicSchool, string>>>({});
+  
+  const [armorProtectionDrafts, setArmorProtectionDrafts] = useState<Record<string, string>>({});
 
   const totalPoints = useMemo(
     () => ABILITIES.reduce((acc, a) => acc + (Number(value.abilities[a.key]) || 0), 0),
@@ -1738,11 +1741,25 @@ const fantasyZones = [
   type="text"
   inputMode="numeric"
   pattern="[0-9]*"
-  value={a.protection === 0 ? "" : String(a.protection)}
+  value={armorProtectionDrafts[a.id] ?? String(a.protection)}
   onChange={(e) => {
     const raw = e.target.value.replace(/\D/g, "");
+
+    setArmorProtectionDrafts((prev) => ({
+      ...prev,
+      [a.id]: raw,
+    }));
+
     if (raw === "") return;
+
     updateArmor(a.id, { protection: Math.max(0, Number(raw)) });
+  }}
+  onBlur={() => {
+    setArmorProtectionDrafts((prev) => {
+      const next = { ...prev };
+      delete next[a.id];
+      return next;
+    });
   }}
   placeholder="Protezione"
   className="font-script"
