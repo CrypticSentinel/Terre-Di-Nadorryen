@@ -516,40 +516,37 @@ const armorByBodyPart = useMemo(() => {
     onChange({ ...value, [k]: v });
 
   const setAbility = (key: Ability, raw: string) => {
-  if (raw === "") {
-    onChange({ ...value, abilities: { ...value.abilities, [key]: 0 } });
-    return;
-  }
-
+  if (raw === "") return;
   const n = Math.max(0, Math.min(30, Number(raw)));
-  onChange({ ...value, abilities: { ...value.abilities, [key]: Number.isFinite(n) ? n : 0 } });
+  onChange({
+    ...value,
+    abilities: { ...value.abilities, [key]: Number.isFinite(n) ? n : 0 },
+  });
 };
 
-  const setMagic = (school: MagicSchool, raw: string) => {
-  if (raw === "") {
-    onChange({ ...value, magic: { ...value.magic, [school]: 0 } });
-    return;
-  }
-
+const setMagic = (school: MagicSchool, raw: string) => {
+  if (raw === "") return;
   const n = Math.max(0, Math.min(99, Number(raw)));
-  onChange({ ...value, magic: { ...value.magic, [school]: Number.isFinite(n) ? n : 0 } });
+  onChange({
+    ...value,
+    magic: { ...value.magic, [school]: Number.isFinite(n) ? n : 0 },
+  });
 };
 
-  const setFeritaValue = (part: string, nextValue: string) => {
-  const numericValue = nextValue === "" ? 0 : Number(nextValue);
+const setFeritaValue = (part: string, nextValue: string) => {
+  if (nextValue === "") return;
+
+  const numericValue = Number(nextValue);
   const damage = Math.max(0, Math.abs(Number.isFinite(numericValue) ? numericValue : 0));
   const threshold = natural_soglia[part] ?? 0;
   const severity = getWoundSeverity(damage, threshold);
 
   const nextFerite = {
     ...value.ferite,
-    [part]: {
-      wounds: damage,
-    },
+    [part]: { wounds: damage },
   };
 
   let totalPenalty = 0;
-
   for (const bodyPart of BODY_PARTS) {
     const bodyDamage = Math.max(0, Number(nextFerite?.[bodyPart]?.wounds ?? 0) || 0);
     const bodyThreshold = natural_soglia[bodyPart] ?? 0;
@@ -557,14 +554,8 @@ const armorByBodyPart = useMemo(() => {
     totalPenalty += getPenaltyFromSeverity(bodySeverity);
   }
 
-  onChange({
-    ...value,
-    ferite: nextFerite,
-  });
-
-  setBodyPartPopup(
-    getBodyPartPopupInfo(part, damage, threshold, severity, totalPenalty)
-  );
+  onChange({ ...value, ferite: nextFerite });
+  setBodyPartPopup(getBodyPartPopupInfo(part, damage, threshold, severity, totalPenalty));
 };
 
   const setEquipItem = (sec: EquipmentKey, id: string, txt: string) => {
@@ -736,7 +727,7 @@ const armorByBodyPart = useMemo(() => {
   type="text"
   inputMode="numeric"
   pattern="[0-9]*"
-  value={String(v)}
+    value={v === 0 ? "" : String(v)}
   onChange={(e) => {
     const raw = e.target.value.replace(/\D/g, "");
     setAbility(a.key, raw);
@@ -788,12 +779,11 @@ const armorByBodyPart = useMemo(() => {
   type="text"
   inputMode="numeric"
   pattern="[0-9]*"
-  value={String(s.grade)}
+  value={s.grade === 0 ? "" : String(s.grade)}
   onChange={(e) => {
     const raw = e.target.value.replace(/\D/g, "");
-    updateSkill(s.id, {
-      grade: raw === "" ? 0 : Math.max(0, Math.min(20, Number(raw))),
-    });
+    if (raw === "") return;
+    updateSkill(s.id, { grade: Math.max(0, Math.min(20, Number(raw))) });
   }}
   className="h-9 w-16 border border-border/60 px-0 text-center font-display focus-visible:ring-0"
 />
@@ -1725,12 +1715,11 @@ const fantasyZones = [
   type="text"
   inputMode="numeric"
   pattern="[0-9]*"
-  value={String(a.protection)}
+  value={a.protection === 0 ? "" : String(a.protection)}
   onChange={(e) => {
     const raw = e.target.value.replace(/\D/g, "");
-    updateArmor(a.id, {
-      protection: raw === "" ? 0 : Math.max(0, Number(raw)),
-    });
+    if (raw === "") return;
+    updateArmor(a.id, { protection: Math.max(0, Number(raw)) });
   }}
   placeholder="Protezione"
   className="font-script"
@@ -1916,7 +1905,7 @@ const fantasyZones = [
   type="text"
   inputMode="numeric"
   pattern="[0-9]*"
-  value={String(grade)}
+  value={grade === 0 ? "" : String(grade)}
   onChange={(e) => {
     const raw = e.target.value.replace(/\D/g, "");
     setMagic(school, raw);
