@@ -473,6 +473,8 @@ export const OpenSourceGdrSheet = ({
   const [bodyPartPopup, setBodyPartPopup] = useState<BodyPartPopupState | null>(null);
   const [expandedBodyPart, setExpandedBodyPart] = useState<string | null>(null);
   const [selectedHitZone, setSelectedHitZone] = useState<"Alta" | "Bassa">("Alta");
+  const [abilityDrafts, setAbilityDrafts] = useState<Partial<Record<Ability, string>>>({});
+  const [magicDrafts, setMagicDrafts] = useState<Partial<Record<MagicSchool, string>>>({});
 
   const totalPoints = useMemo(
     () => ABILITIES.reduce((acc, a) => acc + (Number(value.abilities[a.key]) || 0), 0),
@@ -516,20 +518,32 @@ const armorByBodyPart = useMemo(() => {
     onChange({ ...value, [k]: v });
 
   const setAbility = (key: Ability, raw: string) => {
+  setAbilityDrafts((prev) => ({ ...prev, [key]: raw }));
+
   if (raw === "") return;
+
   const n = Math.max(0, Math.min(30, Number(raw)));
   onChange({
     ...value,
-    abilities: { ...value.abilities, [key]: Number.isFinite(n) ? n : 0 },
+    abilities: {
+      ...value.abilities,
+      [key]: Number.isFinite(n) ? n : 0,
+    },
   });
 };
 
 const setMagic = (school: MagicSchool, raw: string) => {
+  setMagicDrafts((prev) => ({ ...prev, [school]: raw }));
+
   if (raw === "") return;
+
   const n = Math.max(0, Math.min(99, Number(raw)));
   onChange({
     ...value,
-    magic: { ...value.magic, [school]: Number.isFinite(n) ? n : 0 },
+    magic: {
+      ...value.magic,
+      [school]: Number.isFinite(n) ? n : 0,
+    },
   });
 };
 
@@ -709,6 +723,8 @@ const setFeritaValue = (part: string, nextValue: string) => {
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           {ABILITIES.map((a) => {
             const v = value.abilities[a.key] ?? 0;
+            const draftValue = abilityDrafts[a.key];
+            const inputValue = draftValue ?? String(v);
             const mod = abilityModifier(v);
 
             return (
@@ -727,10 +743,17 @@ const setFeritaValue = (part: string, nextValue: string) => {
   type="text"
   inputMode="numeric"
   pattern="[0-9]*"
-    value={v === 0 ? "" : String(v)}
+  value={inputValue}
   onChange={(e) => {
     const raw = e.target.value.replace(/\D/g, "");
     setAbility(a.key, raw);
+  }}
+  onBlur={() => {
+    setAbilityDrafts((prev) => {
+      const next = { ...prev };
+      delete next[a.key];
+      return next;
+    });
   }}
   className="h-10 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
   style={{ fontSize: "18px" }}
@@ -1887,6 +1910,8 @@ const fantasyZones = [
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           {MAGIC_SCHOOLS.map((school) => {
             const grade = value.magic[school] ?? 0;
+            const draftGrade = magicDrafts[school];
+            const inputGrade = draftGrade ?? String(grade);
             const dmg = magicBaseDamage(grade);
 
             return (
@@ -1905,10 +1930,17 @@ const fantasyZones = [
   type="text"
   inputMode="numeric"
   pattern="[0-9]*"
-  value={grade === 0 ? "" : String(grade)}
+  value={inputGrade}
   onChange={(e) => {
     const raw = e.target.value.replace(/\D/g, "");
     setMagic(school, raw);
+  }}
+  onBlur={() => {
+    setMagicDrafts((prev) => {
+      const next = { ...prev };
+      delete next[school];
+      return next;
+    });
   }}
   className="h-9 border-0 bg-transparent px-0 text-center font-display text-xl focus-visible:ring-0"
 />
