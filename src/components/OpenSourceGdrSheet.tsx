@@ -1700,76 +1700,80 @@ const fantasyZones = [
         <div key={a.id} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
           {canEdit ? (
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              <Input
-                value={a.name}
-                onChange={(e) => updateArmor(a.id, { name: e.target.value })}
-                placeholder="Nome armatura"
-                className="font-script"
-              />
+  <div className="lg:col-span-3">
+    <Input
+      value={a.name}
+      onChange={(e) => updateArmor(a.id, { name: e.target.value })}
+      placeholder="Nome armatura"
+      className="font-script"
+    />
+  </div>
 
-              <Input
-                type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                min={0}
-                value={a.protection}
-                onChange={(e) =>
-                  updateArmor(a.id, {
-                    protection: Math.max(0, Number(e.target.value) || 0),
-                  })
-                }
-                placeholder="Protezione"
-                className="font-script"
-              />
+  <div className="lg:col-span-1">
+    <Input
+      type="number"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      min={0}
+      value={a.protection}
+      onChange={(e) =>
+        updateArmor(a.id, {
+          protection: Math.max(0, Number(e.target.value) || 0),
+        })
+      }
+      placeholder="Protezione"
+      className="font-script"
+    />
+  </div>
 
-              <div className="rounded-md border border-input bg-background px-3 py-2 sm:col-span-2 lg:col-span-2">
-                <div className="mb-2 font-heading text-xs uppercase tracking-wider text-ink-faded">
-                  Zone coperte
-                </div>
-                <div className="grid grid-cols-2 gap-1">
-                  {BODY_PARTS.map((part) => {
-                    const selected = (a.locations ?? []).includes(part);
+  <div className="sm:col-span-2 lg:col-span-4 rounded-md border border-input bg-background px-3 py-2">
+    <div className="mb-2 font-heading text-xs uppercase tracking-wider text-ink-faded">
+      Zone coperte
+    </div>
+    <div className="grid grid-cols-2 gap-1 lg:grid-cols-5">
+      {BODY_PARTS.map((part) => {
+        const selected = (a.locations ?? []).includes(part);
 
-                    return (
-                      <label key={part} className="flex items-center gap-2 font-script text-sm">
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          onChange={(e) => {
-                            const current = Array.isArray(a.locations) ? a.locations : [];
-                            const next = e.target.checked
-                              ? [...current, part]
-                              : current.filter((loc) => loc !== part);
+        return (
+          <label key={part} className="flex items-center gap-2 font-script text-sm">
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={(e) => {
+                const current = Array.isArray(a.locations) ? a.locations : [];
+                const next = e.target.checked
+                  ? [...current, part]
+                  : current.filter((loc) => loc !== part);
 
-                            updateArmor(a.id, {
-                              locations: next.length > 0 ? next : [BODY_PARTS[0]],
-                            });
-                          }}
-                        />
-                        <span>{part}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
+                updateArmor(a.id, {
+                  locations: next.length > 0 ? next : [BODY_PARTS[0]],
+                });
+              }}
+            />
+            <span>{part}</span>
+          </label>
+        );
+      })}
+    </div>
+  </div>
 
-              <div className="flex gap-2 sm:col-span-2 lg:col-span-4">
-                <Input
-                  value={a.notes}
-                  onChange={(e) => updateArmor(a.id, { notes: e.target.value })}
-                  placeholder="Note"
-                  className="font-script"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeArmor(a.id)}
-                  className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
-                  aria-label="Rimuovi armatura"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
+  <div className="flex gap-2 sm:col-span-2 lg:col-span-4">
+    <Input
+      value={a.notes}
+      onChange={(e) => updateArmor(a.id, { notes: e.target.value })}
+      placeholder="Note"
+      className="font-script"
+    />
+    <button
+      type="button"
+      onClick={() => removeArmor(a.id)}
+      className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
+      aria-label="Rimuovi armatura"
+    >
+      <Trash2 className="h-4 w-4" />
+    </button>
+  </div>
+</div>
           ) : (
             <div className="space-y-1 font-script">
               <div>
