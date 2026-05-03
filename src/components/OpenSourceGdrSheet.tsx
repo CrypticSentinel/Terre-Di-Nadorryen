@@ -937,14 +937,12 @@ const getPartPenalty = (part: string) =>
 
 const getPartProtection = (part: string) => {
   const constitutionModifier = abilityModifier(value.abilities.cos ?? 0);
-  const naturalThreshold = getPartThreshold(part);
-  const totalNaturalArmor = naturalThreshold + constitutionModifier;
   const totalArmor = armorByBodyPart[part] ?? 0;
 
   return {
-    totalNaturalArmor,
+    constitutionModifier,
     totalArmor,
-    totalProtection: totalNaturalArmor + totalArmor,
+    totalProtection: constitutionModifier + totalArmor,
   };
 };
 
@@ -1563,12 +1561,12 @@ const fantasyZones = [
       </div>
       <div
         className="mt-1 h-7 font-display text-base leading-7 text-primary"
-        title={`Protezione totale: ${protection.totalProtection}`}
+        title={`Mod. Costituzione + Armatura = ${protection.constitutionModifier} + ${protection.totalArmor}`}
       >
         {protection.totalProtection}
       </div>
       <div className="mt-1 text-[11px] font-script italic leading-tight text-ink-faded">
-        Mod. Costituzione ({abilityModifier(value.abilities.cos ?? 0)}) + Armatura ({protection.totalArmor})
+        Mod. Costituzione ({protection.constitutionModifier}) + Armatura ({protection.totalArmor})
       </div>
     </div>
 
