@@ -1567,74 +1567,102 @@ const fantasyZones = [
 </section>
 
       <section className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          {lbl("section.weapons", "Armi", "font-display text-xl gold-text", "h3")}
-          {canEdit && (
-            <Button variant="outline" size="sm" onClick={addWeapon} className="font-heading">
-              <Plus className="mr-1 h-4 w-4" /> Aggiungi
-            </Button>
+  <div className="flex items-center justify-between gap-2">
+    {lbl("section.weapons", "Armi", "font-display text-xl gold-text", "h3")}
+    {canEdit ? (
+      <Button variant="outline" size="sm" onClick={addWeapon} className="font-heading">
+        <Plus className="mr-1 h-4 w-4" />
+        Aggiungi
+      </Button>
+    ) : null}
+  </div>
+
+  {!value.weapons || value.weapons.length === 0 ? (
+    <p className="text-sm font-script italic text-ink-faded">Nessuna arma inserita.</p>
+  ) : (
+    <div className="space-y-2">
+      {value.weapons.map((w) => (
+        <div
+          key={w.id}
+          className="rounded-lg border border-border60 bg-parchment-deep20 p-2.5"
+        >
+          {canEdit ? (
+            <>
+              <div className="grid gap-2 md:grid-cols-[minmax(0,1.7fr)_130px_130px_auto] md:items-center">
+                <Input
+                  value={w.name}
+                  onChange={(e) => updateWeapon(w.id, { name: e.target.value })}
+                  placeholder="Nome arma"
+                  className="font-script"
+                />
+
+                <Input
+                  value={w.damage}
+                  onChange={(e) => updateWeapon(w.id, { damage: e.target.value })}
+                  placeholder="Danno"
+                  className="font-script text-center"
+                />
+
+                <Input
+                  value={w.range}
+                  onChange={(e) => updateWeapon(w.id, { range: e.target.value })}
+                  placeholder="Gittata"
+                  className="font-script text-center"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => removeWeapon(w.id)}
+                  className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
+                  aria-label="Rimuovi arma"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-2">
+                <Input
+                  value={w.notes}
+                  onChange={(e) => updateWeapon(w.id, { notes: e.target.value })}
+                  placeholder="Note"
+                  className="font-script"
+                />
+              </div>
+            </>
+          ) : (
+            <div className="space-y-1.5 font-script">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <strong className="font-heading text-ink">
+                    {w.name?.trim() || "Arma senza nome"}
+                  </strong>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs text-ink-faded">
+                  {w.damage?.trim() ? (
+                    <span className="rounded-full border border-border60 bg-background/40 px-2 py-1">
+                      Danno {w.damage}
+                    </span>
+                  ) : null}
+
+                  {w.range?.trim() ? (
+                    <span className="rounded-full border border-border60 bg-background/40 px-2 py-1">
+                      Gittata {w.range}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              {w.notes?.trim() ? (
+                <div className="text-sm text-ink-faded">{w.notes}</div>
+              ) : null}
+            </div>
           )}
         </div>
-
-        {!value.weapons || value.weapons.length === 0 ? (
-          <p className="text-sm font-script italic text-ink-faded">Nessuna arma inserita.</p>
-        ) : (
-          <div className="space-y-2">
-            {value.weapons.map((w) => (
-              <div key={w.id} className="rounded border border-border/60 bg-parchment-deep/20 p-3">
-                {canEdit ? (
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                    <Input
-                      value={w.name}
-                      onChange={(e) => updateWeapon(w.id, { name: e.target.value })}
-                      placeholder="Nome arma"
-                      className="font-script"
-                    />
-                    <Input
-                      value={w.damage}
-                      onChange={(e) => updateWeapon(w.id, { damage: e.target.value })}
-                      placeholder="Danno es. 1d6+2"
-                      className="font-script"
-                    />
-                    <Input
-                      value={w.range}
-                      onChange={(e) => updateWeapon(w.id, { range: e.target.value })}
-                      placeholder="Gittata / tipo"
-                      className="font-script"
-                    />
-                    <div className="flex gap-2">
-                      <Input
-                        value={w.notes}
-                        onChange={(e) => updateWeapon(w.id, { notes: e.target.value })}
-                        placeholder="Note"
-                        className="font-script"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeWeapon(w.id)}
-                        className={`${iconButtonClass} text-destructive hover:bg-destructive/10`}
-                        aria-label="Rimuovi arma"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-1 font-script">
-                    <div>
-                      <strong className="font-heading text-ink">{w.name || "—"}</strong>
-                    </div>
-                    <div className="text-sm text-ink-faded">
-                      Danno: {w.damage || "—"} · Gittata: {w.range || "—"}
-                    </div>
-                    {w.notes && <div className="text-sm text-ink-faded">{w.notes}</div>}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      ))}
+    </div>
+  )}
+</section>
 
       <section className="space-y-3">
   <div className="flex items-center justify-between gap-2">
