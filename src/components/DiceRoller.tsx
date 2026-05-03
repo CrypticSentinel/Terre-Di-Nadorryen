@@ -87,7 +87,11 @@ const formatRollSummary = (row: DiceRollRow) => {
       ? ` · giocatore: ${row.user_display_name}`
       : "";
 
-  return `🎲 ${actor}: ${row.expression} → ${row.total}${player}`;
+  const detail = row.message?.trim()
+    ? row.message
+    : `${row.expression} → ${row.total}`;
+
+  return `🎲 ${actor}: ${detail}${player}`;
 };
 
 export const DiceRoller = ({
@@ -199,7 +203,7 @@ export const DiceRoller = ({
   const removeGroup = (id: string) =>
     setGroups((prev) => (prev.length > 1 ? prev.filter((g) => g.id !== id) : prev));
 
-    const publishRoll = async (params: {
+      const publishRoll = async (params: {
     expression: string;
     dice: RolledDie[];
     modifier: number;
@@ -472,7 +476,7 @@ if (v === 20) {
         </Button>
       )}
 
-      {lastResult && (
+            {lastResult && (
         <div
           className={`rounded border border-border bg-parchment-deep/30 py-3 text-center ${
             rolling ? "animate-roll-die" : "animate-fade-up"
@@ -514,16 +518,17 @@ if (v === 20) {
               </>
             )}
           </div>
-                  {typeof penaltyTotal === "number" && penaltyTotal > 0 && (
-          <div className="mt-3 border-t border-border/50 px-3 pt-2 text-center">
-            <div className="font-script text-[11px] italic text-ink-faded">
-              {penaltyReminder || "Ricorda: sottrai Penalità Ferite + Penalità Aggiuntive + Fatica"}
+
+          {typeof penaltyTotal === "number" && penaltyTotal > 0 && (
+            <div className="mt-3 border-t border-border/50 px-3 pt-2 text-center">
+              <div className="font-script text-[11px] italic text-ink-faded">
+                {penaltyReminder || "Ricorda: sottrai Penalità Ferite + Penalità Aggiuntive + Fatica"}
+              </div>
+              <div className="mt-1 font-heading text-xs text-destructive">
+                Malus da sottrarre: -{penaltyTotal}
+              </div>
             </div>
-            <div className="mt-1 font-heading text-xs text-destructive">
-              Malus da sottrarre: -{penaltyTotal}
-            </div>
-          </div>
-        )}
+          )}
         </div>
       )}
 
