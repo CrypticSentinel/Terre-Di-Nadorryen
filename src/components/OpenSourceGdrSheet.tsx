@@ -1229,224 +1229,286 @@ const setFeritaValue = (part: string, nextValue: string) => {
 
                     <div className="mx-auto flex max-w-[230px] justify-center">
                       <svg viewBox="0 0 220 320" className="h-auto w-full">
-                        <defs>
-                          <linearGradient id="bodyFillSoft" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="rgba(246, 238, 214, 0.96)" />
-                            <stop offset="100%" stopColor="rgba(222, 201, 162, 0.92)" />
-                          </linearGradient>
-                        </defs>
+  <defs>
+    <linearGradient id="bodyFillSoft" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="rgba(248, 241, 221, 0.98)" />
+      <stop offset="52%" stopColor="rgba(233, 218, 186, 0.95)" />
+      <stop offset="100%" stopColor="rgba(210, 186, 146, 0.9)" />
+    </linearGradient>
 
-                        <g className="text-border/65" fill="none" stroke="currentColor">
-                          <path
-                            d="M110 18
-                               C124 20, 136 31, 138 46
-                               C140 60, 135 73, 126 82
-                               C137 87, 145 96, 151 109
-                               C159 126, 163 146, 162 168
-                               C158 169, 154 169, 150 168
-                               C146 150, 141 134, 132 121
-                               L128 141
-                               C127 157, 127 173, 129 192
-                               C132 211, 135 233, 136 258
-                               C137 275, 136 291, 134 306
-                               L122 306
-                               C122 282, 119 255, 114 223
-                               L106 223
-                               C101 255, 98 282, 98 306
-                               L86 306
-                               C84 291, 83 275, 84 258
-                               C85 233, 88 211, 91 192
-                               C93 173, 93 157, 92 141
-                               L88 121
-                               C79 134, 74 150, 70 168
-                               C66 169, 62 169, 58 168
-                               C57 146, 61 126, 69 109
-                               C75 96, 83 87, 94 82
-                               C85 73, 80 60, 82 46
-                               C84 31, 96 20, 110 18 Z"
-                            strokeWidth="2.2"
-                          />
-                          <path d="M101 73 C104 76, 116 76, 119 73" strokeWidth="1.2" className="text-border/40" />
-                          <path d="M96 148 C101 151, 119 151, 124 148" strokeWidth="1.1" className="text-border/30" />
-                        </g>
+    <linearGradient id="bodyHighlight" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stopColor="rgba(255,255,255,0.42)" />
+      <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+    </linearGradient>
 
-                        <g fill="url(#bodyFillSoft)" stroke="currentColor" className="text-border/80">
-                          {fantasyZones.map((zone) => {
-                            const summary = bodyPartSummaryMap[zone.key];
-                            const isActive = summary.isExpanded;
+    <filter id="bodyShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="rgba(70,48,27,0.18)" />
+    </filter>
+  </defs>
 
-                            const sharedStyle: React.CSSProperties = {
-                              strokeWidth: isActive ? 4.5 : summary.isWounded ? 2.5 : 2,
-                              opacity: isActive ? 1 : summary.isWounded ? 0.96 : 0.82,
-                              filter: isActive
-                                ? "drop-shadow(0 0 10px rgba(13,148,136,0.30)) drop-shadow(0 0 18px rgba(15,118,110,0.22))"
-                                : summary.isWounded
-                                  ? "drop-shadow(0 0 4px rgba(120,82,38,0.10))"
-                                  : undefined,
-                            };
+  <g filter="url(#bodyShadow)">
+    <g className="text-border/70" fill="none" stroke="currentColor">
+      <path
+        d="M110 16
+           C124 18, 136 30, 139 46
+           C141 60, 136 72, 126 81
+           C139 87, 149 98, 155 112
+           C161 127, 164 145, 162 165
+           C159 166, 155 166, 152 165
+           C148 148, 143 133, 134 121
+           L130 139
+           C128 150, 128 162, 129 175
+           C131 194, 134 216, 136 242
+           C137 264, 136 285, 133 306
+           L121 306
+           C120 286, 117 261, 113 228
+           L107 228
+           C103 261, 100 286, 99 306
+           L87 306
+           C84 285, 83 264, 84 242
+           C86 216, 89 194, 91 175
+           C92 162, 92 150, 90 139
+           L86 121
+           C77 133, 72 148, 68 165
+           C65 166, 61 166, 58 165
+           C56 145, 59 127, 65 112
+           C71 98, 81 87, 94 81
+           C84 72, 79 60, 81 46
+           C84 30, 96 18, 110 16 Z"
+        strokeWidth="2.3"
+      />
 
-                            const zoneClassName = isActive
-                              ? "fill-teal-700/35 stroke-teal-800"
-                              : summary.isWounded
-                                ? `${summary.styles.zone} stroke-current`
-                                : "fill-background/30 stroke-border";
+      <path
+        d="M96 78
+           C101 74, 106 72, 110 72
+           C114 72, 119 74, 124 78"
+        strokeWidth="1.1"
+        className="text-border/35"
+      />
+      <path
+        d="M92 94
+           C98 90, 104 88, 110 88
+           C116 88, 122 90, 128 94"
+        strokeWidth="0.95"
+        className="text-border/25"
+      />
+      <path
+        d="M95 147
+           C101 151, 119 151, 125 147"
+        strokeWidth="1"
+        className="text-border/30"
+      />
+      <path
+        d="M102 186
+           C104 183, 107 181, 110 181
+           C113 181, 116 183, 118 186"
+        strokeWidth="0.9"
+        className="text-border/20"
+      />
+      <path
+        d="M101 246
+           C99 252, 98 261, 98 270"
+        strokeWidth="0.8"
+        className="text-border/18"
+      />
+      <path
+        d="M119 246
+           C121 252, 122 261, 122 270"
+        strokeWidth="0.8"
+        className="text-border/18"
+      />
+    </g>
 
-                            return (
-                              <g
-                                key={zone.key}
-                                onClick={() => {
-                                  setSelectedHitZone(getHitZoneFromBodyPart(zone.key));
-                                  setExpandedBodyPart((prev) => (prev === zone.key ? null : zone.key));
-                                }}
-                                className="cursor-pointer transition-all"
-                              >
-                                {zone.key === "Testa" && (
-                                  <ellipse
-                                    cx="110"
-                                    cy="46"
-                                    rx="21"
-                                    ry="25"
-                                    className={zoneClassName}
-                                    style={sharedStyle}
-                                  />
-                                )}
+    <g fill="url(#bodyFillSoft)" stroke="currentColor" className="text-border/80">
+      {fantasyZones.map((zone) => {
+        const summary = bodyPartSummaryMap[zone.key];
+        const isActive = summary.isExpanded;
 
-                                {zone.key === "Torace" && (
-                                  <path
-                                    d="M84 82
-                                       C90 73, 99 69, 110 69
-                                       C121 69, 130 73, 136 82
-                                       L140 132
-                                       C132 142, 122 148, 110 148
-                                       C98 148, 88 142, 80 132 Z"
-                                    className={zoneClassName}
-                                    style={sharedStyle}
-                                  />
-                                )}
+        const sharedStyle: React.CSSProperties = {
+          strokeWidth: isActive ? 4.2 : summary.isWounded ? 2.5 : 1.9,
+          opacity: isActive ? 1 : summary.isWounded ? 0.97 : 0.88,
+          filter: isActive
+            ? "drop-shadow(0 0 10px rgba(13,148,136,0.28)) drop-shadow(0 0 16px rgba(15,118,110,0.2))"
+            : summary.isWounded
+              ? "drop-shadow(0 0 4px rgba(120,82,38,0.12))"
+              : undefined,
+          transition: "all 180ms ease",
+        };
 
-                                {zone.key === "Addome" && (
-                                  <path
-                                    d="M80 132
-                                      C88 142, 98 148, 110 148
-                                      C122 148, 132 142, 140 132
-                                      L144 168
-                                      C135 177, 124 182, 110 182
-                                      C96 182, 85 177, 76 168 Z"
-                                    className={zoneClassName}
-                                    style={sharedStyle}
-                                  />
-                                )}
-                                
-                                {zone.key === "Braccio SX" && (
-                                  <path
-                                    d="M68 106
-                                       C61 120, 58 135, 59 151
-                                       C60 163, 64 175, 70 186
-                                       L81 181
-                                       C76 167, 74 153, 74 139
-                                       C74 127, 77 115, 83 103 Z"
-                                    className={zoneClassName}
-                                    style={sharedStyle}
-                                  />
-                                )}
+        const zoneClassName = isActive
+          ? "fill-teal-700/35 stroke-teal-800"
+          : summary.isWounded
+            ? `${summary.styles.zone} stroke-current`
+            : "fill-background/35 stroke-border";
 
-                                {zone.key === "Braccio DX" && (
-                                  <path
-                                    d="M152 106
-                                       C159 120, 162 135, 161 151
-                                       C160 163, 156 175, 150 186
-                                       L139 181
-                                       C144 167, 146 153, 146 139
-                                       C146 127, 143 115, 137 103 Z"
-                                    className={zoneClassName}
-                                    style={sharedStyle}
-                                  />
-                                )}
+        return (
+          <g
+            key={zone.key}
+            onClick={() => {
+              setSelectedHitZone(getHitZoneFromBodyPart(zone.key));
+              setExpandedBodyPart((prev) => (prev === zone.key ? null : zone.key));
+            }}
+            className="cursor-pointer transition-all"
+          >
+            {zone.key === "Testa" && (
+              <>
+                <ellipse
+                  cx="110"
+                  cy="46"
+                  rx="20"
+                  ry="24"
+                  className={zoneClassName}
+                  style={sharedStyle}
+                />
+                <ellipse
+                  cx="104"
+                  cy="39"
+                  rx="7"
+                  ry="9"
+                  fill="url(#bodyHighlight)"
+                  opacity="0.45"
+                  pointerEvents="none"
+                />
+              </>
+            )}
 
-                                {zone.key === "Mano SX" && (
-                                  <ellipse
-                                    cx="69"
-                                    cy="201"
-                                    rx="11"
-                                    ry="12"
-                                    className={zoneClassName}
-                                    style={sharedStyle}
-                                  />
-                                )}
+            {zone.key === "Torace" && (
+              <path
+                d="M84 83
+                   C90 74, 100 69, 110 69
+                   C120 69, 130 74, 136 83
+                   L139 118
+                   C131 127, 122 131, 110 131
+                   C98 131, 89 127, 81 118 Z"
+                className={zoneClassName}
+                style={sharedStyle}
+              />
+            )}
 
-                                {zone.key === "Mano DX" && (
-                                  <ellipse
-                                    cx="151"
-                                    cy="201"
-                                    rx="11"
-                                    ry="12"
-                                    className={zoneClassName}
-                                    style={sharedStyle}
-                                  />
-                                )}
+            {zone.key === "Addome" && (
+              <path
+                d="M81 118
+                   C89 127, 98 132, 110 132
+                   C122 132, 131 127, 139 118
+                   L143 161
+                   C134 170, 123 176, 110 176
+                   C97 176, 86 170, 77 161 Z"
+                className={zoneClassName}
+                style={sharedStyle}
+              />
+            )}
 
-                                {zone.key === "Gamba SX" && (
-                                  <path
-                                    d="M98 148
-                                       C92 167, 89 187, 88 209
-                                       C87 228, 89 250, 93 279
-                                       L104 279
-                                       C106 252, 108 229, 111 207
-                                       C114 186, 117 166, 120 148 Z"
-                                    className={zoneClassName}
-                                    style={sharedStyle}
-                                  />
-                                )}
+            {zone.key === "Braccio SX" && (
+              <path
+                d="M67 107
+                   C60 119, 57 133, 58 149
+                   C59 163, 63 176, 70 188
+                   L81 183
+                   C76 170, 74 156, 74 141
+                   C74 128, 77 116, 83 104 Z"
+                className={zoneClassName}
+                style={sharedStyle}
+              />
+            )}
 
-                                {zone.key === "Gamba DX" && (
-                                  <path
-                                    d="M122 148
-                                       C128 167, 131 187, 132 209
-                                       C133 228, 131 250, 127 279
-                                       L116 279
-                                       C114 252, 112 229, 109 207
-                                       C106 186, 103 166, 100 148 Z"
-                                    className={zoneClassName}
-                                    style={sharedStyle}
-                                  />
-                                )}
+            {zone.key === "Braccio DX" && (
+              <path
+                d="M153 107
+                   C160 119, 163 133, 162 149
+                   C161 163, 157 176, 150 188
+                   L139 183
+                   C144 170, 146 156, 146 141
+                   C146 128, 143 116, 137 104 Z"
+                className={zoneClassName}
+                style={sharedStyle}
+              />
+            )}
 
-                                {zone.key === "Piede SX" && (
-                                  <path
-                                    d="M90 282
-                                       C82 282, 76 285, 72 289
-                                       L73 297
-                                       C82 300, 94 300, 104 297
-                                       L103 289
-                                       C99 285, 95 282, 90 282 Z"
-                                    className={zoneClassName}
-                                    style={sharedStyle}
-                                  />
-                                )}
+            {zone.key === "Mano SX" && (
+              <ellipse
+                cx="69"
+                cy="202"
+                rx="11"
+                ry="12.5"
+                className={zoneClassName}
+                style={sharedStyle}
+              />
+            )}
 
-                                {zone.key === "Piede DX" && (
-                                  <path
-                                    d="M130 282
-                                       C135 282, 139 285, 143 289
-                                       L142 297
-                                       C132 300, 120 300, 111 297
-                                       L112 289
-                                       C116 285, 122 282, 130 282 Z"
-                                    className={zoneClassName}
-                                    style={sharedStyle}
-                                  />
-                                )}
+            {zone.key === "Mano DX" && (
+              <ellipse
+                cx="151"
+                cy="202"
+                rx="11"
+                ry="12.5"
+                className={zoneClassName}
+                style={sharedStyle}
+              />
+            )}
 
-                                <title>{zone.key}</title>
-                              </g>
-                            );
-                          })}
-                        </g>
+            {zone.key === "Gamba SX" && (
+              <path
+                d="M99 176
+                   C93 194, 89 214, 88 236
+                   C87 252, 89 268, 93 281
+                   L104 281
+                   C106 261, 108 239, 111 218
+                   C114 201, 117 188, 120 176 Z"
+                className={zoneClassName}
+                style={sharedStyle}
+              />
+            )}
 
-                        <g className="text-primary/20" fill="none" stroke="currentColor">
-                          <path d="M110 24 L110 304" strokeWidth="0.8" strokeDasharray="3 5" />
-                        </g>
-                      </svg>
+            {zone.key === "Gamba DX" && (
+              <path
+                d="M121 176
+                   C127 194, 131 214, 132 236
+                   C133 252, 131 268, 127 281
+                   L116 281
+                   C114 261, 112 239, 109 218
+                   C106 201, 103 188, 100 176 Z"
+                className={zoneClassName}
+                style={sharedStyle}
+              />
+            )}
+
+            {zone.key === "Piede SX" && (
+              <path
+                d="M90 284
+                   C82 284, 76 287, 72 291
+                   L73 298
+                   C82 301, 94 301, 104 298
+                   L103 291
+                   C99 287, 95 284, 90 284 Z"
+                className={zoneClassName}
+                style={sharedStyle}
+              />
+            )}
+
+            {zone.key === "Piede DX" && (
+              <path
+                d="M130 284
+                   C135 284, 139 287, 143 291
+                   L142 298
+                   C132 301, 120 301, 111 298
+                   L112 291
+                   C116 287, 122 284, 130 284 Z"
+                className={zoneClassName}
+                style={sharedStyle}
+              />
+            )}
+
+            <title>{zone.key}</title>
+          </g>
+        );
+      })}
+    </g>
+
+    <g className="text-primary/18" fill="none" stroke="currentColor">
+      <path d="M110 24 L110 304" strokeWidth="0.8" strokeDasharray="3 5" />
+    </g>
+  </g>
+</svg>
                     </div>
                   </div>
 
