@@ -167,6 +167,19 @@ export const EMPTY_OSGDR_SHEET: OsgdrSheet = {
   skills: [],
 };
 
+const normalizeSignedPenaltyInput = (raw: string): string => {
+  const trimmed = raw.trim();
+
+  if (trimmed === "") return "";
+
+  const numeric = Number(trimmed.replace(",", "."));
+  if (Number.isNaN(numeric)) return "";
+
+  if (numeric === 0) return "0";
+
+  return String(-Math.abs(numeric));
+};
+
 const sortSkillsAlphabetically = (skills: OsgdrSkill[]): OsgdrSkill[] =>
   [...skills].sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base" }));
 
@@ -1189,11 +1202,12 @@ const setFeritaValue = (part: string, nextValue: string) => {
                             </div>
                           </>
                         ) : canEdit && editableKey ? (
-                          <Input
+                                                    <Input
                             value={value[editableKey] ?? ""}
-                            onChange={(e) => set(editableKey, e.target.value)}
-                            className="h-9 border-0 bg-transparent px-0 text-center font-display focus-visible:ring-0"
-                            style={{ fontSize: "18px" }}
+                            onChange={(e) =>
+                              set(editableKey, normalizeSignedPenaltyInput(e.target.value))
+                            }
+                            className="h-9 border-border/60 bg-background/70 font-script text-center"
                           />
                         ) : (
                           <div className="font-display" style={{ fontSize: "18px" }}>

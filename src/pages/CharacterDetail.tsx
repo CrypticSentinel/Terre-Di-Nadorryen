@@ -182,9 +182,9 @@ const CharacterDetail = () => {
   const [fields, setFields] = useState<CustomField[]>([]);
   const [osgdrSheet, setOsgdrSheet] = useState<OsgdrSheet>(EMPTY_OSGDR_SHEET);
   const woundPenalty = useMemo(() => getTotalWoundPenalty(osgdrSheet), [osgdrSheet]);
-const additionalPenalty = Number(osgdrSheet.penalita || 0);
-const fatiguePenalty = Number(osgdrSheet.fatica || 0);
-const totalPenaltyReminder = Math.abs(woundPenalty) + additionalPenalty + fatiguePenalty;
+  const additionalPenalty = Math.abs(Number(osgdrSheet.penalita || 0));
+  const fatiguePenalty = Math.abs(Number(osgdrSheet.fatica || 0));
+  const totalPenaltyReminder = Math.abs(woundPenalty) + additionalPenalty + fatiguePenalty;
 
 const penaltyReminder =
   totalPenaltyReminder > 0
@@ -253,7 +253,20 @@ const penaltyReminder =
       f.id !== BACKGROUND_FIELD_ID
   );
 
-      const setSheetField = <
+        const normalizeSignedPenaltyInput = (raw: string): string => {
+    const trimmed = raw.trim();
+
+    if (trimmed === "") return "";
+
+    const numeric = Number(trimmed.replace(",", "."));
+    if (Number.isNaN(numeric)) return "";
+
+    if (numeric === 0) return "0";
+
+    return String(-Math.abs(numeric));
+  };
+
+  const setSheetField = <
     K extends
       | "razza"
       | "provenienza"
@@ -270,9 +283,14 @@ const penaltyReminder =
     key: K,
     next: OsgdrSheet[K],
   ) => {
+    const normalizedNext =
+      key === "penalita" || key === "fatica"
+        ? (normalizeSignedPenaltyInput(String(next ?? "")) as OsgdrSheet[K])
+        : next;
+
     setOsgdrSheet((prev) => ({
       ...prev,
-      [key]: next,
+      [key]: normalizedNext,
     }));
   };
 
