@@ -63,6 +63,9 @@ interface DiceRollerProps {
   onClose?: () => void;
   penaltyReminder?: string;
   penaltyTotal?: number;
+  woundPenaltyTotal?: number;
+  additionalPenaltyTotal?: number;
+  fatiguePenaltyTotal?: number;
 }
 
 const formatExpression = (groups: DiceGroup[], modifier: number) => {
@@ -102,6 +105,9 @@ export const DiceRoller = ({
   onClose,
   penaltyReminder,
   penaltyTotal,
+  woundPenaltyTotal,
+  additionalPenaltyTotal,
+  fatiguePenaltyTotal,
 }: DiceRollerProps) => {
   const { user } = useAuth();
   const [groups, setGroups] = useState<DiceGroup[]>([
@@ -523,22 +529,26 @@ if (v === 20) {
             )}
           </div>
 
-          {typeof penaltyTotal === "number" && penaltyTotal > 0 && (
+                    {typeof penaltyTotal === "number" && penaltyTotal > 0 && (
             <div className="mt-2.5 rounded-md border border-destructive/30 bg-destructive/8 px-2 py-2">
               <div className="font-heading text-[10px] uppercase tracking-[0.12em] text-destructive">
                 Applica il malus
               </div>
 
               <div className="mt-1 font-script text-[11px] italic leading-relaxed text-foreground sm:text-xs">
-                {penaltyReminder || "Ricorda: sottrai Penalità Ferite + Penalità Aggiuntive + Fatica"}
+                Ricorda di sottrarre le penalità (se applicabili)
               </div>
 
-              <div className="mt-1.5 font-display text-xl text-destructive sm:text-2xl">
+              <div className="mt-1.5 font-script text-[11px] leading-relaxed text-foreground sm:text-xs">
+                Penalità Ferite (-{woundPenaltyTotal ?? 0}) / Penalità Aggiuntive (-{additionalPenaltyTotal ?? 0}) / Fatica (-{fatiguePenaltyTotal ?? 0})
+              </div>
+
+              <div className="mt-2 font-display text-xl text-destructive sm:text-2xl">
                 -{penaltyTotal}
               </div>
 
               <div className="mt-0.5 font-heading text-[9px] uppercase tracking-[0.1em] text-destructive/85">
-                Malus da sottrarre
+                Malus totale da sottrarre
               </div>
             </div>
           )}

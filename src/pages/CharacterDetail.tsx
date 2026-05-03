@@ -186,10 +186,7 @@ const CharacterDetail = () => {
   const fatiguePenalty = Math.abs(Number(osgdrSheet.fatica || 0));
   const totalPenaltyReminder = Math.abs(woundPenalty) + additionalPenalty + fatiguePenalty;
 
-const penaltyReminder =
-  totalPenaltyReminder > 0
-    ? `Ricorda: sottrai Penalità Ferite + Penalità Aggiuntive + Fatica = -${totalPenaltyReminder}`
-    : "Ricorda: sottrai Penalità Ferite + Penalità Aggiuntive + Fatica";
+const penaltyReminder = "Ricorda di sottrarre le penalità (se applicabili)";
   const [labelOverrides, setLabelOverrides] = useState<LabelOverridesMap>({});
   const [background, setBackground] = useState<string>("");
   const [assignedUserId, setAssignedUserId] = useState<string | undefined>(undefined);
@@ -1250,6 +1247,9 @@ useUnsavedChangesWarning({
                 characterName={character.name}
                 penaltyReminder={penaltyReminder}
                 penaltyTotal={totalPenaltyReminder}
+                woundPenaltyTotal={Math.abs(woundPenalty)}
+                additionalPenaltyTotal={additionalPenalty}
+                fatiguePenaltyTotal={fatiguePenalty}
               />
             </div>
           </aside>
